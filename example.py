@@ -583,6 +583,12 @@ console.print(f"\nAverage iterations per quarter: [cyan]{avg_iters:.1f}[/cyan]\n
 calibrate_all(v, obr_data)
 calibrate_fiscal(v, fiscal_data)
 
+# Recompute derived variables that depend on recalibrated values
+for t in range(len(v["HHDI"])):
+    pce_t = v["PCE"][t]
+    if pce_t > 0:
+        v["RHHDI"][t] = 100 * v["HHDI"][t] / pce_t
+
 # ------------------------------------------------------------------
 # Check for NaNs
 # ------------------------------------------------------------------
@@ -609,24 +615,21 @@ for q in quarters:
     table.add_column(q, justify="right")
 
 rows = [
-    ("GDPMPS", "Nominal GDP (£bn)",         1_000),
-    ("GDPM",   "Real GDP (£bn, const. p.)", 1_000),
-    ("PGDP",   "GDP deflator",              1),
     ("CPI",    "CPI (2015=100)",            1),
-    ("CPIH",   "CPIH (2015=100)",           1),
-    ("RPI",    "RPI inflation (%)",         1),
+    ("RHHDI",  "RHDI (£bn, 2023 p.)",      1_000),
+    ("GDPMPS", "Nominal GDP (£bn)",         1_000),
+    ("GDPM",   "Real GDP (£bn)",            1_000),
+    ("PGDP",   "GDP deflator (2023=100)",   1),
     ("R",      "Bank Rate (%)",             1),
     ("RMORT",  "Mortgage rate (%)",         1),
+    ("RPI",    "RPI inflation (%)",         1),
     ("LFSUR",  "Unemployment rate (%)",     1),
     ("ETLFS",  "Employment (thousands)",    1),
     ("PSAVEI", "AWE (£/week)",             1),
-    ("CONS",   "HH consumption (£bn)",     1_000),
-    ("CONSPS", "HH consumption nom. (£bn)", 1_000),
-    ("HHDI",   "HH disp. income (£bn)",    1_000),
-    ("RHHDI",  "Real HH disp. income (£bn)", 1_000),
-    ("SVHH",   "HH saving (£m)",           1),
+    ("CONS",   "Real consumption (£bn)",   1_000),
+    ("CONSPS", "Nominal consumption (£bn)", 1_000),
+    ("HHDI",   "Nominal HHDI (£bn)",       1_000),
     ("SY",     "Saving ratio (%)",          1),
-    ("NFWPE",  "HH net fin. wealth (£bn)", 1_000),
     ("PBRENT", "Oil price ($/bbl)",         1),
 ]
 
