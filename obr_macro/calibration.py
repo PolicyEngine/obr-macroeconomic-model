@@ -2,12 +2,52 @@
 
 from __future__ import annotations
 
+import urllib.request
 from pathlib import Path
 
 import numpy as np
 import openpyxl
 
 from obr_macro.variables import Variables
+
+# OBR November 2025 EFO download URLs
+OBR_URLS = {
+    "economy": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-economy/",
+    "receipts": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-receipts/",
+    "expenditure": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-expenditure/",
+    "aggregates": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-aggregates/",
+}
+
+OBR_FILENAMES = {
+    "economy": "obr_efo_november_2025_economy.xlsx",
+    "receipts": "obr_efo_november_2025_receipts.xlsx",
+    "expenditure": "obr_efo_november_2025_expenditure.xlsx",
+    "aggregates": "obr_efo_november_2025_aggregates.xlsx",
+}
+
+
+def ensure_obr_data(data_dir: str | Path | None = None) -> dict[str, Path]:
+    """Download OBR EFO data files if not already present.
+
+    Returns a dict mapping table type to file path.
+    """
+    if data_dir is None:
+        data_dir = Path(__file__).parent.parent / "data"
+    data_dir = Path(data_dir)
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    paths: dict[str, Path] = {}
+    for key, filename in OBR_FILENAMES.items():
+        path = data_dir / filename
+        if not path.exists():
+            url = OBR_URLS[key]
+            print(f"Downloading OBR {key} tables from {url}...")
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req) as resp, open(path, "wb") as f:
+                f.write(resp.read())
+        paths[key] = path
+
+    return paths
 
 
 def _read_table(
@@ -396,6 +436,351 @@ def calibrate_housing(v: Variables, data: dict[str, dict[str, float]]) -> None:
     """Set housing market variables from OBR data."""
     # House price index (Jan 2023=100)
     _set_var(v, "APH", data.get("HPI", {}))
+
+
+def _read_annual_fiscal(
+    wb: openpyxl.Workbook,
+    sheet: str,
+    row_map: dict[str, int],
+    label_col: int = 2,
+    first_data_col: int = 4,
+    year_row: int = 5,
+    max_col: int = 11,
+) -> dict[str, dict[str, float]]:
+    """Read annual fiscal data and convert to quarterly series.
+
+    OBR fiscal tables use financial years (e.g. '2025-26'). We spread each
+    annual value evenly across the four quarters of the financial year:
+    Q2, Q3, Q4 of the start year and Q1 of the end year.
+
+    row_map: {model_variable_name: row_number}
+    Returns {variable_name: {period_label: value}} with quarterly periods.
+    """
+    ws = wb[sheet]
+
+    # Read the financial year headers from the year_row
+    fy_cols: list[tuple[str, int]] = []
+    for c in range(first_data_col, max_col + 1):
+        fy = ws.cell(year_row, c).value
+        if fy is None:
+            continue
+        fy = str(fy).strip()
+        # Expect format like '2025-26'
+        if len(fy) >= 5 and "-" in fy:
+            fy_cols.append((fy, c))
+
+    result: dict[str, dict[str, float]] = {}
+
+    for var_name, row in row_map.items():
+        series: dict[str, float] = {}
+        for fy, col in fy_cols:
+            val = ws.cell(row, col).value
+            if not isinstance(val, (int, float)):
+                continue
+            if not np.isfinite(val):
+                continue
+
+            # Parse financial year: '2025-26' → start_year=2025
+            try:
+                start_year = int(fy[:4])
+            except (ValueError, IndexError):
+                continue
+
+            # Quarterly value = annual / 4
+            qval = float(val) / 4.0
+
+            # Financial year runs Q2-Q4 of start_year, Q1 of start_year+1
+            for q_label in [
+                f"{start_year}Q2",
+                f"{start_year}Q3",
+                f"{start_year}Q4",
+                f"{start_year + 1}Q1",
+            ]:
+                series[q_label] = qval
+
+        result[var_name] = series
+
+    return result
+
+
+def load_obr_fiscal(
+    receipts_path: str | Path,
+    expenditure_path: str | Path,
+    aggregates_path: str | Path,
+) -> dict[str, dict[str, float]]:
+    """Load OBR EFO fiscal supplementary tables (receipts, expenditure, aggregates).
+
+    Returns a flat dict: {model_variable_name: {period_label: value}}.
+    All values are in £bn (annual), converted to quarterly.
+    """
+    data: dict[str, dict[str, float]] = {}
+
+    def merge(d: dict[str, dict[str, float]]) -> None:
+        for k, v in d.items():
+            data[k] = v
+
+    # --- Receipts (Table 3.9: current receipts on cash basis) ---
+    wb_r = openpyxl.load_workbook(str(receipts_path), data_only=True)
+    merge(
+        _read_annual_fiscal(
+            wb_r,
+            "3.9",
+            row_map={
+                "INCTAXG": 7,       # Income tax (gross of tax credits)
+                "EMPNIC": 12,       # National insurance contributions
+                "VREC": 13,         # VAT
+                "CETAX_CT": 14,     # Corporation tax
+                "PRT": 20,          # Petroleum revenue tax
+                "TXFUEL": 21,       # Fuel duties
+                "CGT": 22,          # Capital gains tax
+                "INHT": 23,         # Inheritance tax
+                "TSD": 24,          # Stamp duty land tax
+                "TXSTSH": 26,       # Stamp taxes on shares
+                "TXTOB": 27,        # Tobacco duties
+                "TXALC_SP": 28,     # Spirits duties
+                "TXALC_WN": 29,     # Wine duties
+                "TXALC_BR": 30,     # Beer and cider duties
+                "APD": 31,          # Air passenger duty
+                "IPT": 32,          # Insurance premium tax
+                "CCL": 33,          # Climate change levy
+                "CUST": 37,         # Customs duties
+                "BLEVY": 38,        # Bank levy
+                "VED": 52,          # Vehicle excise duties
+                "NNDRA": 53,        # Business rates
+                "CC": 54,           # Council tax
+                "PSCR": 64,         # Total current receipts
+            },
+            first_data_col=4,
+            year_row=5,
+            max_col=10,
+        )
+    )
+
+    # Table 3.4: Income tax and NICs detailed breakdown
+    merge(
+        _read_annual_fiscal(
+            wb_r,
+            "3.4",
+            row_map={
+                "TYEM_PAYE": 8,     # PAYE
+                "TYEM_SA": 9,       # Self assessment
+                "NIC_EE": 17,       # Class 1 employee NICs
+                "NIC_ER": 18,       # Class 1 employer NICs
+            },
+            first_data_col=3,
+            year_row=5,
+            max_col=9,
+        )
+    )
+
+    # --- Expenditure ---
+    wb_e = openpyxl.load_workbook(str(expenditure_path), data_only=True)
+
+    # Table 4.9: Welfare spending
+    merge(
+        _read_annual_fiscal(
+            wb_e,
+            "4.9",
+            row_map={
+                "WELFARE_CAP": 36,      # Total welfare cap spending
+                "STATE_PENSION": 40,    # State pension
+                "WELFARE_TOTAL": 47,    # Total welfare spending
+            },
+            first_data_col=4,
+            year_row=5,
+            max_col=10,
+        )
+    )
+
+    # --- Aggregates ---
+    wb_a = openpyxl.load_workbook(str(aggregates_path), data_only=True)
+
+    # Table 6.3: General government transactions
+    merge(
+        _read_annual_fiscal(
+            wb_a,
+            "6.3",
+            row_map={
+                "GG_INC_WEALTH": 7,     # Taxes on income and wealth
+                "GG_PROD_IMP": 8,       # Taxes on production and imports
+                "GG_OTHER_TAX": 9,      # Other current taxes
+                "GG_CAP_TAX": 10,       # Taxes on capital
+                "GG_SOC_CONT": 11,      # Compulsory social contributions
+                "GG_GOS": 12,           # Gross operating surplus
+                "GG_RENT_TR": 13,       # Rent and other current transfers
+                "GG_INT_DIV_PRIV": 14,  # Interest & dividends from private
+                "GG_INT_DIV_PUB": 15,   # Interest & dividends from public
+                "GG_CURR_RECEIPTS": 16, # Total current receipts
+                "GG_CONSUMPTION": 19,   # Consumption expenditure
+                "GG_SUBSIDIES": 20,     # Subsidies
+                "GG_NET_SOC_BEN": 21,   # Net social benefits
+                "GG_CURR_GRANTS_ABR": 22, # Net current grants abroad
+                "GG_OTHER_GRANTS": 24,  # Other current grants
+                "GG_INT_PAID": 26,      # Interest and dividends paid
+                "GG_CURR_EXP": 27,      # Total current expenditure
+                "GG_DEPRECIATION": 28,  # Depreciation
+                "GG_GDFCF": 32,         # Gross domestic fixed capital formation
+                "GG_NET_BORROW": 39,    # Net borrowing
+                "CG_NET_BORROW": 41,    # Central govt net borrowing
+                "LA_NET_BORROW": 42,    # Local authority net borrowing
+            },
+            first_data_col=3,
+            year_row=5,
+            max_col=9,
+        )
+    )
+
+    # Table 6.1: Expenditure by sector
+    merge(
+        _read_annual_fiscal(
+            wb_a,
+            "6.1",
+            row_map={
+                "CG_CONSUMPTION": 10,   # CG consumption
+                "CG_SUBSIDIES": 11,     # CG subsidies
+                "CG_SOC_BEN": 12,       # CG net social benefits
+                "CG_GRANTS_ABR": 13,    # CG net current grants abroad
+                "CG_INT_GRANTS": 14,    # CG current grants within public sector
+                "CG_OTHER_GRANTS": 15,  # CG other current grants
+                "CG_INT_PAID": 17,      # CG interest and dividends paid
+                "CG_GDFCF": 21,         # CG GDFCF
+                "CG_CAP_GRANTS": 25,    # CG capital grants to private sector
+                "LA_CONSUMPTION": 32,   # LA consumption
+                "LA_SUBSIDIES": 33,     # LA subsidies
+                "LA_SOC_BEN": 34,       # LA net social benefits
+                "LA_INT_PAID": 38,      # LA interest and dividends paid
+                "LA_GDFCF": 42,         # LA GDFCF
+                "LA_CAP_GRANTS": 46,    # LA capital grants to private sector
+                "PSCE": 96,             # Public sector current expenditure
+                "PSNI": 97,             # Public sector net investment
+            },
+            first_data_col=4,
+            year_row=5,
+            max_col=10,
+        )
+    )
+
+    return data
+
+
+def calibrate_fiscal(
+    v: Variables, data: dict[str, dict[str, float]]
+) -> None:
+    """Set fiscal variables from OBR fiscal tables.
+
+    OBR fiscal data is in £bn annual, already converted to quarterly £bn
+    by load_obr_fiscal. Model uses £m, so scale = 1000.
+    """
+    S = 1000  # £bn → £m
+
+    # Tax receipts
+    # Income tax: TYEM in model = total income tax on households
+    # Use PAYE as main proxy for TYEM (employed income tax)
+    _set_var(v, "TYEM", data.get("TYEM_PAYE", {}), scale=S)
+
+    # Self-assessment goes into TSEOP (self-employment tax)
+    _set_var(v, "TSEOP", data.get("TYEM_SA", {}), scale=S)
+
+    # Total income tax (gross) for reference
+    _set_var(v, "INCTAXG", data.get("INCTAXG", {}), scale=S)
+
+    # NICs
+    if "NIC_ER" in data:
+        _set_var(v, "EENIC", data["NIC_ER"], scale=S)
+    if "NIC_EE" in data:
+        _set_var(v, "EMPNIC", data["NIC_EE"], scale=S)
+
+    # VAT
+    _set_var(v, "VREC", data.get("VREC", {}), scale=S)
+
+    # Corporation tax
+    _set_var(v, "CETAX", data.get("CETAX_CT", {}), scale=S)
+
+    # Fuel duties
+    _set_var(v, "TXFUEL", data.get("TXFUEL", {}), scale=S)
+
+    # Tobacco duties
+    _set_var(v, "TXTOB", data.get("TXTOB", {}), scale=S)
+
+    # Alcohol duties (combine spirits + wine + beer)
+    if "TXALC_SP" in data and "TXALC_WN" in data and "TXALC_BR" in data:
+        combined = {}
+        for p in data["TXALC_SP"]:
+            val = data["TXALC_SP"].get(p, 0) + data["TXALC_WN"].get(p, 0) + data["TXALC_BR"].get(p, 0)
+            combined[p] = val
+        _set_var(v, "TXALC", combined, scale=S)
+
+    # Capital gains tax
+    _set_var(v, "CGT", data.get("CGT", {}), scale=S)
+
+    # Inheritance tax
+    _set_var(v, "INHT", data.get("INHT", {}), scale=S)
+
+    # Stamp duty land tax
+    _set_var(v, "TSD", data.get("TSD", {}), scale=S)
+
+    # Council tax
+    _set_var(v, "CC", data.get("CC", {}), scale=S)
+
+    # Business rates
+    _set_var(v, "NNDRA", data.get("NNDRA", {}), scale=S)
+
+    # Customs duties
+    _set_var(v, "CUST", data.get("CUST", {}), scale=S)
+
+    # Climate change levy
+    _set_var(v, "CCL", data.get("CCL", {}), scale=S)
+
+    # Bank levy
+    _set_var(v, "BLEVY", data.get("BLEVY", {}), scale=S)
+
+    # Vehicle excise duties
+    _set_var(v, "VED", data.get("VED", {}), scale=S)
+
+    # Petroleum revenue tax
+    _set_var(v, "PRT", data.get("PRT", {}), scale=S)
+
+    # Total current receipts
+    _set_var(v, "PSCR", data.get("PSCR", {}), scale=S)
+
+    # Social benefits
+    # CGSB = central government social benefits (DWP social security)
+    _set_var(v, "CGSB", data.get("CG_SOC_BEN", {}), scale=S)
+
+    # LASBHH = local authority social benefits to households
+    _set_var(v, "LASBHH", data.get("LA_SOC_BEN", {}), scale=S)
+
+    # Total welfare spending for reference
+    _set_var(v, "PUBSTIW", data.get("WELFARE_TOTAL", {}), scale=S)
+
+    # Government consumption
+    _set_var(v, "CGGPSPSF", data.get("GG_CONSUMPTION", {}), scale=S)
+
+    # Government investment (GDFCF)
+    _set_var(v, "CGIPS", data.get("CG_GDFCF", {}), scale=S)
+    _set_var(v, "LAIPS", data.get("LA_GDFCF", {}), scale=S)
+
+    # Government subsidies
+    _set_var(v, "CGSUBP", data.get("CG_SUBSIDIES", {}), scale=S)
+    _set_var(v, "LASUBP", data.get("LA_SUBSIDIES", {}), scale=S)
+
+    # Government interest paid (debt interest)
+    _set_var(v, "PSINTR", data.get("GG_INT_PAID", {}), scale=S)
+
+    # Capital grants to private sector
+    _set_var(v, "CGKTA", data.get("CG_CAP_GRANTS", {}), scale=S)
+
+    # Other grants
+    _set_var(v, "CGOTR", data.get("CG_OTHER_GRANTS", {}), scale=S)
+
+    # Net borrowing
+    _set_var(v, "PSNBCY", data.get("GG_NET_BORROW", {}), scale=S)
+
+    # Compulsory social contributions (general government)
+    _set_var(v, "EMPSC", data.get("GG_SOC_CONT", {}), scale=S)
+
+    # Depreciation
+    _set_var(v, "GGFCD", data.get("GG_DEPRECIATION", {}), scale=S)
 
 
 def calibrate_all(v: Variables, data: dict[str, dict[str, float]]) -> None:
