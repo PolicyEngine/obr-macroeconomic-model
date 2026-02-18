@@ -5,7 +5,6 @@ national accounts, and labour market variables. Remaining variables use
 illustrative defaults. Runs the Gauss-Seidel solver over 2025Q1-2026Q4.
 """
 
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -13,34 +12,33 @@ from rich.console import Console
 from rich.table import Table
 
 from obr_macro.model import OBRMacroModel
-from obr_macro.calibration import load_obr_efo, calibrate_all
+from obr_macro.calibration import (
+    ensure_obr_data,
+    load_obr_efo,
+    load_obr_fiscal,
+    calibrate_all,
+    calibrate_fiscal,
+)
 
 console = Console()
 
 # ------------------------------------------------------------------
-# Check for OBR data file
+# Download OBR data if needed and load
 # ------------------------------------------------------------------
-OBR_FILE = Path(__file__).parent / "data" / "obr_efo_november_2025_economy.xlsx"
-if not OBR_FILE.exists():
-    # Also check /tmp for development
-    OBR_FILE = Path("/tmp/obr_economy_tables.xlsx")
-if not OBR_FILE.exists():
-    console.print("[red]OBR economy tables not found. Download from:[/red]")
-    console.print("  https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-economy/")
-    console.print(f"  Place at: {Path(__file__).parent / 'data' / 'obr_efo_november_2025_economy.xlsx'}")
-    sys.exit(1)
+console.print("\n[bold]OBR macro model — calibrated to November 2025 EFO[/bold]")
 
-# ------------------------------------------------------------------
-# Initialise model and load OBR data
-# ------------------------------------------------------------------
+obr_paths = ensure_obr_data()
+console.print(f"OBR data: {obr_paths['economy'].parent}")
+
 m = OBRMacroModel(start="1970Q1", end="2031Q4")
 v = m.v
 
-console.print("\n[bold]OBR macro model — calibrated to November 2025 EFO[/bold]")
-console.print(f"Loading OBR data from {OBR_FILE.name}...")
-
-obr_data = load_obr_efo(OBR_FILE)
+obr_data = load_obr_efo(obr_paths["economy"])
+fiscal_data = load_obr_fiscal(
+    obr_paths["receipts"], obr_paths["expenditure"], obr_paths["aggregates"]
+)
 calibrate_all(v, obr_data)
+calibrate_fiscal(v, fiscal_data)
 
 
 def s(name: str, value: float) -> None:
@@ -523,6 +521,7 @@ s("PIPRL", 116.0)
 # priority over the constant defaults above for overlapping vars)
 # ------------------------------------------------------------------
 calibrate_all(v, obr_data)
+calibrate_fiscal(v, fiscal_data)
 
 # ------------------------------------------------------------------
 # Bootstrap: find internally-consistent endogenous values
@@ -582,6 +581,7 @@ console.print(f"\nAverage iterations per quarter: [cyan]{avg_iters:.1f}[/cyan]\n
 # to their target values (solver may have overwritten endogenous ones)
 # ------------------------------------------------------------------
 calibrate_all(v, obr_data)
+calibrate_fiscal(v, fiscal_data)
 
 # ------------------------------------------------------------------
 # Check for NaNs
