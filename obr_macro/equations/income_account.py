@@ -31,7 +31,7 @@ def solve_t(v: Variables, t: int) -> None:
     ERLA = v["ERLA"][t]
 
     WFP[t] = (
-        v["ADJW"][t] * PSAVEI * (EMS - ESLFS[t])
+        v["ADJW"][t] * (52 / 4000) * PSAVEI * (EMS - ESLFS[t])
         + (52 / 4000) * CGWADJ * ERCG * ECG
         + (52 / 4000) * LAWADJ * ERLA * ELA
     )

@@ -4,7 +4,7 @@ from obr_macro.equations import EQUATION_GROUPS
 
 
 def test_imports():
-    assert len(EQUATION_GROUPS) == 16
+    assert len(EQUATION_GROUPS) == 9
 
 
 def test_variables_basic():

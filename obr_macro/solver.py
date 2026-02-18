@@ -36,8 +36,11 @@ def solve_period(
             new = v[name][t]
             if np.isfinite(old) and np.isfinite(new) and old != 0:
                 delta = abs((new - old) / old)
+            elif not np.isfinite(new):
+                # Treat NaN/inf as non-converged
+                delta = 1.0
             else:
-                delta = abs(new - old) if np.isfinite(new - old) else 0.0
+                delta = abs(new - old) if np.isfinite(new - old) else 1.0
             if delta > max_delta:
                 max_delta = delta
 
