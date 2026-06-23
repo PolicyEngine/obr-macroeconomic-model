@@ -11,23 +11,27 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from obr_macro.data import load_obr_data, DATA_DIR
+from obr_macro.data import load_obr_data, DATA_DIR, ensure_model_code
 from obr_macro.transpiler import parse_model_file, ParsedEquation
 
 
 class FullOBRSolver:
     """Solve the complete OBR model as published."""
 
-    def __init__(self, verbose: bool = True, include_behavioral: bool = True):
+    def __init__(self, verbose: bool = True, include_behavioral: bool = False):
         self.verbose = verbose
 
-        # Load data and equations
-        # include_behavioral=True loads the commented behavioral equations (dlog, d)
-        # which are needed for policy shock transmission
+        # Load data and equations.
+        # In the October 2025 model code the behavioural equations (dlog, d) are
+        # published uncommented, so they are parsed as part of the full 372-equation
+        # model with include_behavioral=False. (The include_behavioral=True path
+        # un-comments lines beginning with 'dlog/'d, which is only correct for older
+        # model files where those equations were commented out, and on the current
+        # file it would resurrect a commented, paren-unbalanced draft line.)
         self.data = load_obr_data()
         self.index = self.data.index
         self.equations = parse_model_file(
-            str(DATA_DIR / "obr_model_code_march_2025.txt"),
+            str(ensure_model_code()),
             include_behavioral=include_behavioral
         )
 

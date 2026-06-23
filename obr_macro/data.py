@@ -18,6 +18,55 @@ OBR_URLS = {
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 
+# OBR macroeconomic model code/variables download URLs (15 October 2025 version)
+OBR_MODEL_URLS = {
+    "model_code": "https://obr.uk/download/obr-macroeconomic-model-code/",
+    "model_variables": "https://obr.uk/download/obr-macroeconomic-model-variables/",
+}
+
+# The OBR site sits behind Cloudflare; a bare "Mozilla/5.0" User-Agent gets
+# 403-blocked, so a realistic full browser header set is required.
+_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/131.0.0.0 Safari/537.36"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,image/apng,*/*;q=0.8"
+    ),
+    "Accept-Language": "en-GB,en;q=0.9",
+    "Referer": "https://obr.uk/",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-User": "?1",
+}
+
+
+def ensure_model_code() -> Path:
+    """Download the OBR model code txt and variables xlsx if not present.
+
+    Returns the Path to the model code txt file. Both files are saved into
+    DATA_DIR. Existing files are not re-downloaded.
+    """
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    files = {
+        "model_code": DATA_DIR / "obr_model_code_october_2025.txt",
+        "model_variables": DATA_DIR / "obr_model_variables_october_2025.xlsx",
+    }
+
+    for key, path in files.items():
+        if not path.exists():
+            print(f"Downloading {key}...")
+            req = urllib.request.Request(OBR_MODEL_URLS[key], headers=_BROWSER_HEADERS)
+            with urllib.request.urlopen(req) as resp, open(path, "wb") as f:
+                f.write(resp.read())
+
+    return files["model_code"]
+
 
 def ensure_downloaded() -> dict[str, Path]:
     """Download OBR EFO Excel files if not present."""
@@ -33,7 +82,7 @@ def ensure_downloaded() -> dict[str, Path]:
     for key, path in files.items():
         if not path.exists():
             print(f"Downloading {key}...")
-            req = urllib.request.Request(OBR_URLS[key], headers={"User-Agent": "Mozilla/5.0"})
+            req = urllib.request.Request(OBR_URLS[key], headers=_BROWSER_HEADERS)
             with urllib.request.urlopen(req) as resp, open(path, "wb") as f:
                 f.write(resp.read())
 

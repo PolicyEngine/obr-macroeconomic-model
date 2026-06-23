@@ -128,12 +128,12 @@ class EViewsTranspiler:
 
     def _convert_lags_simple(self, s: str, lag: int) -> str:
         """Convert lags in expression, adding default lag to bare variables."""
-        # First convert explicit lags VAR(-n)
-        pattern = r'([A-Z][A-Z0-9_]*)\((-?\d+)\)'
+        # First convert explicit lags VAR(-n); tolerate stray whitespace e.g. VAR(- 1)
+        pattern = r'([A-Z][A-Z0-9_]*)\(\s*(-?\s*\d+)\s*\)'
 
         def replace(m):
             var = m.group(1)
-            explicit_lag = -int(m.group(2))  # VAR(-1) means lag 1
+            explicit_lag = -int(m.group(2).replace(' ', ''))  # VAR(-1) means lag 1
             total_lag = explicit_lag + lag
             if total_lag == 0:
                 return f"v['{var}']"
@@ -211,12 +211,13 @@ class EViewsTranspiler:
 
     def _convert_lags(self, s: str, default_lag: int = None) -> str:
         """Convert VAR(-n) to _lag('VAR', n) and bare VAR to v['VAR']."""
-        # Pattern: VARNAME(-n) where n is a positive integer
-        pattern = r'([A-Z][A-Z0-9_]*)\((-?\d+)\)'
+        # Pattern: VARNAME(-n) where n is a positive integer; tolerate stray
+        # whitespace e.g. VAR(- 1)
+        pattern = r'([A-Z][A-Z0-9_]*)\(\s*(-?\s*\d+)\s*\)'
 
         def replace(m):
             var = m.group(1)
-            lag = int(m.group(2))
+            lag = int(m.group(2).replace(' ', ''))
             if lag == 0:
                 return f"v['{var}']"
             elif lag < 0:

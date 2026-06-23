@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from obr_macro.full_solver import FullOBRSolver
-from obr_macro.transpiler import ParsedEquation
+from obr_macro.transpiler import ParsedEquation, EViewsTranspiler
 
 
 # Standard equations for closure swaps
@@ -34,6 +34,38 @@ IF_EQ = ParsedEquation(
     python_expr="v['IBUS'] + v['GGI'] + v['PCIH'] + v['PCLEB'] + v['IH'] + v['IPRL']"
 )
 
+# Business-investment error-correction equation, dlog(IBUSX).
+# The OBR publishes this equation commented out and missing its closing
+# parenthesis (identical in the March and October 2025 model code). It is
+# reconstructed here (the single missing ')' restored) and transpiled with the
+# real transpiler so it stays consistent with the parser. Under the investment
+# closure it replaces the IBUSX residual identity, activating the
+# cost-of-capital channel TCPRO -> TAF -> COC -> KSTAR -> KGAP -> IBUSX; without
+# it, business investment is a pure residual and corporation-tax shocks have no
+# effect on investment.
+_IBUSX_SRC = (
+    'dlog(IBUSX) = 0.1992007 * dlog(IBUSX(-3)) + 1.00573 * dlog(MSGVA(-1)) '
+    '- 0.0012369*CBIUD - 0.0418036*(log(IBUSX(-1)) - log(KMSXH(-2) * 1000) '
+    '+ KGAP(-2) + 0.0544706 * @recode(@date = @dateval("1998:01") , 1 , 0) '
+    '+ 0.0597525 * @recode(@date = @dateval("2005:02") , 1 , 0) - 0.0884031)'
+)
+IBUSX_EQ = EViewsTranspiler().parse_equation(_IBUSX_SRC)
+
+
+def _ensure_ibusx_inputs(solver):
+    """Ensure inputs to the reconstructed IBUSX equation exist on the solver.
+
+    CBIUD (a business-investment uncertainty differential) is referenced only by
+    the reconstructed dlog(IBUSX) equation, so it is never seen by the solver's
+    missing-variable initialisation and is absent from the EFO data. Default it
+    to zero: it is neutral and cancels between the baseline and shocked runs, so
+    it does not distort the corporation-tax differential.
+    """
+    if "CBIUD" not in solver.data.columns:
+        # (May emit a benign pandas fragmentation PerformanceWarning, as
+        # elsewhere in the solver; harmless for a single added column.)
+        solver.data["CBIUD"] = 0.0
+
 
 def run_reform(name: str, var: str, shock: float, start: str = "2025Q1",
                end: str = "2027Q4", periods: int = 12, investment_closure: bool = False):
@@ -52,6 +84,8 @@ def run_reform(name: str, var: str, shock: float, start: str = "2025Q1",
     baseline = FullOBRSolver(verbose=False)
     baseline.swap_closure("DINV", GDPM_EQ)
     if investment_closure:
+        _ensure_ibusx_inputs(baseline)
+        baseline.swap_closure("IBUSX", IBUSX_EQ)
         baseline.swap_closure("IBUS", IBUS_EQ)
         baseline.swap_closure("IF_PLACEHOLDER", IF_EQ)
     baseline._shock_active = True
@@ -62,6 +96,8 @@ def run_reform(name: str, var: str, shock: float, start: str = "2025Q1",
     shocked = FullOBRSolver(verbose=False)
     shocked.swap_closure("DINV", GDPM_EQ)
     if investment_closure:
+        _ensure_ibusx_inputs(shocked)
+        shocked.swap_closure("IBUSX", IBUSX_EQ)
         shocked.swap_closure("IBUS", IBUS_EQ)
         shocked.swap_closure("IF_PLACEHOLDER", IF_EQ)
     shocked.apply_shock(var, shock, start, periods=periods)

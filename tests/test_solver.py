@@ -19,7 +19,7 @@ def test_transpiler_parses_equations():
     """Test that the transpiler parses OBR equations."""
     from obr_macro import parse_model_file, DATA_DIR
 
-    equations = parse_model_file(str(DATA_DIR / "obr_model_code_march_2025.txt"))
+    equations = parse_model_file(str(DATA_DIR / "obr_model_code_october_2025.txt"))
     assert len(equations) > 300  # OBR has ~372 equations
 
 
