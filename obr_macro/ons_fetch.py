@@ -76,20 +76,28 @@ def fetch_series(cdid):
         idx, vals = [], []
         for o in q:
             try:
-                idx.append(pd.Period(f"{o['year']}{o['quarter']}", freq="Q"))
-                vals.append(float(o["value"]))
+                p = pd.Period(f"{o['year']}{o['quarter']}", freq="Q")
+                v = float(o["value"])
             except Exception:
-                pass
+                continue  # keep idx and vals in lock-step (skip empty values)
+            idx.append(p)
+            vals.append(v)
+        if not idx:
+            return None, title, None
         return pd.Series(vals, index=pd.PeriodIndex(idx, freq="Q")).sort_index(), title, "quarterly"
 
     if m:
         idx, vals = [], []
         for o in m:
             try:
-                idx.append(pd.Period(f"{o['year']}-{o['month'][:3]}", freq="M"))
-                vals.append(float(o["value"]))
+                p = pd.Period(f"{o['year']}-{o['month'][:3]}", freq="M")
+                v = float(o["value"])
             except Exception:
-                pass
+                continue
+            idx.append(p)
+            vals.append(v)
+        if not idx:
+            return None, title, None
         s = pd.Series(vals, index=pd.PeriodIndex(idx, freq="M")).sort_index()
         return s.resample("Q").mean(), title, "monthly->Q mean"
 
@@ -97,10 +105,14 @@ def fetch_series(cdid):
         idx, vals = [], []
         for o in y:
             try:
-                idx.append(int(o["year"]))
-                vals.append(float(o["value"]))
+                yr = int(o["year"])
+                v = float(o["value"])
             except Exception:
-                pass
+                continue
+            idx.append(yr)
+            vals.append(v)
+        if not idx:
+            return None, title, None
         ys = pd.Series(vals, index=idx).sort_index()
         # annual -> hold flat across the four quarters of each year
         recs = {}

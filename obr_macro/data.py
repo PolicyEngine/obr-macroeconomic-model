@@ -368,6 +368,27 @@ def load_obr_data() -> pd.DataFrame:
     # Derive additional variables from identities
     df = _derive_variables(df)
 
+    # Merge the vendored ONS exogenous-input snapshot (Stage 1c): the ~150
+    # disaggregated National-Accounts / fiscal series the equations need but the
+    # EFO tables do not publish. Held flat beyond the data for forecast periods.
+    df = _merge_ons_snapshot(df)
+
+    return df
+
+
+def _merge_ons_snapshot(df: pd.DataFrame) -> pd.DataFrame:
+    """Add the ONS exogenous-input series (obr_macro/seeds/...) to the frame."""
+    snap_path = Path(__file__).parent / "seeds" / "ons_exogenous_snapshot.csv"
+    if not snap_path.exists():
+        return df
+    snap = pd.read_csv(snap_path, index_col=0)
+    snap.index = pd.PeriodIndex(snap.index, freq="Q")
+    # align to the model index, hold exogenous assumptions flat across any gaps
+    snap = snap.reindex(df.index).ffill().bfill()
+    add = {c: snap[c] for c in snap.columns if c not in df.columns or df[c].isna().all()}
+    if add:
+        df = pd.concat([df, pd.DataFrame(add, index=df.index)], axis=1)
+        df = df.loc[:, ~df.columns.duplicated(keep="last")]
     return df
 
 
