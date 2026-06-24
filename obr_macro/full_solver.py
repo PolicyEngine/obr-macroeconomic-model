@@ -139,12 +139,26 @@ class FullOBRSolver:
             if var not in self.data.columns:
                 return default
             s = self.data[var]
+            # prefer the model's 2009 base year; else rebase to the most recent
+            # year of data so the cost-competitiveness ratios sit near 1.
             yr = s[[p.year == 2009 for p in self.index]]
             if yr.notna().any():
                 return float(yr.mean())
-            if s.notna().any():
-                return float(s.median())
+            fin = s.dropna()
+            if len(fin):
+                return float(fin.iloc[-min(len(fin), 4):].mean())  # recent rebase
             return default
+
+        def ratio_base(num, den, default):
+            """Base value for a ratio normaliser (e.g. OILBASE = PBRENT/RXD),
+            evaluated at the most recent period where both inputs exist."""
+            if num not in self.data.columns or den not in self.data.columns:
+                return default
+            both = self.data[[num, den]].dropna()
+            if not len(both):
+                return default
+            r = (both[num] / both[den]).iloc[-min(len(both), 4):]
+            return float(r.mean()) if r.notna().any() else default
 
         # multiplicative adjustment factors -> 1, additive residuals -> 0
         for col in self.data.columns:
@@ -153,8 +167,12 @@ class FullOBRSolver:
             elif col.endswith("RES"):
                 fill(col, 0.0)
 
-        # base-year normalisers
-        explicit_base = {"OILBASE": 40.0, "TXRATEBASE": 0.1}
+        # base-year normalisers. OILBASE = (PBRENT/RXD), TXRATEBASE = (BPAPS/GVA)
+        # are ratios, computed from data; the rest rebase from their base series.
+        explicit_base = {
+            "OILBASE": ratio_base("PBRENT", "RXD", 40.0),
+            "TXRATEBASE": ratio_base("BPAPS", "GVAFC", 0.1),
+        }
         for col in self.data.columns:
             if col.endswith("BASE") and not np.isfinite(self.data[col].to_numpy(dtype=float)).any():
                 if col in explicit_base:
