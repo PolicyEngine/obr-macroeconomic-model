@@ -18,8 +18,11 @@ from obr_macro.transpiler import parse_model_file, ParsedEquation
 class FullOBRSolver:
     """Solve the complete OBR model as published."""
 
-    def __init__(self, verbose: bool = True, include_behavioral: bool = False):
+    def __init__(self, verbose: bool = True, include_behavioral: bool = False,
+                 hist_floor: str = "2016Q1"):
         self.verbose = verbose
+        self._code_cache = {}          # python_expr -> compiled code object
+        self._hist_floor = hist_floor  # earliest period to initialise/solve over
 
         # Load data and equations.
         # In the October 2025 model code the behavioural equations (dlog, d) are
@@ -127,6 +130,14 @@ class FullOBRSolver:
             if self.data.iloc[t].notna().sum() > 50:
                 start_t = t
                 break
+
+        # Only initialise recent history. Earlier periods are not needed for the
+        # lags/levels at any realistic forecast start, and solving 50+ years of
+        # history dominated build time (the snapshot pushes data back to 1972).
+        try:
+            start_t = max(start_t, self.period_idx(self._hist_floor))
+        except Exception:
+            pass
 
         if self.verbose:
             print(f"Initializing from period {self.index[start_t]}")
@@ -252,7 +263,7 @@ class FullOBRSolver:
                     # Only initialize if currently NaN
                     if not np.isfinite(current_val):
                         try:
-                            new_val = eval(eq.python_expr, ctx)
+                            new_val = eval(self._compiled(eq.python_expr), ctx)
                             if np.isfinite(new_val):
                                 if var in col_idx:
                                     self.data.iloc[t, col_idx[var]] = new_val
@@ -387,6 +398,15 @@ class FullOBRSolver:
         key = f"{var}_{period}"
         return self.base_values.get(key, np.nan)
 
+    def _compiled(self, expr: str):
+        """Compile an equation RHS once and cache it; eval(code) is far faster
+        than eval(string) in the inner Gauss-Seidel loop."""
+        code = self._code_cache.get(expr)
+        if code is None:
+            code = compile(expr, "<eq>", "eval")
+            self._code_cache[expr] = code
+        return code
+
     def _build_context(self, t: int) -> dict:
         """Build evaluation context for time t."""
         v = {col: self.data.iloc[t][col] for col in self.data.columns}
@@ -399,6 +419,26 @@ class FullOBRSolver:
             "_elem": self._elem,
             "t": t,
         }
+
+    def clone(self) -> "FullOBRSolver":
+        """Fast copy that shares the immutable, expensive-to-build state (parsed
+        equations, compiled-code cache, base values, residuals, index) and copies
+        only the mutable data frame. Lets callers build/solve a baseline once and
+        branch many shocked scenarios off it without paying the build cost again.
+        """
+        new = FullOBRSolver.__new__(FullOBRSolver)
+        new.verbose = self.verbose
+        new._code_cache = self._code_cache          # compiled code objects (immutable)
+        new._hist_floor = self._hist_floor
+        new.index = self.index
+        new.base_values = self.base_values
+        new.residuals = self.residuals
+        new.equations = list(self.equations)        # own list; shared eq objects
+        new.data = self.data.copy()                 # own data
+        new.baseline = self.baseline
+        new._shock_active = getattr(self, "_shock_active", False)
+        new._build_equation_index()
+        return new
 
     def swap_closure(self, remove_var: str, add_eq: ParsedEquation):
         """Swap model closure by removing one equation and adding another.
@@ -447,11 +487,14 @@ class FullOBRSolver:
     def period_idx(self, period: str) -> int:
         return self.index.get_loc(pd.Period(period, freq="Q"))
 
-    def solve_period(self, t: int, max_iter: int = 100, tol: float = 1e-6) -> int:
+    def solve_period(self, t: int, max_iter: int = 60, tol: float = 1e-6,
+                     stall_patience: int = 8) -> int:
         """Solve all equations for period t using Gauss-Seidel."""
         # Pre-compute column indices for faster access
         col_idx = {col: self.data.columns.get_loc(col) for col in self.data.columns}
 
+        best_change = float("inf")
+        stall = 0
         for iteration in range(max_iter):
             max_change = 0.0
 
@@ -474,7 +517,7 @@ class FullOBRSolver:
                     var = self._extract_lhs_var(eq.lhs)
                     old_val = v.get(var, np.nan)
 
-                    rhs_val = eval(eq.python_expr, ctx)
+                    rhs_val = eval(self._compiled(eq.python_expr), ctx)
 
                     # Compute new value based on equation form
                     if "/" in eq.lhs:
@@ -509,6 +552,17 @@ class FullOBRSolver:
 
             if max_change < tol:
                 return iteration + 1
+
+            # Stall break: many periods never converge (a few equations oscillate
+            # or overflow from unit issues), so stop once max_change stops
+            # improving instead of burning all max_iter on them.
+            if max_change < best_change - 1e-9:
+                best_change = max_change
+                stall = 0
+            else:
+                stall += 1
+                if stall >= stall_patience:
+                    return iteration + 1
 
         return max_iter
 
@@ -553,7 +607,7 @@ class FullOBRSolver:
         for eq in self.equations:
             var = self._extract_lhs_var(eq.lhs)
             try:
-                val = eval(eq.python_expr, ctx)
+                val = eval(self._compiled(eq.python_expr), ctx)
                 if not np.isfinite(val):
                     inputs = nan_inputs(eq.python_expr)
                     out.append({"var": var, "lhs": eq.lhs, "status": "nonfinite",

@@ -4,7 +4,7 @@ Horizon 2025Q1–2026Q2 (6 quarters), final-period response vs an unchanged base
 
 | Shock | Verdict | GDP | Consumption | Investment | Bus. invest. | Exports | Imports | Employment | Unemp. rate | CPI | House prices | Gilt yield |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Gov consumption +£1.25bn/q | **identity-only** | +0.14% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Gov consumption +£1.25bn/q | **identity-only** | +0.18% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
 | Gov investment +£3bn/q | **dead** | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
 | Corp tax +1pp | **transmitting** | -0.04% | +0.00% | -0.09% | -0.10% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
 | Bank Rate +1pp | **transmitting** | -0.01% | -0.02% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |

@@ -86,13 +86,18 @@ def _material(kind, v):
     return abs(v) >= (PP_THRESH if kind == "pp" else PCT_THRESH)
 
 
-def run_one(shock):
-    base = _build(shock["closure"])
+def build_baseline(closure):
+    base = _build(closure)
     base._shock_active = True
     base.solve(START, END)
-    bdat = base.data.copy()
+    return base
 
-    sh = _build(shock["closure"])
+
+def run_one(shock, base):
+    """Run one shock against an already-solved baseline (cloned, not rebuilt)."""
+    bdat = base.data
+
+    sh = base.clone()
     t0 = sh.period_idx(START)
     size = shock["size"]
     if shock.get("rel"):
@@ -100,7 +105,7 @@ def run_one(shock):
         size = size * base_val if np.isfinite(base_val) else 0.0
     sh.apply_shock(shock["var"], size, START, periods=PERIODS)
     sh.solve(START, END)
-    sdat = sh.data.copy()
+    sdat = sh.data
 
     tN = base.period_idx(END)
     row = {}
@@ -132,10 +137,13 @@ def _fmt(kind, v):
 
 
 def main():
+    baselines = {}  # one solved baseline per closure, reused across shocks
     results = []
     for sh in SHOCKS:
         print(f"[audit] {sh['label']} ...", flush=True)
-        row = run_one(sh)
+        if sh["closure"] not in baselines:
+            baselines[sh["closure"]] = build_baseline(sh["closure"])
+        row = run_one(sh, baselines[sh["closure"]])
         verdict, beh = classify(row)
         results.append((sh, row, verdict, beh))
         print(f"[audit]   -> {verdict} ({len(beh)} behavioural channels: {', '.join(beh) or 'none'})",
