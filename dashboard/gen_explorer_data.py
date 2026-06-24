@@ -115,7 +115,7 @@ def main():
         "variables": [{"code": c, "label": l, "unit": u} for c, l, u, _ in VARS],
         "scenarios": out_scen,
     }
-    path = "dashboard/explorer_data.json"
+    path = "dashboard/public/data/explorer_data.json"
     with open(path, "w") as f:
         json.dump(data, f, separators=(",", ":"))
     print(f"[gen] wrote {path}", flush=True)
