@@ -129,7 +129,7 @@ def _read_quarterly_table(
     return result
 
 
-def load_obr_data() -> pd.DataFrame:
+def load_obr_data(merge_snapshot: bool = True) -> pd.DataFrame:
     """Load all OBR forecast data into a DataFrame.
 
     Returns a DataFrame with quarterly PeriodIndex and columns for each variable.
@@ -368,10 +368,12 @@ def load_obr_data() -> pd.DataFrame:
     # Derive additional variables from identities
     df = _derive_variables(df)
 
-    # Merge the vendored ONS exogenous-input snapshot (Stage 1c): the ~150
+    # Merge the vendored ONS exogenous-input snapshot (Stage 1c): the
     # disaggregated National-Accounts / fiscal series the equations need but the
     # EFO tables do not publish. Held flat beyond the data for forecast periods.
-    df = _merge_ons_snapshot(df)
+    # Skipped via merge_snapshot=False when deriving what still needs pulling.
+    if merge_snapshot:
+        df = _merge_ons_snapshot(df)
 
     return df
 

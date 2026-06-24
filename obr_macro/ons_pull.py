@@ -43,20 +43,24 @@ def _refs(eq):
 
 
 def get_roots(df):
-    """Return (simple {code: cdid}, compound {code: formula}) for the missing
-    exogenous roots that carry an ONS code, given the loaded data frame ``df``."""
+    """Return (simple {code: cdid}, compound {code: formula}) for every missing
+    variable that carries an ONS code, given the loaded data frame ``df``.
+
+    Includes endogenous variables: pulling their observed ONS series gives the
+    circular fiscal/financial blocks real balancing data, which both anchors
+    them (add-factors) and stops them diverging when solved.
+    """
     eqs = parse_model_file(str(ensure_model_code()), include_behavioral=False)
-    has_eq = {_lhs_var(e.lhs) for e in eqs}
     referenced = set().union(*(_refs(e) for e in eqs))
 
     present = {c for c in df.columns if df[c].notna().any()}
-    missing_exo = sorted(v for v in referenced - present if v not in has_eq)
+    missing = sorted(referenced - present)
 
     mdp = Path(__file__).parent.parent / "dashboard/public/data/model_data.json"
     ons = {it["code"]: (it.get("ons") or "").strip() for it in json.load(open(mdp))["items"]}
 
     simple, compound = {}, {}
-    for v in missing_exo:
+    for v in missing:
         code = ons.get(v, "")
         if not code or code.upper() in ("", "NO CODES", "N/A", "-"):
             continue
@@ -102,9 +106,9 @@ def eval_compound(formula):
 
 
 def main():
-    df = load_obr_data()
-    idx = df.index
-    simple, compound = get_roots(df)
+    idx = load_obr_data().index                    # full (snapshot-extended) index
+    df_efo = load_obr_data(merge_snapshot=False)    # EFO-only, to find what's missing
+    simple, compound = get_roots(df_efo)
     print(f"roots to pull: {len(simple)} simple + {len(compound)} compound\n")
     cols = {}
     fails = []
