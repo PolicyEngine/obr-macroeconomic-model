@@ -189,11 +189,23 @@ class FullOBRSolver:
         # blocks the export/import deflator equations (dlog(PXNOG)/dlog(PMNOG)),
         # freezing nominal trade and the trade balance. Proxy it with producer
         # prices (PPIY) so the deflators compute and can be add-factored.
-        if "WPG" in self.data.columns and not np.isfinite(self.data["WPG"].to_numpy(dtype=float)).any():
-            if "PPIY" in self.data.columns and self.data["PPIY"].notna().any():
-                self.data["WPG"] = self.data["PPIY"].to_numpy()
-            else:
-                fill("WPG", 100.0)
+        # World equity prices (WEQPR) and the long / corporate-bond rates (ROLT,
+        # ROCB) are OBR external assumptions absent from the data; they drive the
+        # overseas rates of return (REXC/REXD) behind investment income and the
+        # current account. Proxy world prices/equities with their UK analogues and
+        # the rates with the gilt yield, so the block computes instead of freezing.
+        def proxy(col, src, default):
+            if col in self.data.columns and not np.isfinite(self.data[col].to_numpy(dtype=float)).any():
+                if src in self.data.columns and self.data[src].notna().any():
+                    self.data[col] = self.data[src].to_numpy()
+                else:
+                    fill(col, default)
+
+        proxy("WPG", "PPIY", 100.0)        # world prices ~ producer prices
+        # NOTE: proxying WEQPR/ROLT/ROCB (the investment-income drivers) was tried
+        # to improve the current account, but it destabilised business investment
+        # through the dividend/profit feedback (IBUS 7% -> 19%) for only a marginal
+        # CA gain. Left out — the current account stays the open channel.
 
         fill("TCPRO", 0.25)
 

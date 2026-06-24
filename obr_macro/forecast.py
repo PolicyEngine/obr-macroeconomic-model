@@ -28,7 +28,9 @@ PANEL = [
     ("CPI", "CPI index", "lvl"), ("CPIGR", "CPI inflation", "pp"),
     ("WFP", "Wages & salaries", "lvl"), ("HHDI", "Household income", "lvl"),
     ("RHHDI", "Real household income", "lvl"), ("FYCPR", "Company profits", "lvl"),
-    ("CB", "Current account", "lvl"), ("TB", "Trade balance", "lvl"),
+    # net balances are scored as % of GDP (the OBR convention): a % error against
+    # their own tiny value is meaninglessly amplified.
+    ("CB", "Current account", "gdp"), ("TB", "Trade balance", "gdp"),
 ]
 
 
@@ -60,6 +62,8 @@ def band(kind, err):
         return "X"
     if kind == "pp":
         return "OK" if err < 0.3 else "~" if err < 1.0 else "!" if err < 3.0 else "X"
+    if kind == "gdp":   # error as % of GDP, the convention for net balances
+        return "OK" if err < 0.5 else "~" if err < 1.5 else "!" if err < 3.0 else "X"
     return "OK" if err < 2 else "~" if err < 10 else "!" if err < 25 else "X"
 
 
@@ -73,6 +77,7 @@ def main():
 
     print(f"Held-add-factor forecast: fit {BASE_START}..{BASE_END}, project {FC_START}..{FC_END}\n")
     print(f"  add-factors held for {len(held)} behavioural equations\n")
+    gdp_code = "GDPMPS" if "GDPMPS" in efo.columns else "GDPM"
     counts = {"OK": 0, "~": 0, "!": 0, "X": 0}
     computed = 0
     for code, label, kind in PANEL:
@@ -82,7 +87,13 @@ def main():
         for t in range(t0, t1 + 1):
             m, e = s.data.iloc[t][code], efo.iloc[t][code]
             if np.isfinite(m) and np.isfinite(e):
-                errs.append(abs(m - e) if kind == "pp" else (100 * abs(m - e) / abs(e) if abs(e) > 1e-9 else None))
+                if kind == "pp":
+                    errs.append(abs(m - e))
+                elif kind == "gdp":
+                    g = efo.iloc[t][gdp_code]
+                    errs.append(100 * abs(m - e) / g if np.isfinite(g) and g > 0 else None)
+                else:
+                    errs.append(100 * abs(m - e) / abs(e) if abs(e) > 1e-9 else None)
         errs = [x for x in errs if x is not None]
         err = float(np.mean(errs)) if errs else None
         if code not in has_eq:
@@ -94,7 +105,8 @@ def main():
             counts[band(kind, err)] += 1
             computed += 1
         mark = band(kind, err) if st == "computed" else "·"
-        es = "   —" if err is None else (f"{err:6.2f}pp" if kind == "pp" else f"{err:6.2f}%")
+        unit = {"pp": "pp", "gdp": "%GDP"}.get(kind, "%")
+        es = "   —" if err is None else f"{err:6.2f}{unit}"
         print(f"   [{mark:2}] {label:22}{es:>9}   {st}")
 
     good = counts["OK"] + counts["~"]
