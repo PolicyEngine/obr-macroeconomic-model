@@ -46,3 +46,26 @@ the financial blocks are bounded by their real data.
 The earlier "the financial blocks can't be found and diverge without data" was
 wrong on both counts: most are published by ONS, and their data stabilises them.
 The remaining gap is refinement, not a hard wall.
+
+## Tuning the three poor channels (forecast_tune.py)
+
+Swept the add-factor window (8q/4q/2q/1q) and the investment closure to push
+business investment, trade balance and current account under 10%. Result —
+**a global knob can't do it:**
+
+| config | Bus. inv. | Trade bal. | Curr. acc. | within 10% |
+|---|--:|--:|--:|--:|
+| mean 8q | 18.0% | 12.9% | 28.0% | 7/10 |
+| mean 4q | 11.1% | 20.4% | 26.7% | 7/10 |
+| mean 2q | 19.5% | 28.1% | 35.0% | 7/10 |
+| last 1q | 13.4% | 97.4% | 51.6% | 7/10 |
+| + investment closure | 350%+ | 29%+ | 35%+ | 5/11 |
+
+- The **investment closure backfires** (business investment → +350%) — drop it.
+- Windows **conflict**: investment wants 4q (→11%), trade balance wants 8q (→13%),
+  current account is ~27% either way. The 7/10 hit rate never improves.
+
+**The three are structural, not tuning.** Business investment (volatile), the
+trade-volume split (exports/imports are passthrough), and the investment-income/
+financial-flow block behind the current account need per-block calibration, not a
+global add-factor setting. The forecasting core stays at 7/10 within 10%.
