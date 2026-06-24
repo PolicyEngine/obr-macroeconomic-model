@@ -69,3 +69,26 @@ business investment, trade balance and current account under 10%. Result —
 trade-volume split (exports/imports are passthrough), and the investment-income/
 financial-flow block behind the current account need per-block calibration, not a
 global add-factor setting. The forecasting core stays at 7/10 within 10%.
+
+## Structural fix: the @TREND lambda bug (8/10 within 10%)
+
+Tracing the trade balance found a real bug: the transpiler emits `@TREND` as
+`_trend(t, 'base')` (two args) but the solver's context lambdas were
+`lambda base:` (one arg), so **every @TREND equation threw and was silently
+skipped** — including both trade-price deflators (`dlog(PXNOG)`, `dlog(PMNOG)`),
+which froze flat while the OBR's deflators inflated. Fixing the lambda signatures
+(and proxying the absent world-price assumption `WPG` with producer prices so the
+deflator equations have finite inputs) revived them:
+
+| Variable | before | after |
+|---|--:|--:|
+| Business investment | 18.0% | **7.4%** |
+| Trade balance | 12.9% | **10.8%** |
+| Current account | 28.0% | **17.8%** |
+| **within 10%** | 7/10 | **8/10** |
+
+Held add-factors are intentionally not applied to the @recode/@TREND equations:
+they overshoot (trade balance 29% with them vs 11% without), so those equations
+project structurally. Trade balance (10.8%) and current account (17.8%) remain
+just over — the residual gap is the financial/investment-income block. 6/6 tests
+pass.

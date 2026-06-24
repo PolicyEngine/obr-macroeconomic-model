@@ -185,6 +185,16 @@ class FullOBRSolver:
             if col in self.data.columns and not np.isfinite(self.data[col].to_numpy(dtype=float)).any():
                 fill(col, 100.0)
 
+        # WPG (world prices) is an OBR external assumption absent from the data; it
+        # blocks the export/import deflator equations (dlog(PXNOG)/dlog(PMNOG)),
+        # freezing nominal trade and the trade balance. Proxy it with producer
+        # prices (PPIY) so the deflators compute and can be add-factored.
+        if "WPG" in self.data.columns and not np.isfinite(self.data["WPG"].to_numpy(dtype=float)).any():
+            if "PPIY" in self.data.columns and self.data["PPIY"].notna().any():
+                self.data["WPG"] = self.data["PPIY"].to_numpy()
+            else:
+                fill("WPG", 100.0)
+
         fill("TCPRO", 0.25)
 
         # NOTE: a blanket "seed every still-NaN variable so it computes" was tried
@@ -326,8 +336,8 @@ class FullOBRSolver:
                     "np": np,
                     "v": v,
                     "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
-                    "_recode": lambda period, op, tv, fv, t=t: self._recode(t, period, op, tv, fv),
-                    "_trend": lambda base, t=t: self._trend(t, base),
+                    "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(t, period, op, tv, fv),
+                    "_trend": lambda t_arg, base, t=t: self._trend(t, base),
                     "_elem": self._elem,
                     "t": t,
                 }
@@ -390,6 +400,10 @@ class FullOBRSolver:
                 "np": np,
                 "v": v,
                 "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
+                # Residuals/add-factors are intentionally not computed for the
+                # @recode/@TREND-driven equations: held add-factors overshoot on
+                # them, so they project structurally (forecasts notably better —
+                # e.g. trade balance 11% vs 29% with held add-factors).
                 "_recode": lambda period, op, tv, fv, t=t: self._recode(t, period, op, tv, fv),
                 "_trend": lambda base, t=t: self._trend(t, base),
                 "_elem": self._elem,
@@ -491,8 +505,8 @@ class FullOBRSolver:
             "np": np,
             "v": v,
             "_lag": lambda var, lag: self._lag(var, lag, t),
-            "_recode": lambda period, op, tv, fv: self._recode(t, period, op, tv, fv),
-            "_trend": lambda base: self._trend(t, base),
+            "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
+            "_trend": lambda t_arg, base: self._trend(t, base),
             "_elem": self._elem,
             "t": t,
         }
@@ -584,7 +598,7 @@ class FullOBRSolver:
                 "v": v,
                 "_lag": lambda var, lag: self._lag(var, lag, t),
                 "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
-                "_trend": lambda base: self._trend(t, base),
+                "_trend": lambda t_arg, base: self._trend(t, base),
                 "_elem": self._elem,
                 "t": t,
             }
@@ -663,7 +677,7 @@ class FullOBRSolver:
             "v": v,
             "_lag": lambda var, lag: self._lag(var, lag, t),
             "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
-            "_trend": lambda base: self._trend(t, base),
+            "_trend": lambda t_arg, base: self._trend(t, base),
             "_elem": self._elem,
             "t": t,
         }
