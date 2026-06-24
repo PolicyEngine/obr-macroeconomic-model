@@ -48,6 +48,10 @@ class FullOBRSolver:
         # Initialize missing variables
         self._initialize_missing_variables()
 
+        # Seed the calibration constants (adjustments, residuals, *BASE
+        # normalisers, base deflator levels) the published data does not supply.
+        self._seed_constants()
+
         # Build equation index
         self._build_equation_index()
 
@@ -116,6 +120,54 @@ class FullOBRSolver:
 
         if self.verbose:
             print(f"Built equation index for {len(self.eq_for_var)} variables")
+
+    def _seed_constants(self):
+        """Set calibration constants the published data does not supply, so the
+        cost-competitiveness and government-pay blocks (and everything downstream)
+        stop evaluating to NaN. For transmission these need to be finite and
+        constant; the exact base-year levels affect the level, not the shock
+        response. The *BASE normalisers are otherwise 2009 averages that @elem
+        cannot resolve here (no 2009 history for the base variables).
+        """
+        def fill(col, value):
+            if col in self.data.columns and np.isfinite(value):
+                mask = ~np.isfinite(self.data[col].to_numpy(dtype=float))
+                if mask.any():
+                    self.data.loc[mask, col] = value
+
+        def base_year_value(var, default):
+            if var not in self.data.columns:
+                return default
+            s = self.data[var]
+            yr = s[[p.year == 2009 for p in self.index]]
+            if yr.notna().any():
+                return float(yr.mean())
+            if s.notna().any():
+                return float(s.median())
+            return default
+
+        # multiplicative adjustment factors -> 1, additive residuals -> 0
+        for col in self.data.columns:
+            if col.endswith("ADJ"):
+                fill(col, 1.0)
+            elif col.endswith("RES"):
+                fill(col, 0.0)
+
+        # base-year normalisers
+        explicit_base = {"OILBASE": 40.0, "TXRATEBASE": 0.1}
+        for col in self.data.columns:
+            if col.endswith("BASE") and not np.isfinite(self.data[col].to_numpy(dtype=float)).any():
+                if col in explicit_base:
+                    fill(col, explicit_base[col])
+                else:
+                    fill(col, base_year_value(col[:-4], 100.0))
+
+        # starting levels for price-index deflators with no history
+        for col in ("PMNOG", "PMS", "ULCMS"):
+            if col in self.data.columns and not np.isfinite(self.data[col].to_numpy(dtype=float)).any():
+                fill(col, 100.0)
+
+        fill("TCPRO", 0.25)
 
     def _initialize_historical(self):
         """Initialize missing variables by solving through historical periods.

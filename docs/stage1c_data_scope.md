@@ -48,3 +48,27 @@ between running ~22% of the model and running all of it. It is also well-defined
 populates the model in EViews. The scoping script
 (`obr_macro/stage1c_scope.py`) prints the full lists and can regenerate them as
 the data lands.
+
+## Outcome (after the pull + constant seeding)
+
+Feeding the 149 ONS series and seeding the principled constants (`*ADJ`→1,
+`*RES`→0, `*BASE`→base-year value, base deflator levels→100, `TCPRO`→0.25) cut
+the silently-skipped equations from **290 → 246** at 2025Q1, but **no behavioural
+channel flipped** in the audit (still 3 dead / 1 identity-only / 2 transmitting).
+
+The wall is now calibration, not engineering. The remaining blockers
+(`CGWS`/`LAWS` government pay, the `SCOST`/`CCOST`/`UTCOST` cost-competitiveness
+block, `POP16`, `PXNOG`, `ROCB`, `WEQPR`, …) are circular sub-systems gated by
+~40 constants that are genuine OBR internal calibration — rates, stock levels,
+GAD demographic factors — and by historical *deflator* series (`PMNOG`, `PMS`,
+…) that are not in the public EFO tables. Guessing those values risks producing
+numbers that "transmit" but are wrong, which is worse than an honestly-dead
+channel.
+
+**Conclusion.** Public data + principled defaults revive the model part-way and
+keep the two well-defined channels working (corp-tax→investment,
+Bank-Rate→consumption). Full revival of the demand multiplier and trade/price
+channels needs the OBR's internal constant calibration and deflator histories —
+a research effort with uncertain payoff, not a quick pass. This is the core
+finding for the "build what the OBR has" goal: the binding constraint is the
+unpublished data and judgement the OBR feeds the model, not the equations.
