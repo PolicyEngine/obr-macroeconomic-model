@@ -512,6 +512,58 @@ class FullOBRSolver:
 
         return max_iter
 
+    def diagnose_period(self, t: int) -> list:
+        """Non-mutating diagnostic for the silent-skip problem.
+
+        Evaluates every equation once at period ``t`` against the current
+        (already-solved) values and reports the equations that ``solve_period``
+        would have silently dropped: those that raise, and those whose RHS
+        evaluates to a non-finite value. For the non-finite ones it names the
+        NaN inputs, which is usually where a transmission chain breaks.
+
+        Returns a list of dicts: {var, lhs, status, reason}.
+        """
+        import re
+
+        row = self.data.iloc[t]
+        v = {col: row[col] for col in self.data.columns}
+        ctx = {
+            "np": np,
+            "v": v,
+            "_lag": lambda var, lag: self._lag(var, lag, t),
+            "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
+            "_trend": lambda base: self._trend(t, base),
+            "_elem": self._elem,
+            "t": t,
+        }
+
+        def nan_inputs(expr):
+            bad = []
+            for m in re.finditer(r"v\['([A-Z0-9_]+)'\]", expr):
+                name = m.group(1)
+                if name in v and not np.isfinite(v.get(name, np.nan)):
+                    bad.append(name)
+            for m in re.finditer(r"_lag\('([A-Z0-9_]+)',\s*(\d+)\)", expr):
+                name, lag = m.group(1), int(m.group(2))
+                if not np.isfinite(self._lag(name, lag, t)):
+                    bad.append(f"{name}(-{lag})")
+            return sorted(set(bad))
+
+        out = []
+        for eq in self.equations:
+            var = self._extract_lhs_var(eq.lhs)
+            try:
+                val = eval(eq.python_expr, ctx)
+                if not np.isfinite(val):
+                    inputs = nan_inputs(eq.python_expr)
+                    out.append({"var": var, "lhs": eq.lhs, "status": "nonfinite",
+                                "reason": ("NaN inputs: " + ", ".join(inputs)) if inputs
+                                else "evaluates to NaN/inf"})
+            except Exception as e:
+                out.append({"var": var, "lhs": eq.lhs, "status": "error",
+                            "reason": f"{type(e).__name__}: {e}"})
+        return out
+
     def solve(self, start: str, end: str) -> dict:
         """Solve model from start to end period."""
         t_start = self.period_idx(start)
