@@ -187,6 +187,13 @@ class FullOBRSolver:
 
         fill("TCPRO", 0.25)
 
+        # NOTE: a blanket "seed every still-NaN variable so it computes" was tried
+        # and reverted — the circular fiscal/financial sub-blocks (interest,
+        # dividends, the financial account) are numerically unstable without their
+        # real balancing data and diverge to ~1e140 when run raw. Leaving those
+        # variables at passthrough is safer than live-and-exploding. Reviving them
+        # needs the actual data, not a starting seed.
+
     def _initialize_historical(self):
         """Initialize missing variables by solving through historical periods.
 
