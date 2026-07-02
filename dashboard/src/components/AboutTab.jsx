@@ -28,6 +28,34 @@ const GROUPS = [
   { n: "18", t: "Financial account", d: "— sector balance sheets" },
 ];
 
+const FAMILIES = [
+  {
+    t: "Structural macroeconometric",
+    here: true,
+    agents: "Aggregates (National Accounts)",
+    basis: "Estimated equations + identities, closed by judgement",
+    best: "Consistent forecasting & fiscal scoring",
+  },
+  {
+    t: "DSGE",
+    agents: "Representative optimising agent",
+    basis: "Micro-founded, rational expectations",
+    best: "Theory & shock propagation",
+  },
+  {
+    t: "HANK",
+    agents: "Many heterogeneous households",
+    basis: "DSGE + uninsurable risk & borrowing limits",
+    best: "Distributional effects of policy",
+  },
+  {
+    t: "OLG",
+    agents: "Age cohorts over a lifecycle",
+    basis: "Lifecycle saving & demographics",
+    best: "Long-run pensions & debt sustainability",
+  },
+];
+
 const SCHEMATIC_CSS = `
   .obr-bx{fill:#fff;stroke:#d7d2c6;stroke-width:1.5}
   .obr-t{font:600 13px ui-sans-serif,system-ui;fill:#0c2233}
@@ -105,6 +133,49 @@ export default function AboutTab({ model, explorer }) {
               <li>A black box &mdash; every equation is published and readable.</li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      <section className="section-card">
+        <SectionHeading
+          title="Where this sits among macro models"
+          description="A large-scale structural macroeconometric model in the HM Treasury / Cowles-Commission tradition — a different lineage from the micro-founded DSGE family (HANK, OLG)."
+        />
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="py-2 pr-4 font-semibold">Family</th>
+                <th className="py-2 pr-4 font-semibold">Agents</th>
+                <th className="py-2 pr-4 font-semibold">Basis</th>
+                <th className="py-2 font-semibold">Best for</th>
+              </tr>
+            </thead>
+            <tbody>
+              {FAMILIES.map((f) => (
+                <tr
+                  key={f.t}
+                  className={`border-b border-slate-100 align-top ${
+                    f.here
+                      ? "bg-[color:var(--pe-color-primary-50,#eef6f5)]"
+                      : ""
+                  }`}
+                >
+                  <td className="py-2.5 pr-4 font-semibold text-slate-900">
+                    {f.t}
+                    {f.here ? (
+                      <span className="ml-1 text-[color:var(--pe-color-primary-700)]">
+                        &larr; this model
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="py-2.5 pr-4 text-slate-600">{f.agents}</td>
+                  <td className="py-2.5 pr-4 text-slate-600">{f.basis}</td>
+                  <td className="py-2.5 text-slate-600">{f.best}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -300,29 +371,29 @@ export default function AboutTab({ model, explorer }) {
             d="M600,204 C636,204 640,152 664,150"
             markerEnd="url(#art)"
           />
-          {/* GDP -> supply/incomes (down) */}
+          {/* GDP -> supply/incomes (curves down into the labour-market block) */}
           <path
             className="obr-lk"
-            d="M772,182 C772,222 470,232 450,278"
+            d="M700,182 C700,248 650,298 602,298"
             markerEnd="url(#ar)"
           />
-          {/* GDP -> public finances (down) */}
+          {/* GDP -> public finances (straight down into receipts) */}
           <path
             className="obr-lk"
-            d="M820,182 C820,220 800,250 786,278"
+            d="M772,182 L772,274"
             markerEnd="url(#ar)"
           />
-          {/* prices/incomes feed back to demand (loop) */}
+          {/* incomes & prices feed back to demand (dashed loop up the left gutter) */}
           <path
             className="obr-lk"
-            d="M300,298 C214,298 214,150 296,128"
+            d="M300,290 C250,250 250,110 300,72"
             strokeDasharray="5 5"
             markerEnd="url(#ar)"
           />
-          <text className="obr-s" x="150" y="220" style={{ fill: "#0b6c63" }}>
+          <text className="obr-s" x="104" y="206" style={{ fill: "#0b6c63" }}>
             incomes &amp;
           </text>
-          <text className="obr-s" x="150" y="236" style={{ fill: "#0b6c63" }}>
+          <text className="obr-s" x="104" y="222" style={{ fill: "#0b6c63" }}>
             prices loop back
           </text>
         </svg>

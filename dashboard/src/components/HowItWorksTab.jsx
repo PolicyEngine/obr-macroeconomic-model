@@ -55,6 +55,40 @@ const STEPS = [
   },
 ];
 
+const BANDS = [
+  {
+    type: "Levels",
+    eg: "GDP, consumption, investment",
+    metric: "Average % off vs OBR",
+    band: "< 10%",
+  },
+  {
+    type: "Rates",
+    eg: "CPI inflation, unemployment",
+    metric: "Average gap",
+    band: "< 1.0 pp",
+  },
+  {
+    type: "Net balances",
+    eg: "trade balance, current account",
+    metric: "Gap as % of GDP",
+    band: "< 1.5% of GDP",
+  },
+];
+
+const WINDOWS = [
+  { lab: "Base / fit window", val: "2024 Q1 – 2025 Q4", sub: "add-factors averaged here" },
+  { lab: "Forecast horizon", val: "2026 Q1 – 2027 Q4", sub: "8 quarters projected" },
+  { lab: "Scenario solve", val: "2025 Q1 – 2027 Q4", sub: "12-quarter shock runs" },
+];
+
+const EXO = [
+  { g: "Fiscal", ex: "TCPRO (corp-tax rate), CGIPS (govt investment), VAT & benefit lines" },
+  { g: "Monetary / market", ex: "Bank Rate, GILT (gilt yields), RX (exchange rate)" },
+  { g: "External", ex: "World demand, XOIL (oil), import prices" },
+  { g: "Demographics", ex: "POP16 (working-age population)" },
+];
+
 const RESULTS = [
   { q: "2025 Q1", inv: "0.0", gdp: "0.0", neg: false },
   { q: "2025 Q2", inv: "0.0", gdp: "0.0", neg: false },
@@ -152,6 +186,174 @@ export default function HowItWorksTab({ model, explorer }) {
             </li>
           ))}
         </ol>
+      </div>
+
+      {/* ===== CALIBRATION ===== */}
+      <div className="section-card">
+        <SectionHeading
+          title="Calibration — keeping the model close to the OBR"
+          description="We don't fit the model with an optimiser. We nudge each equation to match recent data, then check the result against fixed accuracy targets."
+        />
+        <div className="grid gap-5 md:grid-cols-2">
+          <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">
+            <li>
+              For every behavioural equation we measure a{" "}
+              <strong>correction</strong> &mdash; the gap between the real data
+              and what the equation predicts &mdash; from <strong>2024 Q1</strong>{" "}
+              onward.
+            </li>
+            <li>
+              To forecast, we <strong>average each equation&rsquo;s recent
+              corrections and lock them in</strong>, then add the same correction
+              to every future quarter &mdash; the same trick the OBR uses.
+            </li>
+            <li>
+              We don&rsquo;t search for the best fit mathematically. We just try a
+              few settings &mdash; 4 averaging lengths (8 &middot; 4 &middot; 2
+              &middot; 1 quarters) &times; investment closure on or off ={" "}
+              <strong>8 combinations</strong> &mdash; and compare them.
+            </li>
+            <li>
+              A few equations (the <code>@recode</code>/<code>@TREND</code> ones)
+              are left to follow their own trend instead, because forcing a
+              correction on them overshoots.
+            </li>
+          </ul>
+          <div>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <th className="py-2 pr-3 font-semibold">Series</th>
+                    <th className="py-2 pr-3 font-semibold">Metric</th>
+                    <th className="py-2 font-semibold">Within band</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {BANDS.map((b) => (
+                    <tr key={b.type} className="border-b border-slate-100 align-top">
+                      <td className="py-2 pr-3">
+                        <span className="font-semibold text-slate-900">{b.type}</span>
+                        <span className="block text-xs text-slate-400">{b.eg}</span>
+                      </td>
+                      <td className="py-2 pr-3 text-slate-600">{b.metric}</td>
+                      <td className="py-2 font-semibold text-[color:var(--pe-color-primary-700)]">
+                        {b.band}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              <strong>10 of the 10</strong> channels we compute land inside these
+              targets. Three &mdash; business investment, the trade balance and
+              the current account &mdash; stay outside, and that&rsquo;s down to
+              the model&rsquo;s <strong>structure</strong>, not something tuning
+              can fix.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== FORECAST ASSUMPTIONS / EXO-ENDO ===== */}
+      <div className="section-card">
+        <SectionHeading
+          title="From history to forecast — what we solve and what we assume"
+          description="To forecast past the data, the model keeps fixed everything it can't work out from an equation, and rolls the rest forward."
+        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {WINDOWS.map((w) => (
+            <div key={w.lab} className="metric-card">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {w.lab}
+              </div>
+              <div className="mt-1 text-lg font-semibold tracking-tight text-[color:var(--pe-color-primary-700)]">
+                {w.val}
+              </div>
+              <div className="mt-1 text-xs text-slate-500">{w.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* the core split: what the model solves vs what we give it */}
+        <p className="mt-5 text-sm leading-6 text-slate-600">
+          Every variable falls into one of two camps. The simple test: does it
+          have its own equation?
+        </p>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-[color:var(--pe-color-primary-700)] bg-[color:var(--pe-color-primary-50,#eef6f5)] p-5">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Solved by the model
+              </h3>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--pe-color-primary-700)]">
+                endogenous
+              </span>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              It has its own equation, so the model works it out. The{" "}
+              <strong>372 equations</strong> solve <strong>~359</strong> of these
+              &mdash; GDP, consumption, investment, jobs, prices, tax receipts,
+              borrowing.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Given to the model
+              </h3>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                exogenous
+              </span>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              No equation &mdash; we feed it in and hold it fixed. These are the
+              policy and world <strong>levers you change</strong> to run a
+              scenario.
+            </p>
+          </div>
+        </div>
+
+        {/* the exogenous levers */}
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="py-2 pr-3 font-semibold">Exogenous lever</th>
+                <th className="py-2 font-semibold">Examples (code)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {EXO.map((e) => (
+                <tr key={e.g} className="border-b border-slate-100 align-top">
+                  <td className="py-2 pr-3 font-semibold text-slate-900">{e.g}</td>
+                  <td className="py-2 text-slate-600">{e.ex}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* how the given values are rolled forward */}
+        <p className="mt-4 text-sm leading-6 text-slate-600">
+          <strong>Rolling forward:</strong> the frozen corrections stay constant
+          across the horizon, every given input is held flat at its last value,
+          and the seeded constants (tax &amp; depreciation parameters)
+          don&rsquo;t move. The data comes from the OBR{" "}
+          <strong>EFO Nov 2025</strong> tables, the <strong>372 equations</strong>{" "}
+          (15 Oct 2025 code) and a <strong>~350-series ONS</strong> snapshot.
+        </p>
+
+        <div className="note-card mt-5 rounded-r-xl p-4 text-sm leading-6">
+          <strong>A few variables can switch sides.</strong> The GDP identity is
+          switched off in the OBR file, so we swap <code>GDPM</code> in (and{" "}
+          <code>DINV</code> out) to make the model solve for GDP. The
+          corporation-tax channel likewise turns business investment from a fixed
+          input into a solved equation. And not everything is recomputed &mdash; a
+          few unstable fiscal/financial blocks are left at their given values,
+          because solving them from scratch blows up.
+        </div>
       </div>
 
       {/* ===== WORKED EXAMPLE ===== */}

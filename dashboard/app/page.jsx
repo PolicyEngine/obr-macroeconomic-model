@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import AboutTab from "../src/components/AboutTab";
 import HowItWorksTab from "../src/components/HowItWorksTab";
 import ExploreTab from "../src/components/ExploreTab";
+import CustomReformTab from "../src/components/CustomReformTab";
 import VariablesTab from "../src/components/VariablesTab";
 import EquationsTab from "../src/components/EquationsTab";
 
@@ -12,6 +13,7 @@ const TAB_OPTIONS = [
   { id: "about", label: "About" },
   { id: "how", label: "How it works" },
   { id: "explore", label: "Explore scenarios" },
+  { id: "reform", label: "Build a reform" },
   { id: "variables", label: "Variables" },
   { id: "equations", label: "Equations" },
 ];
@@ -30,6 +32,7 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState(() => getInitialTab(searchParams.get("tab")));
   const [model, setModel] = useState(null);
   const [explorer, setExplorer] = useState(null);
+  const [grid, setGrid] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -40,13 +43,15 @@ function Dashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [mRes, eRes] = await Promise.all([
+        const [mRes, eRes, gRes] = await Promise.all([
           fetch("/data/model_data.json"),
           fetch("/data/explorer_data.json"),
+          fetch("/data/reform_grid.json"),
         ]);
         if (!mRes.ok) throw new Error("model_data.json not found");
         setModel(await mRes.json());
         setExplorer(eRes.ok ? await eRes.json() : null);
+        setGrid(gRes.ok ? await gRes.json() : null);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -120,6 +125,7 @@ function Dashboard() {
             {activeTab === "about" && <AboutTab model={model} explorer={explorer} />}
             {activeTab === "how" && <HowItWorksTab model={model} explorer={explorer} />}
             {activeTab === "explore" && <ExploreTab explorer={explorer} />}
+            {activeTab === "reform" && <CustomReformTab grid={grid} />}
             {activeTab === "variables" && <VariablesTab model={model} />}
             {activeTab === "equations" && <EquationsTab model={model} />}
           </div>
