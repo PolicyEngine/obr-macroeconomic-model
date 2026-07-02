@@ -73,8 +73,12 @@ f.addEventListener('submit', async (e)=>{
   try{
     const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},
       body:JSON.stringify({messages:history})});
-    const data=await r.json();
-    if(!r.ok) throw new Error(data.detail||r.statusText);
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok){
+      // FastAPI: detail is a string for 413/429, a list of objects for 422
+      const d=data.detail;
+      throw new Error(typeof d==='string' ? d : (r.status+' '+r.statusText));
+    }
     thinking.textContent=data.reply;
     history=data.messages;  // keep full tool-call history for context
   }catch(err){ thinking.textContent='Error: '+err.message; }

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import os
+import time
+from collections import Counter
 from pathlib import Path
 
 import anthropic
@@ -23,6 +25,11 @@ _model = json.loads((DATA / "model_data.json").read_text())
 _explorer = json.loads((DATA / "explorer_data.json").read_text())
 _items = _model["items"]
 _by_code = {it["code"]: it for it in _items}
+
+# Counts derived from the loaded dataset (not hardcoded), computed once at import.
+_type_counts = dict(Counter(it["type"] for it in _items))
+_group_count = len({it["group"] for it in _items})
+_with_python = sum(1 for it in _items if it.get("py"))
 
 
 # --------------------------------------------------------------------------
@@ -86,7 +93,14 @@ def model_overview() -> dict:
     return {
         "what": "An independent Python re-implementation of the OBR's published "
                 "macroeconomic model (15 October 2025 code).",
-        "equations": 372, "groups": 16, "variables": len(_items),
+        "published_equations": 372,
+        "published_equations_note": "372 is the equation count in the OBR's published "
+                                    "model files; the dataset served here covers every "
+                                    "variable, including exogenous inputs.",
+        "variables": len(_items),
+        "groups": _group_count,
+        "variables_by_type": _type_counts,
+        "variables_with_transpiled_python": _with_python,
         "solver": "Gauss-Seidel simultaneous-equation solver",
         "honest_limits": [
             "Results use the user's own assumptions and are NOT OBR or Treasury forecasts.",
@@ -145,21 +159,38 @@ user's own assumptions — not OBR or Treasury forecasts — and flag known limi
 quarter. Keep answers concise and lead with the headline number."""
 
 
+REQUEST_BUDGET_S = 90  # wall-clock budget for the whole tool loop, per request
+
+
 def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
     """Run the agentic tool loop. Returns (final_text, updated_messages)."""
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(timeout=60.0)  # per-API-call timeout
+    start = time.monotonic()
     response = None
+    notes: list[str] = []
     for _ in range(max_rounds):
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=8000,
-            system=SYSTEM,
-            tools=TOOLS,
-            thinking={"type": "adaptive"},
-            output_config={"effort": "medium"},
-            messages=messages,
-        )
+        if time.monotonic() - start > REQUEST_BUDGET_S:
+            notes.append(f"[Note: stopped early — this request exceeded its "
+                         f"{REQUEST_BUDGET_S}s time budget, so this is the best "
+                         "answer so far.]")
+            break
+        try:
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=8000,
+                system=SYSTEM,
+                tools=TOOLS,
+                thinking={"type": "adaptive"},
+                output_config={"effort": "medium"},
+                messages=messages,
+            )
+        except anthropic.APIError as e:
+            return (f"Sorry — the model API call failed "
+                    f"({type(e).__name__}: {e}). Please try again."), messages
         messages.append({"role": "assistant", "content": response.content})
+        if response.stop_reason == "max_tokens":
+            notes.append("[Note: the answer was cut off at the output token limit "
+                         "and may be incomplete.]")
         tool_uses = [b for b in response.content if b.type == "tool_use"]
         if not tool_uses:
             break
@@ -168,4 +199,7 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
              "content": json.dumps(execute_tool(b.name, b.input))}
             for b in tool_uses]})
     text = "\n".join(b.text for b in (response.content if response else []) if b.type == "text")
-    return text.strip() or "(no answer)", messages
+    text = text.strip() or "(no answer)"
+    if notes:
+        text = text + "\n\n" + "\n".join(notes)
+    return text, messages

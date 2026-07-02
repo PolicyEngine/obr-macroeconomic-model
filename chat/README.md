@@ -25,6 +25,12 @@ pre-computed model data, so answers are instant (no slow solver runs).
 ```bash
 python -m uvicorn chat.server:app --reload --port 8000
 ```
+The server binds to `127.0.0.1` (uvicorn's default) so it is only reachable
+locally; pass `--host 0.0.0.0` explicitly if you really want to expose it on
+your network. Requests are lightly capped (40 messages / 8,000 chars per typed
+message, 20 requests per minute per IP) since the endpoint proxies to the
+Anthropic API.
+
 Open http://localhost:8000 and ask, e.g. *"What happens to GDP if corporation tax
 rises 5pp?"* or *"What does TCPRO mean?"*
 
