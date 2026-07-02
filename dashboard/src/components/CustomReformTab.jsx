@@ -254,6 +254,13 @@ export default function CustomReformTab({ grid }) {
             </ComposedChart>
           </ResponsiveContainer>
         </div>
+        <p className="text-xs leading-5 text-slate-500">
+          Only the slider&rsquo;s two endpoint reforms are solved through the
+          model. Values at in-between slider positions are{" "}
+          <strong>linearly interpolated</strong> from the solved endpoint on that
+          side; the model itself is nonlinear, so treat intermediate values as
+          approximations.
+        </p>
       </div>
 
       {/* Table */}

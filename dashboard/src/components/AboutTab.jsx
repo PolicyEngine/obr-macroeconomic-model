@@ -5,7 +5,7 @@ import SectionHeading from "./SectionHeading";
 const STATS = [
   { big: "1970", lab: "First built by HM Treasury; updated continuously since" },
   { big: "372", lab: "Behavioural equations & accounting identities" },
-  { big: "16", lab: "Thematic groups, from consumption to public finances" },
+  { big: "17", lab: "Thematic groups, from consumption to public finances" },
   { big: "ESA10", lab: "Aligned to the European System of Accounts" },
 ];
 
@@ -14,18 +14,19 @@ const GROUPS = [
   { n: "2", t: "Inventories", d: "— stockbuilding" },
   { n: "3", t: "Investment", d: "— business, housing, government" },
   { n: "4", t: "Labour market", d: "— employment, hours, earnings" },
-  { n: "5", t: "Exports", d: "— goods & services sold abroad" },
-  { n: "6", t: "Imports", d: "— goods & services bought in" },
-  { n: "7", t: "Prices & wages", d: "— CPI, deflators, settlements" },
+  { n: "5", t: "Exports of goods & services", d: "— sold abroad" },
+  { n: "6", t: "Imports of goods & services", d: "— bought in" },
+  { n: "7", t: "Prices and wages", d: "— CPI, deflators, settlements" },
   { n: "8", t: "North Sea oil", d: "— production & revenues" },
   { n: "9", t: "Public expenditure", d: "— departmental & welfare spend" },
-  { n: "10", t: "Receipts", d: "— tax revenues" },
-  { n: "11", t: "Balance of payments", d: "— current account" },
-  { n: "12", t: "Public sector totals", d: "— borrowing & debt" },
+  { n: "10", t: "Public sector receipts", d: "— tax revenues" },
+  { n: "11", t: "Balance of Payments", d: "— current account" },
+  { n: "12", t: "Public Sector totals", d: "— borrowing & debt" },
+  { n: "13", t: "PSNCR, debt and funding", d: "— cash borrowing & debt financing" },
   { n: "14", t: "Domestic financial sector", d: "" },
-  { n: "15", t: "Income account", d: "— household & corporate income" },
+  { n: "15", t: "Income Account", d: "— household & corporate income" },
   { n: "16", t: "Gross Domestic Product", d: "— the central identities" },
-  { n: "18", t: "Financial account", d: "— sector balance sheets" },
+  { n: "17", t: "Financial Account and Financial Balance Sheet", d: "— sector balance sheets" },
 ];
 
 const FAMILIES = [
@@ -326,7 +327,7 @@ export default function AboutTab({ model, explorer }) {
           </text>
           <rect className="obr-bx" x="664" y="370" width="216" height="40" rx="9" />
           <text className="obr-t" x="680" y="395">
-            11&middot;18 &middot; BoP &amp; balance sheets
+            11&middot;17 &middot; BoP &amp; balance sheets
           </text>
 
           {/* links: inputs -> demand */}
@@ -406,7 +407,7 @@ export default function AboutTab({ model, explorer }) {
       </section>
 
       <section className="section-card">
-        <SectionHeading title="The 16 equation groups" />
+        <SectionHeading title="The 17 equation groups" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
           {GROUPS.map((g) => (
             <div key={g.n} className="flex items-start gap-3">
