@@ -103,11 +103,10 @@ def is_sane(kind, arr):
     return all(v is None or abs(v) <= cap for v in arr)
 
 
-def run_point(base, lever, value):
+def solve_override(base, lever, value):
     """Override the instrument (EViews `model.override`) and re-solve against the
     held baseline. Residuals stay ON, shared with the baseline, so the held
-    add-factors cancel in the difference."""
-    bdat = base.data
+    add-factors cancel in the difference. Returns the re-solved data frame."""
     sh = base.clone()                       # inherits residuals + _shock_active=False
     var = lever["var"]
     sh.make_exogenous(var)
@@ -118,12 +117,21 @@ def run_point(base, lever, value):
         old = float(base.data.iloc[t][var])
         sh._set(var, t, old + size)
     sh.solve(START, END)
-    sdat = sh.data
-    t1 = sh.period_idx(END)
+    return sh.data
+
+
+def run_point(base, lever, value, control):
+    """Reform impact for one slider endpoint: shocked re-solve minus the
+    zero-shock control re-solve. Differencing against the control (same
+    exogeneity, same starting data, same solve) cancels the re-solve drift of
+    non-converged equations exactly; differencing against the baseline does
+    not, and that drift can dwarf the policy response."""
+    sdat = solve_override(base, lever, value)
+    t0, t1 = base.period_idx(START), base.period_idx(END)
     series = {}
     for code, _l, _u, kind in VARS:
-        if code in bdat.columns and code in sdat.columns:
-            arr = [disp(kind, float(bdat.iloc[t][code]), float(sdat.iloc[t][code]))
+        if code in control.columns and code in sdat.columns:
+            arr = [disp(kind, float(control.iloc[t][code]), float(sdat.iloc[t][code]))
                    for t in range(t0, t1 + 1)]
             if not is_sane(kind, arr):
                 print(f"[grid]   ! dropping {code} (diverged, |Δ| over cap)", flush=True)
@@ -141,10 +149,12 @@ def main():
 
     out_levers = []
     for lev in LEVERS:
+        print(f"[grid] {lev['id']} zero-shock control ...", flush=True)
+        control = solve_override(base, lev, 0.0)
         points = []
         for value in (lev["lo"], lev["hi"]):
             print(f"[grid] {lev['id']} = {value}{lev['unit']} ...", flush=True)
-            points.append({"shock": value, "series": run_point(base, lev, value)})
+            points.append({"shock": value, "series": run_point(base, lev, value, control)})
         # The dashboard scales each endpoint, so a variable is only usable if BOTH
         # endpoints kept it. Drop any var missing from either.
         common = set(points[0]["series"]) & set(points[1]["series"])

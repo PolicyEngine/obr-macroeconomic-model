@@ -757,12 +757,21 @@ def run_fiscal_shock(shock_bn: float = 1.0):
     )
     solver.swap_closure("DINV", gdpm_eq)
 
+    # The control run must share the shocked run's structure (CGG exogenous,
+    # residuals off, same starting data): comparing against the raw-data
+    # baseline instead would attribute the model's own tracking drift to the
+    # shock.
+    solver.make_exogenous("CGG")
+    solver._shock_active = True
+    control = solver.clone()
+
     # Apply shock
     shock_m = shock_bn * 1000
     solver.apply_shock("CGG", shock_m, "2025Q1", periods=4)
 
     print()
     print("Solving model...")
+    control.solve("2025Q1", "2027Q4")
     solver.solve("2025Q1", "2027Q4")
 
     # Compare to baseline
@@ -778,15 +787,15 @@ def run_fiscal_shock(shock_bn: float = 1.0):
     for t in range(solver.period_idx("2025Q1"), solver.period_idx("2027Q4") + 1):
         period = str(solver.index[t])
 
-        cgg_base = solver.baseline.iloc[t]['CGG']
+        cgg_base = control.data.iloc[t]['CGG']
         cgg_curr = solver._get('CGG', t)
         delta_cgg = cgg_curr - cgg_base
 
-        cons_base = solver.baseline.iloc[t]['CONS']
+        cons_base = control.data.iloc[t]['CONS']
         cons_curr = solver._get('CONS', t)
         delta_cons = cons_curr - cons_base
 
-        gdpm_base = solver.baseline.iloc[t]['GDPM']
+        gdpm_base = control.data.iloc[t]['GDPM']
         gdpm_curr = solver._get('GDPM', t)
         delta_gdpm = gdpm_curr - gdpm_base
 

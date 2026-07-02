@@ -80,7 +80,11 @@ def run_reform(name: str, var: str, shock: float, start: str = "2025Q1",
         periods: Number of quarters to apply shock
         investment_closure: If True, use investment closure (for corp tax shocks)
     """
-    # Baseline
+    # Build once; the baseline and shocked runs must be structurally identical
+    # (same closures, same exogenous instrument, same starting data) so the
+    # delta isolates the shock. If `var` is made exogenous only in the shocked
+    # run, the baseline re-solves it endogenously and drifts away from the
+    # databank — the drift can exceed the shock and flip the sign of Q1 deltas.
     baseline = FullOBRSolver(verbose=False)
     baseline.swap_closure("DINV", GDPM_EQ)
     if investment_closure:
@@ -88,19 +92,14 @@ def run_reform(name: str, var: str, shock: float, start: str = "2025Q1",
         baseline.swap_closure("IBUSX", IBUSX_EQ)
         baseline.swap_closure("IBUS", IBUS_EQ)
         baseline.swap_closure("IF_PLACEHOLDER", IF_EQ)
+    baseline.make_exogenous(var)
     baseline._shock_active = True
+
+    shocked = baseline.clone()
+    shocked.apply_shock(var, shock, start, periods=periods)
+
     baseline.solve(start, end)
     baseline_data = baseline.data.copy()
-
-    # Shocked
-    shocked = FullOBRSolver(verbose=False)
-    shocked.swap_closure("DINV", GDPM_EQ)
-    if investment_closure:
-        _ensure_ibusx_inputs(shocked)
-        shocked.swap_closure("IBUSX", IBUSX_EQ)
-        shocked.swap_closure("IBUS", IBUS_EQ)
-        shocked.swap_closure("IF_PLACEHOLDER", IF_EQ)
-    shocked.apply_shock(var, shock, start, periods=periods)
     shocked.solve(start, end)
     shocked_data = shocked.data.copy()
 

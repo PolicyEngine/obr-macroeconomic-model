@@ -63,13 +63,19 @@ def disp(kind, base, shock):
 
 
 def run_scenario(sc):
+    # Baseline and shocked runs share one build and the same structure (the
+    # instrument exogenous in both): the delta then isolates the shock instead
+    # of being contaminated by the baseline re-solving the instrument
+    # endogenously and drifting off the databank.
     base = build(sc["closure"])
+    base.make_exogenous(sc["var"])
     base._shock_active = True
+
+    shock = base.clone()
+    shock.apply_shock(sc["var"], sc["shock"], START, periods=sc["periods"])
+
     base.solve(START, END)
     bdat = base.data.copy()
-
-    shock = build(sc["closure"])
-    shock.apply_shock(sc["var"], sc["shock"], START, periods=sc["periods"])
     shock.solve(START, END)
     sdat = shock.data.copy()
 
