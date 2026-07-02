@@ -89,17 +89,6 @@ const EXO = [
   { g: "Demographics", ex: "POP16 (working-age population)" },
 ];
 
-const RESULTS = [
-  { q: "2025 Q1", inv: "0.0", gdp: "0.0", neg: false },
-  { q: "2025 Q2", inv: "0.0", gdp: "0.0", neg: false },
-  { q: "2025 Q3", inv: "−26.5", gdp: "−26.5", neg: true },
-  { q: "2025 Q4", inv: "−76.2", gdp: "−76.2", neg: true },
-  { q: "2026 Q1", inv: "−162.5", gdp: "−162.5", neg: true },
-  { q: "2026 Q2", inv: "−324.4", gdp: "−324.4", neg: true },
-  { q: "2026 Q3", inv: "−625.2", gdp: "−625.2", neg: true },
-  { q: "2026 Q4", inv: "−1,200.0", gdp: "−1,200.0", neg: true, hl: true },
-];
-
 export default function HowItWorksTab({ model, explorer }) {
   return (
     <div className="space-y-6">
@@ -246,9 +235,12 @@ export default function HowItWorksTab({ model, explorer }) {
               </table>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              <strong>10 of the 10</strong> channels we compute land inside these
-              targets. Three &mdash; business investment, the trade balance and
-              the current account &mdash; stay outside, and that&rsquo;s down to
+              On this scoring, <strong>most</strong> of the channels we compute
+              track inside these targets &mdash; but the headline count depends
+              on scoring choices: net balances are scored as a share of GDP, and
+              the solver is initialised at the published EFO values.{" "}
+              <strong>Business investment, the trade balance and the current
+              account</strong> remain the weak channels, and that&rsquo;s down to
               the model&rsquo;s <strong>structure</strong>, not something tuning
               can fix.
             </p>
@@ -360,7 +352,7 @@ export default function HowItWorksTab({ model, explorer }) {
       <div className="section-card">
         <SectionHeading
           title="Worked example — a corporation-tax rise"
-          description="How a +1pp rate rise travels through the equations and what the emulator reports."
+          description="How a rate rise travels through the equations — and why this emulator does not show its numbers."
         />
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -433,107 +425,29 @@ export default function HowItWorksTab({ model, explorer }) {
             </svg>
           </div>
 
-          {/* Result chart */}
+          {/* Why no numbers are shown */}
           <div>
             <h3 className="text-base font-semibold text-slate-900">
-              Modelled impact of a <span className="text-red-700">+1pp</span> rate rise
+              Why no numbers are shown for this channel
             </h3>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              Change in business investment vs. baseline, &pound;m per quarter.
-              The effect builds with a lag because investment responds to the{" "}
-              <em>past</em> capital gap.
+              The chain above is the OBR&rsquo;s published structure, and the
+              emulator activates it by swapping the business-investment
+              error-correction equation in for the residual identity. But when
+              this closure is re-solved here, the investment path does not
+              converge &mdash; each quarter&rsquo;s response roughly doubles,
+              which is solver behaviour, not economics.
             </p>
-            <svg
-              viewBox="0 0 640 240"
-              role="img"
-              aria-label="Line chart: change in business investment is zero for two quarters then falls to about minus 1200 million by 2026 Q4."
-              className="mt-3 w-full h-auto"
-            >
-              <style
-                dangerouslySetInnerHTML={{
-                  __html: `
-                    .ax{stroke:#dcd7cb;stroke-width:1}
-                    .gl{stroke:#eee9dd;stroke-width:1}
-                    .axl{font:11px ui-sans-serif,system-ui;fill:#5d6b74}
-                  `,
-                }}
-              />
-              <line className="ax" x1="60" y1="30" x2="60" y2="190" />
-              <line className="ax" x1="60" y1="190" x2="610" y2="190" />
-              <line className="gl" x1="60" y1="30" x2="610" y2="30" />
-              <line className="gl" x1="60" y1="83" x2="610" y2="83" />
-              <line className="gl" x1="60" y1="136" x2="610" y2="136" />
-              <text className="axl" x="54" y="34" textAnchor="end">0</text>
-              <text className="axl" x="54" y="87" textAnchor="end">&minus;400</text>
-              <text className="axl" x="54" y="140" textAnchor="end">&minus;800</text>
-              <text className="axl" x="54" y="193" textAnchor="end">&minus;1200</text>
-              <path
-                d="M60,30 137,30 214,34 291,40 369,52 446,73 523,113 600,190 600,190 60,190 z"
-                fill="rgba(194,84,61,.10)"
-              />
-              <polyline
-                points="60,30 137,30 214,34 291,40 369,52 446,73 523,113 600,190"
-                fill="none"
-                stroke="#c2543d"
-                strokeWidth="2.5"
-              />
-              <g fill="#c2543d">
-                <circle cx="60" cy="30" r="3" />
-                <circle cx="137" cy="30" r="3" />
-                <circle cx="214" cy="34" r="3" />
-                <circle cx="291" cy="40" r="3" />
-                <circle cx="369" cy="52" r="3" />
-                <circle cx="446" cy="73" r="3" />
-                <circle cx="523" cy="113" r="3" />
-                <circle cx="600" cy="190" r="4" />
-              </g>
-              <g className="axl" textAnchor="middle">
-                <text x="60" y="208">25Q1</text>
-                <text x="137" y="208">Q2</text>
-                <text x="214" y="208">Q3</text>
-                <text x="291" y="208">Q4</text>
-                <text x="369" y="208">26Q1</text>
-                <text x="446" y="208">Q2</text>
-                <text x="523" y="208">Q3</text>
-                <text x="600" y="208">Q4</text>
-              </g>
-              <text x="600" y="178" textAnchor="end" style={{ font: "600 12px ui-sans-serif", fill: "#c2543d" }}>
-                &minus;&pound;1.20bn
-              </text>
-            </svg>
-            <p className="mt-1 text-xs leading-6 text-slate-500">
-              Numbers are this emulator&rsquo;s output for illustration, not an OBR
-              forecast. The two-quarter flat start reflects the model&rsquo;s{" "}
-              <code>KGAP(-2)</code> lag.
-            </p>
+            <div className="note-card mt-3 rounded-r-xl p-4 text-sm leading-6">
+              Corporation-tax scenarios are therefore <strong>excluded</strong>{" "}
+              from the Explore tab and the reform grid until this channel is
+              recalibrated. For scale: the OBR&rsquo;s published costings put a
+              1pp corporation-tax change at roughly &pound;4bn a year of revenue
+              with a small, gradual GDP effect &mdash; nothing like a
+              quarter-on-quarter doubling.
+            </div>
           </div>
         </div>
-
-        {/* Results table */}
-        <div className="mt-6 overflow-x-auto">
-          <table className="data-table" aria-label="Corporation-tax results table">
-            <thead>
-              <tr>
-                <th>Quarter</th>
-                <th>&Delta; business investment (&pound;m)</th>
-                <th>&Delta; GDP (&pound;m)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {RESULTS.map((r) => (
-                <tr key={r.q} className={r.hl ? "font-semibold" : undefined}>
-                  <td>{r.q}</td>
-                  <td className={r.neg ? "text-red-700" : undefined}>{r.inv}</td>
-                  <td className={r.neg ? "text-red-700" : undefined}>{r.gdp}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-2 text-xs text-slate-500">
-          Illustrative emulator output for a +1pp corporation-tax rise under the
-          investment closure.
-        </p>
       </div>
 
       {/* ===== METHOD & LIMITATIONS ===== */}
@@ -584,8 +498,10 @@ export default function HowItWorksTab({ model, explorer }) {
               from the OBR&rsquo;s (commented, truncated) published line.
             </li>
             <li>
-              Add-factors and judgement that the OBR applies on top of the model
-              are <strong>not</strong> reproduced here.
+              Add-factors <strong>are approximated</strong> here: each
+              equation&rsquo;s recent corrections are averaged and held flat over
+              the forecast. The OBR&rsquo;s judgemental, quarter-by-quarter
+              add-factors are not reproduced.
             </li>
           </ul>
         </div>

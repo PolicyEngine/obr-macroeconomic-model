@@ -103,6 +103,21 @@ def is_sane(kind, arr):
     return all(v is None or abs(v) <= cap for v in arr)
 
 
+def is_symmetric(lo_arr, hi_arr):
+    """The dashboard scales linearly between two solved endpoints, which is only
+    honest if the ± endpoints roughly mirror each other. A response dominated by
+    non-converged-equation noise is direction-invariant (or wildly lopsided) and
+    fails this; a genuine (even mildly nonlinear) response passes."""
+    pairs = [(x, y) for x, y in zip(lo_arr, hi_arr) if x is not None and y is not None]
+    if not pairs:
+        return False
+    mag = max(max(abs(x) for x, _ in pairs), max(abs(y) for _, y in pairs))
+    if mag < 0.05:
+        return True
+    worst = max(abs(x + y) for x, y in pairs)
+    return worst <= 0.6 * mag
+
+
 def solve_override(base, lever, value):
     """Override the instrument (EViews `model.override`) and re-solve against the
     held baseline. Residuals stay ON, shared with the baseline, so the held
@@ -156,10 +171,20 @@ def main():
             print(f"[grid] {lev['id']} = {value}{lev['unit']} ...", flush=True)
             points.append({"shock": value, "series": run_point(base, lev, value, control)})
         # The dashboard scales each endpoint, so a variable is only usable if BOTH
-        # endpoints kept it. Drop any var missing from either.
+        # endpoints kept it AND the ± responses roughly mirror each other
+        # (asymmetry at this scale is solver noise, not nonlinearity).
         common = set(points[0]["series"]) & set(points[1]["series"])
+        for code in sorted(common):
+            if not is_symmetric(points[0]["series"][code], points[1]["series"][code]):
+                print(f"[grid]   ! dropping {code} (± responses do not mirror; artifact-dominated)",
+                      flush=True)
+                common.discard(code)
         for p in points:
             p["series"] = {k: v for k, v in p["series"].items() if k in common}
+        if not common:
+            print(f"[grid]   ! dropping lever {lev['id']} entirely: no channel survived "
+                  "the symmetry guard", flush=True)
+            continue
         out_levers.append({
             "id": lev["id"], "name": lev["name"], "var": lev["var"], "unit": lev["unit"],
             "lo": lev["lo"], "hi": lev["hi"], "step": lev["step"], "desc": lev["desc"],

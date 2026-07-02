@@ -29,18 +29,17 @@ const SERIES_COLORS = [
   "#7d5ba6",
 ];
 
-// Copied verbatim from the original dashboard's SCEN_DESC object.
 const SCEN_DESC = {
   gov_spend:
-    "Government consumption is a direct part of GDP, so output rises immediately; higher incomes then feed a second-round consumer-spending multiplier.",
-  corp_cut:
-    "A lower corporation-tax rate cuts the post-tax cost of capital, so firms want a larger capital stock and invest more — the cost-of-capital chain, run favourably.",
-  corp_rise:
-    "A higher rate makes capital dearer, shrinking desired investment. Effects build with a lag because investment responds to the capital gap two quarters earlier.",
-  gov_invest:
-    "Public capital spending lands directly on the fixed-investment component of GDP and builds public capital, rather than flowing through consumption.",
+    "Government consumption is a direct part of the GDP identity, so output moves one-for-one with the shock. In this emulator the behavioural second round (consumption, prices, imports) is largely inactive under the demand closure, so the multiplier stays ≈1 by construction — the OBR's own published impact multiplier for current spending is ~0.45.",
   austerity:
-    "The stimulus in reverse: lower public demand drags on output, incomes and consumer spending, with the multiplier deepening the contraction.",
+    "The stimulus in reverse: lower public demand subtracts one-for-one from the GDP identity. The same ≈1-by-construction multiplier caveat applies.",
+  export_rise:
+    "Stronger external demand for UK exports (e.g. faster world growth). Exports add directly to the GDP identity; the import and price offsets are largely inactive here.",
+  export_cut:
+    "Weaker external demand for UK exports. The mirror of the export boom, with the same identity-driven caveat.",
+  rate_rise:
+    "A 1pp Bank Rate rise feeds the household income and consumption equations. The investment and exchange-rate channels of monetary policy are not active in this emulator, so responses are smaller and narrower than the OBR's published ready-reckoners.",
 };
 
 // 2025Q1 -> 25Q1
@@ -244,15 +243,15 @@ export default function ExploreTab({ explorer }) {
         <div className="section-card">
           <SectionHeading
             title="Explore scenarios"
-            description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline. Or switch to compare to see how all five scenarios move one variable."
+            description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline. Or switch to compare to see how the scenarios move one variable."
           />
         </div>
         {controls}
         <div className="section-card space-y-4">
           <p className="text-sm leading-6 text-slate-600">
-            Under the standard closure this scenario produced no material change
-            in the tracked variables. Try the corporation-tax scenarios for the
-            fuller investment transmission.
+            This scenario produced no material change in the tracked variables —
+            the transmission channel it relies on is not active in this
+            emulator. Pick another scenario, or switch to compare mode.
           </p>
           <ScenarioCard scenario={sc} />
         </div>
@@ -316,7 +315,7 @@ export default function ExploreTab({ explorer }) {
       <div className="section-card">
         <SectionHeading
           title="Explore scenarios"
-          description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline. Or switch to compare to see how all five scenarios move one variable."
+          description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline. Or switch to compare to see how the scenarios move one variable."
         />
       </div>
       {controls}
