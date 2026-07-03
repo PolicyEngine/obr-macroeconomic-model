@@ -98,7 +98,7 @@ function ScenarioCard({ scenario }) {
   );
 }
 
-export default function ExploreTab({ explorer }) {
+export default function ExploreTab({ explorer, embedded = false }) {
   const [mode, setMode] = useState("single");
   const [scenIdx, setScenIdx] = useState(0);
   const [varCode, setVarCode] = useState("GDPM");
@@ -107,10 +107,12 @@ export default function ExploreTab({ explorer }) {
     return (
       <div className="space-y-6">
         <div className="section-card">
-          <SectionHeading
-            title="Explore scenarios"
-            description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline."
-          />
+          {!embedded && (
+            <SectionHeading
+              title="Explore scenarios"
+              description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline."
+            />
+          )}
           <p className="text-sm text-slate-500">
             Scenario data has not been generated yet.
           </p>
@@ -240,12 +242,14 @@ export default function ExploreTab({ explorer }) {
     return (
       <div className="space-y-6">
         {sampleBanner}
-        <div className="section-card">
-          <SectionHeading
-            title="Explore scenarios"
-            description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline. Or switch to compare to see how the scenarios move one variable."
-          />
-        </div>
+        {!embedded && (
+          <div className="section-card">
+            <SectionHeading
+              title="Explore scenarios"
+              description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline. Or switch to compare to see how the scenarios move one variable."
+            />
+          </div>
+        )}
         {controls}
         <div className="section-card space-y-4">
           <p className="text-sm leading-6 text-slate-600">
@@ -312,12 +316,14 @@ export default function ExploreTab({ explorer }) {
   return (
     <div className="space-y-6">
       {sampleBanner}
-      <div className="section-card">
-        <SectionHeading
-          title="Explore scenarios"
-          description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline. Or switch to compare to see how the scenarios move one variable."
-        />
-      </div>
+      {!embedded && (
+        <div className="section-card">
+          <SectionHeading
+            title="Explore scenarios"
+            description="Pick a policy scenario and a variable to see the modelled path, quarter by quarter, against an unchanged baseline. Or switch to compare to see how the scenarios move one variable."
+          />
+        </div>
+      )}
       {controls}
 
       <div className="section-card space-y-4">

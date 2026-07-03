@@ -4,8 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AboutTab from "../src/components/AboutTab";
 import HowItWorksTab from "../src/components/HowItWorksTab";
-import ExploreTab from "../src/components/ExploreTab";
-import CustomReformTab from "../src/components/CustomReformTab";
+import ScenariosTab from "../src/components/ScenariosTab";
 import VariablesTab from "../src/components/VariablesTab";
 import EquationsTab from "../src/components/EquationsTab";
 
@@ -13,7 +12,6 @@ const TAB_OPTIONS = [
   { id: "about", label: "About" },
   { id: "how", label: "How it works" },
   { id: "explore", label: "Explore scenarios" },
-  { id: "reform", label: "Build a reform" },
   { id: "variables", label: "Variables" },
   { id: "equations", label: "Equations" },
 ];
@@ -80,7 +78,7 @@ function Dashboard() {
 
       <main className="relative z-[1] mx-auto max-w-[1400px] px-6 py-10 md:px-8 md:py-12">
         <div className="animate-[fadeIn_0.4s_ease-out]">
-          <p className="mb-3 max-w-[80ch] text-[1.05rem] leading-relaxed text-slate-600">
+          <p className="mb-3 text-[1.05rem] leading-relaxed text-slate-600">
             An independent Python re-implementation of the{" "}
             <a
               href="https://obr.uk/forecasts-in-depth/obr-macroeconomic-model/"
@@ -97,7 +95,7 @@ function Dashboard() {
           </p>
         </div>
 
-        <div className="mb-8 mt-8 flex w-fit flex-wrap border-b-2 border-slate-200">
+        <div className="mb-8 mt-8 flex w-full flex-wrap border-b-2 border-slate-200">
           {TAB_OPTIONS.map((tab) => (
             <button
               key={tab.id}
@@ -124,8 +122,9 @@ function Dashboard() {
           <div className="animate-[fadeIn_0.4s_ease-out]">
             {activeTab === "about" && <AboutTab model={model} explorer={explorer} />}
             {activeTab === "how" && <HowItWorksTab model={model} explorer={explorer} />}
-            {activeTab === "explore" && <ExploreTab explorer={explorer} />}
-            {activeTab === "reform" && <CustomReformTab grid={grid} />}
+            {activeTab === "explore" && (
+              <ScenariosTab explorer={explorer} grid={grid} />
+            )}
             {activeTab === "variables" && <VariablesTab model={model} />}
             {activeTab === "equations" && <EquationsTab model={model} />}
           </div>

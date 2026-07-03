@@ -1,6 +1,48 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import SectionHeading from "./SectionHeading";
+
+// A compact, scrollable list of variable codes. Hovering (or focusing) a code
+// shows its full name in the detail line below — this avoids the native-tooltip
+// delay and the clipping that a floating tooltip would hit inside the scrollbox.
+function VarScrollList({ items, accent }) {
+  const [hover, setHover] = useState(null);
+  return (
+    <div className="mt-3">
+      <div className="max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-white/60 p-2">
+        <div className="flex flex-wrap gap-1.5">
+          {items.map((it) => (
+            <span
+              key={it.code}
+              tabIndex={0}
+              title={it.desc || it.code}
+              onMouseEnter={() => setHover(it)}
+              onFocus={() => setHover(it)}
+              className={`cursor-default rounded-md px-1.5 py-0.5 font-mono text-[11px] ${accent}`}
+            >
+              {it.code}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="mt-1.5 min-h-[1.25rem] px-1 text-xs leading-5">
+        {hover ? (
+          <span className="text-slate-600">
+            <span className="font-mono font-semibold text-slate-800">
+              {hover.code}
+            </span>{" "}
+            &mdash; {hover.desc}
+          </span>
+        ) : (
+          <span className="text-slate-400">
+            Hover a code to see the full variable name.
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const STEPS = [
   {
@@ -90,6 +132,19 @@ const EXO = [
 ];
 
 export default function HowItWorksTab({ model, explorer }) {
+  // Split the model's variables into what it solves (has an equation) and what
+  // it is given (exogenous), straight from the model data.
+  const { endo, exo } = useMemo(() => {
+    const items = (model && model.items) || [];
+    const withCode = items.filter((it) => it.code);
+    const isExo = (it) => /^exog/i.test(it.type || "");
+    const byCode = (a, b) => a.code.localeCompare(b.code);
+    return {
+      endo: withCode.filter((it) => !isExo(it)).sort(byCode),
+      exo: withCode.filter(isExo).sort(byCode),
+    };
+  }, [model]);
+
   return (
     <div className="space-y-6">
       <p className="text-sm leading-6 text-slate-600">
@@ -117,13 +172,13 @@ export default function HowItWorksTab({ model, explorer }) {
                 .p{fill:#fff;stroke:#d7d2c6;stroke-width:1.5}
                 .pt{font:600 13px ui-sans-serif,system-ui;fill:#0c2233}
                 .ps{font:11px ui-sans-serif,system-ui;fill:#5d6b74}
-                .pa{stroke:#0f9488;stroke-width:2.2;fill:none}
+                .pa{stroke:#0f9488;stroke-width:2.2;fill:none;stroke-linecap:round}
               `,
             }}
           />
           <defs>
-            <marker id="pm" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto">
-              <path d="M0,0 L10,5 L0,10 z" fill="#0f9488" />
+            <marker id="pm" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+              <path d="M0.5,1 L9.5,5 L0.5,9 L3,5 z" fill="#0f9488" />
             </marker>
           </defs>
 
@@ -284,11 +339,16 @@ export default function HowItWorksTab({ model, explorer }) {
               </span>
             </div>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              It has its own equation, so the model works it out. The{" "}
-              <strong>372 equations</strong> solve <strong>~359</strong> of these
-              &mdash; GDP, consumption, investment, jobs, prices, tax receipts,
-              borrowing.
+              It has its own equation, so the model works it out &mdash; GDP,
+              consumption, investment, jobs, prices, tax receipts, borrowing.{" "}
+              <strong>{endo.length}</strong> variables, scroll to browse:
             </p>
+            {endo.length > 0 && (
+              <VarScrollList
+                items={endo}
+                accent="bg-[color:var(--pe-color-primary-50,#eef6f5)] text-[color:var(--pe-color-primary-700)]"
+              />
+            )}
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5">
             <div className="flex items-baseline justify-between gap-2">
@@ -302,8 +362,11 @@ export default function HowItWorksTab({ model, explorer }) {
             <p className="mt-2 text-sm leading-6 text-slate-600">
               No equation &mdash; we feed it in and hold it fixed. These are the
               policy and world <strong>levers you change</strong> to run a
-              scenario.
+              scenario. <strong>{exo.length}</strong> variables, scroll to browse:
             </p>
+            {exo.length > 0 && (
+              <VarScrollList items={exo} accent="bg-slate-100 text-slate-600" />
+            )}
           </div>
         </div>
 
@@ -375,13 +438,13 @@ export default function HowItWorksTab({ model, explorer }) {
                     .cp{rx:9;ry:9}
                     .ct{font:600 12.5px ui-sans-serif,system-ui;fill:#0c2233}
                     .cv{font:700 12px ui-mono,ui-monospace,monospace;fill:#0b6c63}
-                    .cl{stroke:#c2543d;stroke-width:2;fill:none}
+                    .cl{stroke:#c2543d;stroke-width:2;fill:none;stroke-linecap:round}
                   `,
                 }}
               />
               <defs>
-                <marker id="cm" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
-                  <path d="M0,0 L9,4.5 L0,9 z" fill="#c2543d" />
+                <marker id="cm" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+                  <path d="M0.5,1 L9.5,5 L0.5,9 L3,5 z" fill="#c2543d" />
                 </marker>
               </defs>
               <g>

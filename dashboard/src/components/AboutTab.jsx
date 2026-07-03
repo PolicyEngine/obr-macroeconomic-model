@@ -6,7 +6,11 @@ const STATS = [
   { big: "1970", lab: "First built by HM Treasury; updated continuously since" },
   { big: "372", lab: "Behavioural equations & accounting identities" },
   { big: "17", lab: "Thematic groups, from consumption to public finances" },
-  { big: "ESA10", lab: "Aligned to the European System of Accounts" },
+  {
+    big: "ESA10",
+    lab: "Aligned to the European System of Accounts",
+    href: "https://ec.europa.eu/eurostat/web/esa-2010",
+  },
 ];
 
 const GROUPS = [
@@ -62,8 +66,8 @@ const SCHEMATIC_CSS = `
   .obr-t{font:600 13px ui-sans-serif,system-ui;fill:#0c2233}
   .obr-s{font:11px ui-sans-serif,system-ui;fill:#5d6b74}
   .obr-hd{font:700 11px ui-sans-serif,system-ui;letter-spacing:.12em;fill:#0b6c63}
-  .obr-lk{stroke:#9fb0bb;stroke-width:1.6;fill:none}
-  .obr-lkt{stroke:#0f9488;stroke-width:2;fill:none}
+  .obr-lk{stroke:#9fb0bb;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .obr-lkt{stroke:#0f9488;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 `;
 
 export default function AboutTab({ model, explorer }) {
@@ -89,51 +93,21 @@ export default function AboutTab({ model, explorer }) {
                 {stat.big}
               </div>
               <div className="mt-2 text-sm leading-5 text-slate-600">
-                {stat.lab}
+                {stat.href ? (
+                  <a
+                    href={stat.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-slate-300 underline-offset-2 hover:decoration-slate-500"
+                  >
+                    {stat.lab}
+                  </a>
+                ) : (
+                  stat.lab
+                )}
               </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      <section className="section-card">
-        <SectionHeading title="What it is — and what it isn&rsquo;t" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--pe-color-primary-700)]">
-              It is
-            </h3>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700 list-disc pl-5">
-              <li>
-                A <strong>computational tool</strong> that enforces accounting
-                consistency across the whole economy.
-              </li>
-              <li>
-                A way to generate a full forecast from a{" "}
-                <strong>handful of key judgements</strong>.
-              </li>
-              <li>
-                A system of <strong>simultaneous equations</strong> solved together
-                until they all balance.
-              </li>
-            </ul>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-red-700">
-              It is not
-            </h3>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700 list-disc pl-5">
-              <li>
-                The <strong>source</strong> of the forecast &mdash; the
-                forecaster&rsquo;s judgement is.
-              </li>
-              <li>
-                An <strong>OBR forecast</strong>: results here use the user&rsquo;s
-                own assumptions.
-              </li>
-              <li>A black box &mdash; every equation is published and readable.</li>
-            </ul>
-          </div>
         </div>
       </section>
 
@@ -194,23 +168,24 @@ export default function AboutTab({ model, explorer }) {
           <defs>
             <marker
               id="ar"
-              markerWidth="9"
-              markerHeight="9"
-              refX="7"
-              refY="4.5"
+              markerWidth="10"
+              markerHeight="10"
+              refX="8"
+              refY="5"
               orient="auto"
             >
-              <path d="M0,0 L9,4.5 L0,9 z" fill="#9fb0bb" />
+              {/* slender dart with a concave tail — reads cleaner than a plain triangle */}
+              <path d="M0.5,1 L9.5,5 L0.5,9 L3,5 z" fill="#9fb0bb" />
             </marker>
             <marker
               id="art"
-              markerWidth="9"
-              markerHeight="9"
-              refX="7"
-              refY="4.5"
+              markerWidth="10"
+              markerHeight="10"
+              refX="8"
+              refY="5"
               orient="auto"
             >
-              <path d="M0,0 L9,4.5 L0,9 z" fill="#0f9488" />
+              <path d="M0.5,1 L9.5,5 L0.5,9 L3,5 z" fill="#0f9488" />
             </marker>
           </defs>
           <style dangerouslySetInnerHTML={{ __html: SCHEMATIC_CSS }} />
@@ -378,10 +353,11 @@ export default function AboutTab({ model, explorer }) {
             d="M700,182 C700,248 650,298 602,298"
             markerEnd="url(#ar)"
           />
-          {/* GDP -> public finances (straight down into receipts) */}
+          {/* GDP -> public finances (routed down the right gutter so it clears
+              the "PUBLIC FINANCES & EXTERNAL" header rather than crossing it) */}
           <path
             className="obr-lk"
-            d="M772,182 L772,274"
+            d="M846,182 C905,206 905,298 884,298"
             markerEnd="url(#ar)"
           />
           {/* incomes & prices feed back to demand (dashed loop up the left gutter) */}
@@ -398,12 +374,6 @@ export default function AboutTab({ model, explorer }) {
             prices loop back
           </text>
         </svg>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          Judgements feed the behavioural <em>demand</em> blocks; their components
-          resolve into <strong>GDP</strong>, which drives incomes, prices and the
-          public finances &mdash; and those feed back into demand. The model
-          iterates until every block is mutually consistent.
-        </p>
       </section>
 
       <section className="section-card">
@@ -423,13 +393,6 @@ export default function AboutTab({ model, explorer }) {
         </div>
       </section>
 
-      <div className="note-card rounded-r-xl p-4 text-sm leading-6">
-        <strong>Health warning.</strong> This is an independent emulator built from
-        the OBR&rsquo;s published model code. Outputs depend entirely on the
-        user&rsquo;s assumptions and are <em>not</em> OBR or Treasury forecasts. The
-        official model is operated in EViews; this project runs the same equations
-        in Python.
-      </div>
     </div>
   );
 }

@@ -60,7 +60,7 @@ function variablesForLever(grid, lever) {
   return grid.variables.filter((vv) => lo.series[vv.code] && hi.series[vv.code]);
 }
 
-export default function CustomReformTab({ grid }) {
+export default function CustomReformTab({ grid, embedded = false }) {
   const [leverId, setLeverId] = useState(grid ? grid.levers[0]?.id : null);
   const [value, setValue] = useState(null);
   const [varCode, setVarCode] = useState("GDPM");
@@ -69,10 +69,12 @@ export default function CustomReformTab({ grid }) {
     return (
       <div className="space-y-6">
         <div className="section-card">
-          <SectionHeading
-            title="Build a reform"
-            description="Dial a policy lever to any size and see the modelled forecast."
-          />
+          {!embedded && (
+            <SectionHeading
+              title="Build a reform"
+              description="Dial a policy lever to any size and see the modelled forecast."
+            />
+          )}
           <p className="text-sm text-slate-500">
             Reform grid has not been generated yet. Run{" "}
             <code>gen_reform_grid.py</code> and re-deploy.
@@ -114,12 +116,14 @@ export default function CustomReformTab({ grid }) {
 
   return (
     <div className="space-y-6">
-      <div className="section-card">
-        <SectionHeading
-          title="Build a reform"
-          description="Pick a policy lever, dial its size with the slider, and choose a variable to see the modelled impact, quarter by quarter, against an unchanged baseline. The reform is run the way the OBR runs one in EViews: the instrument is overridden in a scenario and solved against an add-factor-calibrated baseline, so the path shown is scenario minus baseline."
-        />
-      </div>
+      {!embedded && (
+        <div className="section-card">
+          <SectionHeading
+            title="Build a reform"
+            description="Pick a policy lever, dial its size with the slider, and choose a variable to see the modelled impact, quarter by quarter, against an unchanged baseline. The reform is run the way the OBR runs one in EViews: the instrument is overridden in a scenario and solved against an add-factor-calibrated baseline, so the path shown is scenario minus baseline."
+          />
+        </div>
+      )}
 
       {/* Controls */}
       <div className="section-card space-y-5">
@@ -145,7 +149,7 @@ export default function CustomReformTab({ grid }) {
           ) : (
             <p className="text-base font-semibold text-slate-800">{lever.name}</p>
           )}
-          <p className="mt-2 max-w-[70ch] text-xs leading-5 text-slate-500">
+          <p className="mt-2 text-xs leading-5 text-slate-500">
             Each lever is solved against the add-factor-calibrated baseline, which
             keeps the behavioural blocks on track and gives a stable, correctly
             signed response. Corporation tax is not offered: its
