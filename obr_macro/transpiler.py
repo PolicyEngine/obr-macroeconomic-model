@@ -4,6 +4,20 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+# Identifier grammar: the OBR writes variable names in mixed case (OAHHx,
+# DIPHHmf, DEPHHx, ...), so identifiers are a letter followed by letters,
+# digits or underscores. Function names and evaluation-context identifiers
+# must never be treated as model variables when scanning for identifiers.
+IDENT = r'[A-Za-z][A-Za-z0-9_]*'
+RESERVED_WORDS = frozenset({
+    # EViews / transpiler function names
+    'd', 'dlog', 'log', 'exp',
+    # evaluation-context names emitted by the transpiler
+    'np', 't', 'v', 'nan', 'inf',
+    # legacy special names kept out of the variable namespace
+    'Q', 'NP', 'LOG', 'EXP',
+})
+
 
 @dataclass
 class ParsedEquation:
@@ -129,10 +143,12 @@ class EViewsTranspiler:
     def _convert_lags_simple(self, s: str, lag: int) -> str:
         """Convert lags in expression, adding default lag to bare variables."""
         # First convert explicit lags VAR(-n); tolerate stray whitespace e.g. VAR(- 1)
-        pattern = r'([A-Z][A-Z0-9_]*)\(\s*(-?\s*\d+)\s*\)'
+        pattern = rf'({IDENT})\(\s*(-?\s*\d+)\s*\)'
 
         def replace(m):
             var = m.group(1)
+            if var in RESERVED_WORDS:
+                return m.group(0)
             explicit_lag = -int(m.group(2).replace(' ', ''))  # VAR(-1) means lag 1
             total_lag = explicit_lag + lag
             if total_lag == 0:
@@ -143,11 +159,11 @@ class EViewsTranspiler:
         s = re.sub(pattern, replace, s)
 
         # Then convert bare variable names
-        bare_pattern = r'\b([A-Z][A-Z0-9_]*)\b(?!\s*[\(\[]|\')'
+        bare_pattern = rf'\b({IDENT})\b(?!\s*[\(\[]|\')'
 
         def replace_bare(m):
             var = m.group(1)
-            if var in ('NP', 'Q'):
+            if var in RESERVED_WORDS:
                 return var
             if lag == 0:
                 return f"v['{var}']"
@@ -213,10 +229,12 @@ class EViewsTranspiler:
         """Convert VAR(-n) to _lag('VAR', n) and bare VAR to v['VAR']."""
         # Pattern: VARNAME(-n) where n is a positive integer; tolerate stray
         # whitespace e.g. VAR(- 1)
-        pattern = r'([A-Z][A-Z0-9_]*)\(\s*(-?\s*\d+)\s*\)'
+        pattern = rf'({IDENT})\(\s*(-?\s*\d+)\s*\)'
 
         def replace(m):
             var = m.group(1)
+            if var in RESERVED_WORDS:
+                return m.group(0)
             lag = int(m.group(2).replace(' ', ''))
             if lag == 0:
                 return f"v['{var}']"
@@ -228,14 +246,14 @@ class EViewsTranspiler:
 
         s = re.sub(pattern, replace, s)
 
-        # Always convert bare variable names (uppercase words not followed by parentheses)
+        # Always convert bare variable names (words not followed by parentheses)
         # Match bare variable names not already converted to v['...'] or _lag(...)
-        bare_pattern = r'\b([A-Z][A-Z0-9_]*)\b(?!\s*[\(\[\'])'
+        bare_pattern = rf'\b({IDENT})\b(?!\s*[\(\[\'])'
 
         def replace_bare(m):
             var = m.group(1)
-            # Skip numpy functions and special names
-            if var in ('Q', 'NP', 'LOG', 'EXP'):
+            # Skip function names and evaluation-context identifiers
+            if var in RESERVED_WORDS:
                 return var
             if default_lag is not None and default_lag > 0:
                 return f"_lag('{var}', {default_lag})"

@@ -7,12 +7,19 @@ This solver:
 4. Allows closure swaps for policy simulation
 """
 
+import re
+from collections import Counter
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
 
 from obr_macro.data import load_obr_data, DATA_DIR, ensure_model_code
-from obr_macro.transpiler import parse_model_file, ParsedEquation
+from obr_macro.transpiler import parse_model_file, ParsedEquation, IDENT, RESERVED_WORDS
+
+# Cache of parsed LHS forms, keyed by the raw LHS string (parsing is
+# deterministic, so the cache can be shared across solver instances/clones).
+_LHS_CACHE: dict = {}
 
 
 class FullOBRSolver:
@@ -37,6 +44,19 @@ class FullOBRSolver:
             str(ensure_model_code()),
             include_behavioral=include_behavioral
         )
+
+        # Guard against the include_behavioral=True trap on current model files:
+        # the October 2025 file publishes the behavioural equations uncommented,
+        # and the un-commenting path resurrects a paren-unbalanced draft line
+        # that silently collapses the model from ~372 to ~36 equations.
+        if include_behavioral and len(self.equations) < 100:
+            raise ValueError(
+                f"include_behavioral=True parsed only {len(self.equations)} equations. "
+                "The October 2025 model file publishes behavioural equations "
+                "uncommented, so include_behavioral=True (which un-comments "
+                "'dlog/'d lines) is only correct for pre-2025 model files. "
+                "Use include_behavioral=False for this file."
+            )
 
         if self.verbose:
             print(f"Loaded {len(self.equations)} equations")
@@ -77,13 +97,13 @@ class FullOBRSolver:
 
     def _initialize_missing_variables(self):
         """Initialize variables that are computed by equations but not in data."""
-        import re
-
-        # Find all variables referenced in equations
+        # Find all variables referenced in equations. Identifiers are mixed
+        # case (OAHHx, DIPHHmf, ...); exclude @functions (e.g. @TREND) via the
+        # lookbehind and function names via RESERVED_WORDS.
         all_vars = set()
         for eq in self.equations:
-            vars_in_eq = re.findall(r'\b([A-Z][A-Z0-9_]*)\b', eq.original)
-            all_vars.update(vars_in_eq)
+            vars_in_eq = re.findall(rf'(?<![@\w])({IDENT})\b', eq.original)
+            all_vars.update(v for v in vars_in_eq if v not in RESERVED_WORDS)
 
         # Add missing variables with NaN (will be computed)
         # Use concat for efficiency instead of adding columns one by one
@@ -340,6 +360,7 @@ class FullOBRSolver:
         col_idx = {col: self.data.columns.get_loc(col) for col in self.data.columns}
 
         initialized = 0
+        self.init_failures = Counter()  # LHS var -> failed evaluations
         for t in range(start_t, len(self.data)):
             # Multiple passes to handle dependencies
             for _ in range(5):
@@ -348,6 +369,7 @@ class FullOBRSolver:
                     "np": np,
                     "v": v,
                     "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
+                    "_lead": lambda var, lead, t=t: self._lead(var, lead, t),
                     "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(t, period, op, tv, fv),
                     "_trend": lambda t_arg, base, t=t: self._trend(t, base),
                     "_elem": self._elem,
@@ -369,8 +391,10 @@ class FullOBRSolver:
                                 v[var] = new_val
                                 initialized += 1
                                 pass_initialized += 1
-                        except:
-                            pass
+                        except Exception:
+                            # Count (don't raise): many equations legitimately
+                            # fail here until their inputs get initialized.
+                            self.init_failures[var] += 1
 
                 # Stop if no new values computed this pass
                 if pass_initialized == 0:
@@ -378,6 +402,11 @@ class FullOBRSolver:
 
         if self.verbose:
             print(f"Initialized {initialized} values from identities")
+            if self.init_failures:
+                top = self.init_failures.most_common(5)
+                print(f"  ({sum(self.init_failures.values())} failed identity "
+                      f"evaluations across {len(self.init_failures)} equations; "
+                      "top: " + ", ".join(f"{v}({n})" for v, n in top) + ")")
 
     def _compute_residuals(self):
         """Compute residuals between OBR data and equation predictions.
@@ -397,69 +426,120 @@ class FullOBRSolver:
         except:
             start_t = len(self.data) - 20  # Last 20 periods
 
-        # Pre-filter behavioral equations
+        # Pre-filter behavioral equations.
+        # Residuals/add-factors are intentionally NOT computed for the
+        # @recode/@TREND-driven equations: held add-factors overshoot on them,
+        # so they project structurally (forecasts notably better — e.g. trade
+        # balance 11% vs 29% with held add-factors). This exclusion is explicit
+        # here (skip anything calling _recode/_trend) so the remaining context
+        # lambdas can carry the correct signatures without silently changing
+        # which equations get add-factored.
         behavioral_eqs = [
             eq for eq in self.equations
             if ("/" in eq.lhs or
                 eq.lhs.lower().startswith("dlog(") or
                 eq.lhs.lower().startswith("d("))
+            and "_recode(" not in eq.python_expr
+            and "_trend(" not in eq.python_expr
         ]
 
+        self.residual_failures = Counter()  # LHS var -> failed evaluations
         for t in range(max(1, start_t), len(self.data)):
-            # Build context once per period
+            # Build context once per period. Transpiled call forms are
+            # _recode(t, period, op, tv, fv) and _trend(t, base); the lambdas
+            # must match that arity (t_arg is ignored, the closure's t is used).
             v = {col: self.data.iloc[t][col] for col in self.data.columns}
             ctx = {
                 "np": np,
                 "v": v,
                 "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
-                # Residuals/add-factors are intentionally not computed for the
-                # @recode/@TREND-driven equations: held add-factors overshoot on
-                # them, so they project structurally (forecasts notably better —
-                # e.g. trade balance 11% vs 29% with held add-factors).
-                "_recode": lambda period, op, tv, fv, t=t: self._recode(t, period, op, tv, fv),
-                "_trend": lambda base, t=t: self._trend(t, base),
+                "_lead": lambda var, lead, t=t: self._lead(var, lead, t),
+                "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(t, period, op, tv, fv),
+                "_trend": lambda t_arg, base, t=t: self._trend(t, base),
                 "_elem": self._elem,
                 "t": t,
             }
 
             for eq in behavioral_eqs:
-                var = self._extract_lhs_var(eq.lhs)
+                var, kind, lag_n = self._parse_lhs(eq.lhs)
                 try:
-                    rhs_val = eval(eq.python_expr, ctx)
+                    rhs_val = eval(self._compiled(eq.python_expr), ctx)
                     actual_val = self._get(var, t)
 
-                    if "/" in eq.lhs:
-                        lag_val = self._lag(var, 1, t)
-                        predicted = lag_val * rhs_val if np.isfinite(lag_val) else np.nan
-                    elif eq.lhs.lower().startswith("dlog("):
-                        lag_val = self._lag(var, 1, t)
-                        predicted = lag_val * np.exp(rhs_val) if np.isfinite(lag_val) else np.nan
-                    elif eq.lhs.lower().startswith("d("):
-                        lag_val = self._lag(var, 1, t)
-                        predicted = lag_val + rhs_val if np.isfinite(lag_val) else np.nan
-                    else:
-                        predicted = rhs_val
+                    predicted = self._lhs_new_value(var, kind, lag_n, rhs_val, t)
 
                     if np.isfinite(actual_val) and np.isfinite(predicted):
                         self.residuals[(var, t)] = actual_val - predicted
-                except:
-                    pass
+                except Exception:
+                    # Count (don't raise): NaN-input equations are expected.
+                    self.residual_failures[var] += 1
 
         if self.verbose:
             print(f"Computed {len(self.residuals)} residuals")
+            if self.residual_failures:
+                top = self.residual_failures.most_common(5)
+                print(f"  ({sum(self.residual_failures.values())} failed residual "
+                      f"evaluations across {len(self.residual_failures)} equations; "
+                      "top: " + ", ".join(f"{v}({n})" for v, n in top) + ")")
+
+    def _parse_lhs(self, lhs: str) -> tuple:
+        """Parse an equation LHS into (var, kind, lag).
+
+        Kinds:
+          'ratio':  X / X(-n) = rhs      ->  X = X(-n) * rhs
+          'growth': d(X) / X(-n) = rhs   ->  X = X(-n) * (1 + rhs)
+          'dlog':   dlog(X) = rhs        ->  X = X(-1) * exp(rhs)
+          'd':      d(X) = rhs           ->  X = X(-1) + rhs
+          'level':  X = rhs              ->  X = rhs
+        """
+        cached = _LHS_CACHE.get(lhs)
+        if cached is not None:
+            return cached
+
+        s = lhs.strip()
+        if "/" in s:
+            num, den = s.split("/", 1)
+            num, den = num.strip(), den.strip()
+            # Parse the actual lag from the denominator, e.g. PCE(-4) -> 4
+            m = re.match(rf'({IDENT})\(\s*-\s*(\d+)\s*\)$', den)
+            lag = int(m.group(2)) if m else 1
+            if num.lower().startswith("d(") and num.endswith(")"):
+                # growth-rate LHS: d(X) / X(-n)
+                parsed = (num[2:-1].strip(), "growth", lag)
+            else:
+                parsed = (num, "ratio", lag)
+        elif s.lower().startswith("dlog("):
+            parsed = (s[5:-1].strip(), "dlog", 1)
+        elif s.lower().startswith("d("):
+            parsed = (s[2:-1].strip(), "d", 1)
+        elif s.startswith("@IDENTITY"):
+            parsed = (s.replace("@IDENTITY", "").strip(), "level", 0)
+        else:
+            parsed = (s, "level", 0)
+
+        _LHS_CACHE[lhs] = parsed
+        return parsed
 
     def _extract_lhs_var(self, lhs: str) -> str:
         """Extract variable name from LHS."""
-        lhs = lhs.strip()
-        if "/" in lhs:
-            return lhs.split("/")[0].strip()
-        if lhs.lower().startswith("dlog("):
-            return lhs[5:-1].strip()
-        if lhs.lower().startswith("d("):
-            return lhs[2:-1].strip()
-        if lhs.startswith("@IDENTITY"):
-            return lhs.replace("@IDENTITY", "").strip()
-        return lhs
+        return self._parse_lhs(lhs)[0]
+
+    def _lhs_new_value(self, var: str, kind: str, lag: int, rhs_val: float,
+                       t: int) -> float:
+        """Compute the implied LHS-variable value from an evaluated RHS."""
+        if kind == "ratio":
+            lag_val = self._lag(var, lag, t)
+            return lag_val * rhs_val if np.isfinite(lag_val) else np.nan
+        if kind == "growth":
+            lag_val = self._lag(var, lag, t)
+            return lag_val * (1 + rhs_val) if np.isfinite(lag_val) else np.nan
+        if kind == "dlog":
+            lag_val = self._lag(var, lag, t)
+            return lag_val * np.exp(rhs_val) if np.isfinite(lag_val) else np.nan
+        if kind == "d":
+            lag_val = self._lag(var, lag, t)
+            return lag_val + rhs_val if np.isfinite(lag_val) else np.nan
+        return rhs_val
 
     def _get(self, var: str, t: int) -> float:
         if var not in self.data.columns or t < 0 or t >= len(self.data):
@@ -473,6 +553,10 @@ class FullOBRSolver:
 
     def _lag(self, var: str, lag: int, t: int) -> float:
         return self._get(var, t - lag)
+
+    def _lead(self, var: str, lead: int, t: int) -> float:
+        """Future-dated term VAR(+n): value at t + n."""
+        return self._get(var, t + lead)
 
     def _recode(self, t: int, period: str, op: str, true_val: float, false_val: float) -> float:
         target = pd.Period(period, freq="Q")
@@ -517,6 +601,7 @@ class FullOBRSolver:
             "np": np,
             "v": v,
             "_lag": lambda var, lag: self._lag(var, lag, t),
+            "_lead": lambda var, lead: self._lead(var, lead, t),
             "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
             "_trend": lambda t_arg, base: self._trend(t, base),
             "_elem": self._elem,
@@ -592,12 +677,24 @@ class FullOBRSolver:
 
     def solve_period(self, t: int, max_iter: int = 60, tol: float = 1e-6,
                      stall_patience: int = 8) -> int:
-        """Solve all equations for period t using Gauss-Seidel."""
+        """Solve all equations for period t using Gauss-Seidel.
+
+        Records failure visibility without changing solve semantics:
+        - ``self.eq_failures`` (Counter) is incremented with the LHS var each
+          time an equation raises during evaluation (known-dead equations are
+          expected — they are counted, never raised).
+        - ``self._last_period_exit`` records how the iteration ended:
+          'tol' (converged), 'stall' (stall break), or 'max_iter'.
+        """
         # Pre-compute column indices for faster access
         col_idx = {col: self.data.columns.get_loc(col) for col in self.data.columns}
 
+        if not hasattr(self, "eq_failures"):
+            self.eq_failures = Counter()
+
         best_change = float("inf")
         stall = 0
+        self._last_period_exit = "max_iter"
         for iteration in range(max_iter):
             max_change = 0.0
 
@@ -609,6 +706,7 @@ class FullOBRSolver:
                 "np": np,
                 "v": v,
                 "_lag": lambda var, lag: self._lag(var, lag, t),
+                "_lead": lambda var, lead: self._lead(var, lead, t),
                 "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
                 "_trend": lambda t_arg, base: self._trend(t, base),
                 "_elem": self._elem,
@@ -616,24 +714,14 @@ class FullOBRSolver:
             }
 
             for eq in self.equations:
+                var, kind, lag_n = self._parse_lhs(eq.lhs)
                 try:
-                    var = self._extract_lhs_var(eq.lhs)
                     old_val = v.get(var, np.nan)
 
                     rhs_val = eval(self._compiled(eq.python_expr), ctx)
 
                     # Compute new value based on equation form
-                    if "/" in eq.lhs:
-                        lag_val = self._lag(var, 1, t)
-                        new_val = lag_val * rhs_val if np.isfinite(lag_val) else np.nan
-                    elif eq.lhs.lower().startswith("dlog("):
-                        lag_val = self._lag(var, 1, t)
-                        new_val = lag_val * np.exp(rhs_val) if np.isfinite(lag_val) else np.nan
-                    elif eq.lhs.lower().startswith("d("):
-                        lag_val = self._lag(var, 1, t)
-                        new_val = lag_val + rhs_val if np.isfinite(lag_val) else np.nan
-                    else:
-                        new_val = rhs_val
+                    new_val = self._lhs_new_value(var, kind, lag_n, rhs_val, t)
 
                     if np.isfinite(new_val):
                         # Add residual adjustment for behavioral equations
@@ -650,10 +738,13 @@ class FullOBRSolver:
                         if np.isfinite(old_val) and abs(old_val) > 1e-10:
                             change = abs(new_val - old_val) / abs(old_val)
                             max_change = max(max_change, change)
-                except Exception as e:
-                    pass  # Skip equations that can't be evaluated
+                except Exception:
+                    # Skip equations that can't be evaluated, but count them
+                    # so dead equations are visible in the solve report.
+                    self.eq_failures[var] += 1
 
             if max_change < tol:
+                self._last_period_exit = "tol"
                 return iteration + 1
 
             # Stall break: many periods never converge (a few equations oscillate
@@ -665,6 +756,7 @@ class FullOBRSolver:
             else:
                 stall += 1
                 if stall >= stall_patience:
+                    self._last_period_exit = "stall"
                     return iteration + 1
 
         return max_iter
@@ -680,14 +772,13 @@ class FullOBRSolver:
 
         Returns a list of dicts: {var, lhs, status, reason}.
         """
-        import re
-
         row = self.data.iloc[t]
         v = {col: row[col] for col in self.data.columns}
         ctx = {
             "np": np,
             "v": v,
             "_lag": lambda var, lag: self._lag(var, lag, t),
+            "_lead": lambda var, lead: self._lead(var, lead, t),
             "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
             "_trend": lambda t_arg, base: self._trend(t, base),
             "_elem": self._elem,
@@ -696,11 +787,11 @@ class FullOBRSolver:
 
         def nan_inputs(expr):
             bad = []
-            for m in re.finditer(r"v\['([A-Z0-9_]+)'\]", expr):
+            for m in re.finditer(r"v\['([A-Za-z0-9_]+)'\]", expr):
                 name = m.group(1)
                 if name in v and not np.isfinite(v.get(name, np.nan)):
                     bad.append(name)
-            for m in re.finditer(r"_lag\('([A-Z0-9_]+)',\s*(\d+)\)", expr):
+            for m in re.finditer(r"_lag\('([A-Za-z0-9_]+)',\s*(\d+)\)", expr):
                 name, lag = m.group(1), int(m.group(2))
                 if not np.isfinite(self._lag(name, lag, t)):
                     bad.append(f"{name}(-{lag})")
@@ -722,17 +813,48 @@ class FullOBRSolver:
         return out
 
     def solve(self, start: str, end: str) -> dict:
-        """Solve model from start to end period."""
+        """Solve model from start to end period.
+
+        Populates ``self.last_solve_report`` with per-solve failure counters
+        and per-period convergence status (nothing is raised — the model has
+        known-dead equations, which are counted rather than fatal).
+        """
         t_start = self.period_idx(start)
         t_end = self.period_idx(end)
+
+        self.eq_failures = Counter()
+        exit_status = {}
+        nonconverged = []
 
         results = {}
         for t in range(t_start, t_end + 1):
             iters = self.solve_period(t)
             period = str(self.index[t])
             results[period] = iters
+            status = getattr(self, "_last_period_exit", "unknown")
+            exit_status[period] = status
+            if status != "tol":
+                nonconverged.append(period)
             if self.verbose:
-                print(f"  {period}: {iters} iterations")
+                print(f"  {period}: {iters} iterations ({status})")
+
+        self.last_solve_report = {
+            "periods": t_end - t_start + 1,
+            "eq_failures": dict(self.eq_failures),
+            "exit_status": exit_status,
+            "nonconverged": nonconverged,
+        }
+
+        if self.verbose:
+            total_failures = sum(self.eq_failures.values())
+            if total_failures:
+                top = self.eq_failures.most_common(10)
+                print(f"Equation failures: {total_failures} evaluations across "
+                      f"{len(self.eq_failures)} equations. Top: "
+                      + ", ".join(f"{v}({n})" for v, n in top))
+            if nonconverged:
+                print(f"Non-converged periods ({len(nonconverged)}): "
+                      + ", ".join(nonconverged))
 
         return results
 
