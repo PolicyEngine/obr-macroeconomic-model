@@ -45,6 +45,40 @@ _BROWSER_HEADERS = {
 }
 
 
+def _download_validated(url: str, path: Path, kind: str) -> None:
+    """Download `url` to `path` atomically, validating the payload first.
+
+    The OBR site sits behind Cloudflare; a challenge/error page returns HTTP 200
+    with HTML, and a truncated read yields a partial file. Either would be cached
+    permanently as the "model file". Download to a temp path, check the status
+    and content signature, then atomically rename into place.
+
+    kind: "xlsx" (must start with the ZIP magic PK\\x03\\x04) or
+          "text" (must be >10KB, contain '=', and not look like HTML).
+    """
+    req = urllib.request.Request(url, headers=_BROWSER_HEADERS)
+    with urllib.request.urlopen(req) as resp:
+        if getattr(resp, "status", 200) != 200:
+            raise RuntimeError(f"{kind} download for {path.name} returned HTTP {resp.status}")
+        blob = resp.read()
+
+    if kind == "xlsx":
+        if not blob.startswith(b"PK\x03\x04"):
+            raise RuntimeError(
+                f"{path.name}: expected an xlsx (ZIP) payload but got "
+                f"{blob[:16]!r} — likely a Cloudflare challenge page, not the file.")
+    else:  # text
+        head = blob.lstrip()[:64].lower()
+        if len(blob) < 10_000 or b"=" not in blob or head.startswith(b"<"):
+            raise RuntimeError(
+                f"{path.name}: payload does not look like the model code "
+                f"({len(blob)} bytes, starts {blob[:16]!r}) — likely a blocked/partial download.")
+
+    tmp = path.with_suffix(path.suffix + ".part")
+    tmp.write_bytes(blob)
+    tmp.replace(path)   # atomic on the same filesystem
+
+
 def ensure_model_code() -> Path:
     """Download the OBR model code txt and variables xlsx if not present.
 
@@ -57,13 +91,12 @@ def ensure_model_code() -> Path:
         "model_code": DATA_DIR / "obr_model_code_october_2025.txt",
         "model_variables": DATA_DIR / "obr_model_variables_october_2025.xlsx",
     }
+    kinds = {"model_code": "text", "model_variables": "xlsx"}
 
     for key, path in files.items():
         if not path.exists():
             print(f"Downloading {key}...")
-            req = urllib.request.Request(OBR_MODEL_URLS[key], headers=_BROWSER_HEADERS)
-            with urllib.request.urlopen(req) as resp, open(path, "wb") as f:
-                f.write(resp.read())
+            _download_validated(OBR_MODEL_URLS[key], path, kinds[key])
 
     return files["model_code"]
 
@@ -82,9 +115,7 @@ def ensure_downloaded() -> dict[str, Path]:
     for key, path in files.items():
         if not path.exists():
             print(f"Downloading {key}...")
-            req = urllib.request.Request(OBR_URLS[key], headers=_BROWSER_HEADERS)
-            with urllib.request.urlopen(req) as resp, open(path, "wb") as f:
-                f.write(resp.read())
+            _download_validated(OBR_URLS[key], path, "xlsx")
 
     return files
 
@@ -385,8 +416,27 @@ def _merge_ons_snapshot(df: pd.DataFrame) -> pd.DataFrame:
         return df
     snap = pd.read_csv(snap_path, index_col=0)
     snap.index = pd.PeriodIndex(snap.index, freq="Q")
-    # align to the model index, hold exogenous assumptions flat across any gaps
-    snap = snap.reindex(df.index).ffill().bfill()
+    snap = snap.reindex(df.index)
+
+    # Extrapolate each series beyond its last observation at its trailing
+    # 4-quarter mean, NOT its last value. Many snapshot series are
+    # non-seasonally-adjusted cash flows (e.g. CGT — capital gains tax, with
+    # ~90% of receipts landing in Q1); holding the last value flat would freeze
+    # a single seasonal quarter across the whole forecast (CGT enters at ~6x its
+    # true annual rate if that quarter is the Q1 peak). The trailing annual
+    # average removes the seasonal component while preserving the level, and is
+    # harmless for smooth series and rates (mean ≈ last value).
+    for col in snap.columns:
+        valid = snap[col].dropna()
+        if valid.empty:
+            continue
+        held = float(valid.iloc[-4:].mean())
+        snap.loc[snap.index > valid.index[-1], col] = held
+
+    # Internal gaps: forward-fill (interpolate a held assumption). Pre-sample:
+    # a bounded back-fill only (limit=4) so a late-starting series is not
+    # back-fabricated across decades of history it never observed.
+    snap = snap.ffill().bfill(limit=4)
     add = {c: snap[c] for c in snap.columns if c not in df.columns or df[c].isna().all()}
     if add:
         df = pd.concat([df, pd.DataFrame(add, index=df.index)], axis=1)

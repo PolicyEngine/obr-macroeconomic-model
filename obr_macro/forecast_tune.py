@@ -35,6 +35,10 @@ def held_addfactors(residuals, period_idx, base_end, window):
 def score(sh, efo, t0, t1):
     has_eq = {sh._extract_lhs_var(eq.lhs) for eq in sh.equations}
     skipped = {d["var"] for d in sh.diagnose_period(t1)}
+    # Net balances (kind == "gdp") are scored as % of GDP — the same convention
+    # forecast.py uses. Scoring them as % of their own (tiny) value while banding
+    # with the %-of-GDP thresholds made the reported error incoherent.
+    gdp_code = "GDPMPS" if "GDPMPS" in efo.columns else "GDPM"
     rows, counts, computed = {}, {"OK": 0, "~": 0, "!": 0, "X": 0}, 0
     for code, label, kind in PANEL:
         if code not in efo.columns or code not in sh.data.columns:
@@ -43,7 +47,13 @@ def score(sh, efo, t0, t1):
         for t in range(t0, t1 + 1):
             m, e = sh.data.iloc[t][code], efo.iloc[t][code]
             if np.isfinite(m) and np.isfinite(e):
-                errs.append(abs(m - e) if kind == "pp" else (100 * abs(m - e) / abs(e) if abs(e) > 1e-9 else None))
+                if kind == "pp":
+                    errs.append(abs(m - e))
+                elif kind == "gdp":
+                    g = efo.iloc[t][gdp_code]
+                    errs.append(100 * abs(m - e) / g if np.isfinite(g) and g > 0 else None)
+                else:
+                    errs.append(100 * abs(m - e) / abs(e) if abs(e) > 1e-9 else None)
         errs = [x for x in errs if x is not None]
         err = float(np.mean(errs)) if errs else None
         if code in has_eq and code not in skipped:
