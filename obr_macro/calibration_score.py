@@ -40,8 +40,12 @@ PANEL = {
         ("HHDI", "Household income", "lvl"), ("COMP", "Compensation", "lvl"),
         ("RHHDI", "Real household income", "lvl"), ("FYCPR", "Company profits", "lvl"),
     ],
+    # Net balances are scored as % of GDP — the same convention forecast.py
+    # uses. A % error against a tiny net balance (a difference of two ~£240bn
+    # gross flows) is meaninglessly amplified; scoring both scorecards the same
+    # way avoids applying the favourable metric only where it helps a headline.
     "External": [
-        ("CB", "Current account", "lvl"), ("TB", "Trade balance", "lvl"),
+        ("CB", "Current account", "gdp"), ("TB", "Trade balance", "gdp"),
     ],
 }
 
@@ -52,6 +56,9 @@ def band(kind, err):
     if kind == "pp":
         return ("OK", "good") if err < 0.3 else ("~", "fair") if err < 1.0 \
             else ("!", "poor") if err < 3.0 else ("X", "off")
+    if kind == "gdp":   # error as % of GDP
+        return ("OK", "good") if err < 0.5 else ("~", "fair") if err < 1.5 \
+            else ("!", "poor") if err < 3.0 else ("X", "off")
     return ("OK", "good") if err < 2 else ("~", "fair") if err < 10 \
         else ("!", "poor") if err < 25 else ("X", "off")
 
@@ -59,6 +66,7 @@ def band(kind, err):
 def score_one(model, efo, code, kind, t0, t1):
     if code not in model.columns or code not in efo.columns:
         return None
+    gdp_code = "GDPMPS" if "GDPMPS" in efo.columns else "GDPM"
     errs = []
     for t in range(t0, t1 + 1):
         m, e = model.iloc[t][code], efo.iloc[t][code]
@@ -66,6 +74,10 @@ def score_one(model, efo, code, kind, t0, t1):
             continue
         if kind == "pp":
             errs.append(abs(m - e))
+        elif kind == "gdp":
+            g = efo.iloc[t][gdp_code]
+            if np.isfinite(g) and g > 0:
+                errs.append(100 * abs(m - e) / g)
         elif abs(e) > 1e-9:
             errs.append(100 * abs(m - e) / abs(e))
     return float(np.mean(errs)) if errs else None
@@ -104,7 +116,8 @@ def main():
                 tag = word
             else:
                 mark, tag = "·", st
-            errstr = "    —" if err is None else (f"{err:6.2f}pp" if kind == "pp" else f"{err:6.2f}%")
+            unit = {"pp": "pp", "gdp": "%GDP"}.get(kind, "%")
+            errstr = "    —" if err is None else f"{err:6.2f}{unit}"
             print(f"     [{mark:2}] {label:24} {errstr:>9}   {tag}")
         print()
 
