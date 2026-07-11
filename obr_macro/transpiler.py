@@ -4,10 +4,37 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+# Identifier grammar: the OBR writes variable names in mixed case (OAHHx,
+# DIPHHmf, DEPHHx, ...), so identifiers are a letter followed by letters,
+# digits or underscores. Function names and evaluation-context identifiers
+# must never be treated as model variables when scanning for identifiers.
+IDENT = r"[A-Za-z][A-Za-z0-9_]*"
+RESERVED_WORDS = frozenset(
+    {
+        # EViews / transpiler function names
+        "d",
+        "dlog",
+        "log",
+        "exp",
+        # evaluation-context names emitted by the transpiler
+        "np",
+        "t",
+        "v",
+        "nan",
+        "inf",
+        # legacy special names kept out of the variable namespace
+        "Q",
+        "NP",
+        "LOG",
+        "EXP",
+    }
+)
+
 
 @dataclass
 class ParsedEquation:
     """A parsed model equation."""
+
     lhs: str
     rhs: str
     original: str
@@ -28,6 +55,11 @@ class EViewsTranspiler:
     def transpile(self, eviews_expr: str) -> str:
         """Convert EViews expression to Python."""
         s = eviews_expr.strip()
+
+        # Step 0: Normalise whitespace between dlog/d and their opening paren
+        # ('dlog (X)', 'd (X)') so the balanced-paren scanners below match.
+        s = re.sub(r"(?<![A-Za-z0-9_])(dlog)\s+\(", r"\1(", s, flags=re.IGNORECASE)
+        s = re.sub(r"(?<![A-Za-z0-9_])(d)\s+\(", r"\1(", s, flags=re.IGNORECASE)
 
         # Step 1: Handle @elem(VAR, "PERIOD") - base period lookups
         s = self._convert_elem(s)
@@ -79,9 +111,10 @@ class EViewsTranspiler:
             op = m.group(1)
             year = m.group(2)
             quarter = int(m.group(3))
-            # Convert quarter: 01->1, 02->2, 03->3, 04->4
+            # Values 1-4 are quarters already; values 5-12 are month numbers
+            # (EViews @dateval("2008:07") means July 2008 -> Q3).
             if quarter > 4:
-                quarter = (quarter - 1) % 4 + 1
+                quarter = (quarter + 2) // 3
             true_val = m.group(4)
             false_val = m.group(5)
             period = f"{year}Q{quarter}"
@@ -91,7 +124,7 @@ class EViewsTranspiler:
 
     def _convert_trend(self, s: str) -> str:
         """Convert @TREND(base) to trend variable."""
-        pattern = r'@TREND\(\s*(\d{4})([Q:])(\d)\s*\)'
+        pattern = r"@TREND\(\s*(\d{4})([Q:])(\d)\s*\)"
 
         def replace(m):
             year = m.group(1)
@@ -110,7 +143,7 @@ class EViewsTranspiler:
 
         while i < len(s):
             # Look for 'dlog('
-            if s[i:i+5].lower() == 'dlog(':
+            if s[i : i + 5].lower() == "dlog(":
                 # Extract the balanced content
                 inner, end_pos = self._extract_balanced_parens(s, i + 4)
 
@@ -124,16 +157,18 @@ class EViewsTranspiler:
                 result.append(s[i])
                 i += 1
 
-        return ''.join(result)
+        return "".join(result)
 
     def _convert_lags_simple(self, s: str, lag: int) -> str:
         """Convert lags in expression, adding default lag to bare variables."""
-        # First convert explicit lags VAR(-n)
-        pattern = r'([A-Z][A-Z0-9_]*)\((-?\d+)\)'
+        # First convert explicit lags VAR(-n); tolerate stray whitespace e.g. VAR(- 1)
+        pattern = rf"({IDENT})\(\s*(-?\s*\d+)\s*\)"
 
         def replace(m):
             var = m.group(1)
-            explicit_lag = -int(m.group(2))  # VAR(-1) means lag 1
+            if var in RESERVED_WORDS:
+                return m.group(0)
+            explicit_lag = -int(m.group(2).replace(" ", ""))  # VAR(-1) means lag 1
             total_lag = explicit_lag + lag
             if total_lag == 0:
                 return f"v['{var}']"
@@ -143,11 +178,11 @@ class EViewsTranspiler:
         s = re.sub(pattern, replace, s)
 
         # Then convert bare variable names
-        bare_pattern = r'\b([A-Z][A-Z0-9_]*)\b(?!\s*[\(\[]|\')'
+        bare_pattern = rf"\b({IDENT})\b(?!\s*[\(\[]|\')"
 
         def replace_bare(m):
             var = m.group(1)
-            if var in ('NP', 'Q'):
+            if var in RESERVED_WORDS:
                 return var
             if lag == 0:
                 return f"v['{var}']"
@@ -167,20 +202,20 @@ class EViewsTranspiler:
         Returns:
             Tuple of (content inside parens, position after closing paren)
         """
-        if s[start] != '(':
-            return '', start
+        if s[start] != "(":
+            return "", start
 
         depth = 1
         i = start + 1
         while i < len(s) and depth > 0:
-            if s[i] == '(':
+            if s[i] == "(":
                 depth += 1
-            elif s[i] == ')':
+            elif s[i] == ")":
                 depth -= 1
             i += 1
 
         # Return content between parens (excluding the parens themselves)
-        return s[start + 1:i - 1], i
+        return s[start + 1 : i - 1], i
 
     def _convert_d(self, s: str) -> str:
         """Convert d(X) to first difference.
@@ -193,7 +228,9 @@ class EViewsTranspiler:
 
         while i < len(s):
             # Look for 'd(' not preceded by letter/underscore
-            if s[i:i+2] == 'd(' and (i == 0 or not s[i-1].isalpha() and s[i-1] != '_'):
+            if s[i : i + 2] == "d(" and (
+                i == 0 or not s[i - 1].isalpha() and s[i - 1] != "_"
+            ):
                 # Extract the balanced content
                 inner, end_pos = self._extract_balanced_parens(s, i + 1)
 
@@ -207,16 +244,19 @@ class EViewsTranspiler:
                 result.append(s[i])
                 i += 1
 
-        return ''.join(result)
+        return "".join(result)
 
     def _convert_lags(self, s: str, default_lag: int = None) -> str:
         """Convert VAR(-n) to _lag('VAR', n) and bare VAR to v['VAR']."""
-        # Pattern: VARNAME(-n) where n is a positive integer
-        pattern = r'([A-Z][A-Z0-9_]*)\((-?\d+)\)'
+        # Pattern: VARNAME(-n) where n is a positive integer; tolerate stray
+        # whitespace e.g. VAR(- 1)
+        pattern = rf"({IDENT})\(\s*(-?\s*\d+)\s*\)"
 
         def replace(m):
             var = m.group(1)
-            lag = int(m.group(2))
+            if var in RESERVED_WORDS:
+                return m.group(0)
+            lag = int(m.group(2).replace(" ", ""))
             if lag == 0:
                 return f"v['{var}']"
             elif lag < 0:
@@ -227,14 +267,14 @@ class EViewsTranspiler:
 
         s = re.sub(pattern, replace, s)
 
-        # Always convert bare variable names (uppercase words not followed by parentheses)
+        # Always convert bare variable names (words not followed by parentheses)
         # Match bare variable names not already converted to v['...'] or _lag(...)
-        bare_pattern = r'\b([A-Z][A-Z0-9_]*)\b(?!\s*[\(\[\'])'
+        bare_pattern = rf"\b({IDENT})\b(?!\s*[\(\[\'])"
 
         def replace_bare(m):
             var = m.group(1)
-            # Skip numpy functions and special names
-            if var in ('Q', 'NP', 'LOG', 'EXP'):
+            # Skip function names and evaluation-context identifiers
+            if var in RESERVED_WORDS:
                 return var
             if default_lag is not None and default_lag > 0:
                 return f"_lag('{var}', {default_lag})"
@@ -248,8 +288,8 @@ class EViewsTranspiler:
     def _convert_functions(self, s: str) -> str:
         """Convert log/exp to numpy."""
         # Avoid double-converting np.log
-        s = re.sub(r'(?<!np\.)\blog\(', 'np.log(', s)
-        s = re.sub(r'(?<!np\.)\bexp\(', 'np.exp(', s)
+        s = re.sub(r"(?<!np\.)\blog\(", "np.log(", s)
+        s = re.sub(r"(?<!np\.)\bexp\(", "np.exp(", s)
         return s
 
     def parse_equation(self, line: str) -> Optional[ParsedEquation]:
@@ -297,7 +337,9 @@ class EViewsTranspiler:
         )
 
 
-def parse_model_file(filepath: str, include_behavioral: bool = False) -> list[ParsedEquation]:
+def parse_model_file(
+    filepath: str, include_behavioral: bool = False
+) -> list[ParsedEquation]:
     """Parse entire model file.
 
     Args:
@@ -317,7 +359,9 @@ def parse_model_file(filepath: str, include_behavioral: bool = False) -> list[Pa
         line = line.strip()
         if line.startswith("'"):
             # Check if this is a behavioral equation we want to include
-            if include_behavioral and (line.startswith("'dlog(") or line.startswith("'d(")):
+            if include_behavioral and (
+                line.startswith("'dlog(") or line.startswith("'d(")
+            ):
                 # Strip the leading comment character
                 line = line[1:]
             else:

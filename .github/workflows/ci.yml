@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & format (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Ruff lint
+        run: uvx ruff check obr_macro tests
+      - name: Ruff format check
+        run: uvx ruff format --check obr_macro tests
+
+  tests:
+    name: Fast tests (hermetic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install
+        run: uv sync
+      # Slow full-solver tests are marked `slow` and skipped by default
+      # (they need the Cloudflare-gated OBR download and ~7 min of solving;
+      # run locally with `pytest --runslow`). The default run is hermetic
+      # and finishes in seconds.
+      - name: Fast tests
+        run: uv run pytest -q
