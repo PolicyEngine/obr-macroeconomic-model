@@ -16,8 +16,13 @@ import numpy as np
 
 from obr_macro.baseline import build
 from obr_macro.data import load_obr_data
+from obr_macro.scoring import BAND_LEGEND, band, var_error
 
-BASE_START, BASE_END = "2024Q1", "2025Q4"   # window the add-factors are fit over
+# Window the add-factors are fit over. CAVEAT: the EFO tables only contain
+# outturn for the early part of this window — the later quarters (2025H2 in the
+# November-2025 EFO) are the OBR's own forecast, so residuals there are fit
+# against the OBR's judgement, not data. See docs/forecasting_framework.md.
+BASE_START, BASE_END = "2024Q1", "2025Q4"
 FC_START, FC_END = "2026Q1", "2027Q4"        # the projected horizon
 
 PANEL = [
@@ -57,16 +62,6 @@ def forecast(base_start=BASE_START, base_end=BASE_END, fc_start=FC_START, fc_end
     return s, held
 
 
-def band(kind, err):
-    if err is None or not np.isfinite(err):
-        return "X"
-    if kind == "pp":
-        return "OK" if err < 0.3 else "~" if err < 1.0 else "!" if err < 3.0 else "X"
-    if kind == "gdp":   # error as % of GDP, the convention for net balances
-        return "OK" if err < 0.5 else "~" if err < 1.5 else "!" if err < 3.0 else "X"
-    return "OK" if err < 2 else "~" if err < 10 else "!" if err < 25 else "X"
-
-
 def main():
     efo = load_obr_data()
     s, held = forecast()
@@ -77,25 +72,12 @@ def main():
 
     print(f"Held-add-factor forecast: fit {BASE_START}..{BASE_END}, project {FC_START}..{FC_END}\n")
     print(f"  add-factors held for {len(held)} behavioural equations\n")
-    gdp_code = "GDPMPS" if "GDPMPS" in efo.columns else "GDPM"
     counts = {"OK": 0, "~": 0, "!": 0, "X": 0}
     computed = 0
     for code, label, kind in PANEL:
         if code not in efo.columns or code not in s.data.columns:
             continue
-        errs = []
-        for t in range(t0, t1 + 1):
-            m, e = s.data.iloc[t][code], efo.iloc[t][code]
-            if np.isfinite(m) and np.isfinite(e):
-                if kind == "pp":
-                    errs.append(abs(m - e))
-                elif kind == "gdp":
-                    g = efo.iloc[t][gdp_code]
-                    errs.append(100 * abs(m - e) / g if np.isfinite(g) and g > 0 else None)
-                else:
-                    errs.append(100 * abs(m - e) / abs(e) if abs(e) > 1e-9 else None)
-        errs = [x for x in errs if x is not None]
-        err = float(np.mean(errs)) if errs else None
+        err = var_error(s.data, efo, code, kind, t0, t1)
         if code not in has_eq:
             st = "passthrough (exogenous)"
         elif code in skipped:
@@ -110,8 +92,12 @@ def main():
         print(f"   [{mark:2}] {label:22}{es:>9}   {st}")
 
     good = counts["OK"] + counts["~"]
-    print(f"\n   computed {computed}/{len(PANEL)} | within 10%: {good}/{computed} computed "
-          f"({100*good/computed:.0f}%)" if computed else "\n   none computed")
+    if computed:
+        print(f"\n   computed {computed}/{len(PANEL)} | within band: {good}/{computed} computed "
+              f"({100*good/computed:.0f}%)")
+        print(f"   ({BAND_LEGEND})")
+    else:
+        print("\n   none computed")
 
 
 if __name__ == "__main__":

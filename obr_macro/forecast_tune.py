@@ -1,4 +1,7 @@
-"""Tune the held-add-factor forecast to push the poor channels under 10%.
+"""Tune the held-add-factor forecast to push the poor channels into band.
+
+("Band" = the per-metric thresholds in obr_macro.scoring: <1.0pp for rates,
+<1.5% of GDP for net balances, <10% MAPE for levels.)
 
 Builds the solver once, then sweeps add-factor windows (how many recent quarters
 of residuals to average for the held add-factor) and the investment closure,
@@ -16,7 +19,8 @@ import numpy as np
 from obr_macro.baseline import build
 from obr_macro.reform_analysis import IBUS_EQ, IBUSX_EQ, IF_EQ, _ensure_ibusx_inputs
 from obr_macro.data import load_obr_data
-from obr_macro.forecast import PANEL, band, BASE_END, FC_START, FC_END
+from obr_macro.forecast import PANEL, BASE_END, FC_START, FC_END
+from obr_macro.scoring import BAND_LEGEND, band, var_error
 
 WINDOWS = [("mean 8q", 8), ("mean 4q", 4), ("mean 2q", 2), ("last 1q", 1)]
 WATCH = {"IBUS": "Business investment", "TB": "Trade balance", "CB": "Current account"}
@@ -36,26 +40,13 @@ def score(sh, efo, t0, t1):
     has_eq = {sh._extract_lhs_var(eq.lhs) for eq in sh.equations}
     skipped = {d["var"] for d in sh.diagnose_period(t1)}
     # Net balances (kind == "gdp") are scored as % of GDP — the same convention
-    # forecast.py uses. Scoring them as % of their own (tiny) value while banding
-    # with the %-of-GDP thresholds made the reported error incoherent.
-    gdp_code = "GDPMPS" if "GDPMPS" in efo.columns else "GDPM"
+    # forecast.py uses (shared via obr_macro.scoring). Scoring them as % of their
+    # own (tiny) value while banding with the %-of-GDP thresholds was incoherent.
     rows, counts, computed = {}, {"OK": 0, "~": 0, "!": 0, "X": 0}, 0
     for code, label, kind in PANEL:
         if code not in efo.columns or code not in sh.data.columns:
             continue
-        errs = []
-        for t in range(t0, t1 + 1):
-            m, e = sh.data.iloc[t][code], efo.iloc[t][code]
-            if np.isfinite(m) and np.isfinite(e):
-                if kind == "pp":
-                    errs.append(abs(m - e))
-                elif kind == "gdp":
-                    g = efo.iloc[t][gdp_code]
-                    errs.append(100 * abs(m - e) / g if np.isfinite(g) and g > 0 else None)
-                else:
-                    errs.append(100 * abs(m - e) / abs(e) if abs(e) > 1e-9 else None)
-        errs = [x for x in errs if x is not None]
-        err = float(np.mean(errs)) if errs else None
+        err = var_error(sh.data, efo, code, kind, t0, t1)
         if code in has_eq and code not in skipped:
             counts[band(kind, err)] += 1
             computed += 1
@@ -94,13 +85,14 @@ def main():
         return f"{err:6.2f}pp" if kind == "pp" else f"{err:6.2f}%"
 
     print(f"Tuning held-add-factor forecast ({FC_START}..{FC_END})\n")
-    print(f"{'config':28}{'Bus.inv':>10}{'TradeBal':>10}{'CurrAcc':>10}{'within10%':>12}")
+    print(f"{'config':28}{'Bus.inv':>10}{'TradeBal':>10}{'CurrAcc':>10}{'within band':>12}")
     for label, window in WINDOWS:
         for ic in (False, True):
             rows, computed, good = run(base, base_residuals, efo, window, ic)
             cfg = f"{label}{' +inv-closure' if ic else ''}"
             print(f"{cfg:28}{fmt(rows,'IBUS'):>10}{fmt(rows,'TB'):>10}{fmt(rows,'CB'):>10}"
                   f"{f'{good}/{computed}':>12}")
+    print(f"\n{BAND_LEGEND}")
 
 
 if __name__ == "__main__":

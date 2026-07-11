@@ -59,6 +59,10 @@ SHOCKS = [
 
 PCT_THRESH = 0.02   # % — below this a level response counts as "no move"
 PP_THRESH = 0.005   # percentage points
+# A response within ±20% of its threshold is a borderline call, not a
+# categorical one: such channels are reported as "marginal" rather than
+# cleanly transmitting/dead (e.g. Bank Rate landing at exactly 0.02%).
+MARGINAL_FRAC = 0.20
 
 
 def _build(closure):
@@ -84,6 +88,14 @@ def _material(kind, v):
     if v is None:
         return False
     return abs(v) >= (PP_THRESH if kind == "pp" else PCT_THRESH)
+
+
+def _marginal(kind, v):
+    """Within ±MARGINAL_FRAC of the threshold — a borderline call either way."""
+    if v is None:
+        return False
+    thr = PP_THRESH if kind == "pp" else PCT_THRESH
+    return (1 - MARGINAL_FRAC) * thr <= abs(v) < (1 + MARGINAL_FRAC) * thr
 
 
 def build_baseline(closure):
@@ -118,15 +130,30 @@ def run_one(shock, base):
 
 
 def classify(row):
+    """Classify a shock's response row.
+
+    Channels whose response clears the threshold with >=20% headroom count as
+    solid; channels within ±20% of the threshold are only "marginal". A verdict
+    that rests solely on marginal channels is flagged "(marginal)".
+    """
     gdp = row.get("GDPM")
     gdp_moves = _material("pct", gdp)
-    beh = [code for code, _l, kind in PANEL
-           if code in BEHAVIOURAL and _material(kind, row.get(code))]
-    if not gdp_moves and not beh:
-        return "dead", beh
-    if gdp_moves and not beh:
-        return "identity-only", beh
-    return "transmitting", beh
+    beh_solid, beh_marginal = [], []
+    for code, _l, kind in PANEL:
+        if code not in BEHAVIOURAL:
+            continue
+        v = row.get(code)
+        if _marginal(kind, v):
+            beh_marginal.append(code)
+        elif _material(kind, v):
+            beh_solid.append(code)
+    if beh_solid:
+        return "transmitting", beh_solid + beh_marginal
+    if beh_marginal:
+        return "transmitting (marginal)", beh_marginal
+    if gdp_moves:
+        return "identity-only", []
+    return "dead", []
 
 
 def _fmt(kind, v):
@@ -168,6 +195,12 @@ def main():
                  "the multiplier is missing and the result is just the mechanical add to demand.")
     lines.append("- **dead** — nothing moves; the shock does not propagate. These are the "
                  "first channels to fix in Stage 1b.")
+    lines.append("")
+    lines.append(f"Materiality thresholds: a level response counts as a move at "
+                 f"|Δ| ≥ {PCT_THRESH}% and a rate response at |Δ| ≥ {PP_THRESH}pp. "
+                 f"Responses within ±{int(100*MARGINAL_FRAC)}% of the threshold are "
+                 "borderline: a verdict resting only on such channels is flagged "
+                 "**(marginal)** rather than treated as categorical.")
     lines.append("")
     counts = {}
     for _s, _r, v, _b in results:

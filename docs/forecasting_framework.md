@@ -18,6 +18,12 @@ sub-blocks real balancing data. They stopped diverging.
 
 Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
 
+> **"Within band" is not one number.** The band column collapses three
+> different thresholds, one per metric: rates within **1.0pp**, net balances
+> within **1.5% of GDP**, levels within **10% MAPE**. Earlier revisions (and
+> some historical tables below) shorthand this as "within 10%", which is
+> accurate only for the level variables.
+
 | Variable | Error (held-AF forecast) | band |
 |---|--:|---|
 | Real GDP | 2.22% | within |
@@ -31,10 +37,10 @@ Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
 | Trade balance | 0.11% of GDP | within |
 | Current account | 0.88% of GDP | within |
 
-**10 of 16 headline variables computed; 6 of those within 10% (net balances as
+**10 of 16 headline variables computed; 6 of those within band (net balances as
 % of GDP).** No explosions — the financial blocks are bounded by their real data.
 
-## Two honesty caveats on this headline
+## Honesty caveats on this headline
 
 1. **Jump-off dependency.** The forecast is initialised at the EFO values it is
    then scored against (the solver seeds each period from the published series).
@@ -45,11 +51,25 @@ Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
 2. **Employment is a trivial identity** (`ETLFS = HWA/AVH`, both passthrough
    inputs), not an independent behavioural channel — so the "within band" count
    includes one free pass.
+3. **The add-factor base window ends inside the OBR's forecast.** Add-factors
+   are fit over 2024Q1–2025Q4, but the November-2025 EFO tables only contain
+   outturn for the early part of that window: the later quarters (2025H2) are
+   the OBR's own forecast. Residuals over those quarters are therefore fit
+   against the OBR's judgement, not against data — the held add-factors partly
+   encode "agree with the OBR" rather than "match the outturn".
+4. **ONS vintage mismatch.** The ~348 unpublished-input series pulled from the
+   ONS API are current-vintage data, merged into an autumn-2025 EFO baseline
+   (October-2025 model code, November-2025 EFO tables). Where the ONS has since
+   revised history, the national-accounts identities no longer close exactly
+   against the EFO aggregates, and that identity slack is silently absorbed
+   into the add-factors — it looks like model error/judgement but is partly a
+   data-vintage artefact.
 
 ## Honest status
 
-- The macro core (GDP, consumption, unemployment) forecasts within ~10% over a
-  two-year projection. This is a working forecasting framework for those channels.
+- The macro core (GDP, consumption, unemployment) forecasts within band (levels
+  under 10% MAPE, unemployment under 1pp) over a two-year projection. This is a
+  working forecasting framework for those channels.
 - **Over band: business investment (~18%), company profits (~47%), household
   income (~12%).** These are finite and in the right ballpark but not usable yet.
 - A few remain passthrough (exports, imports, CPI) — exogenous in this setup,

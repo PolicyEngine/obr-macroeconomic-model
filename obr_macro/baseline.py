@@ -51,10 +51,14 @@ def main():
     s.solve(START, END)
     anchored = s.data.copy()
 
-    # raw model path (residuals off -> the model's own forward solve)
-    s._shock_active = True
-    s.solve(START, END)
-    raw = s.data.copy()
+    # raw model path (residuals off -> the model's own forward solve).
+    # Built as a FRESH solver, not by re-solving `s`: reusing the anchored
+    # solver would start Gauss-Seidel from the anchored (≈EFO) values, and a
+    # stall-break exit then leaves values near that seed — biasing the reported
+    # "raw vs OBR" gap toward zero.
+    s_raw = build(anchored=False)
+    s_raw.solve(START, END)
+    raw = s_raw.data.copy()
 
     print(f"Forward baseline {START}..{END}\n")
     print(f"{'Variable':22}{'OBR (EFO)':>14}{'Anchored':>14}{'Raw model':>14}   at {END}")
