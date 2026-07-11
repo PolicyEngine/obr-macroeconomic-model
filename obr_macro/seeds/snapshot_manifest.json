@@ -1,0 +1,4582 @@
+{
+ "n_series": 347,
+ "pulled": "2026-07-11",
+ "series": {
+  "AAROW": {
+   "aggregation": "none",
+   "cdid": "HBNS",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "BoP FA total Liability flows NSA \u00a3m",
+   "type": "flow"
+  },
+  "AIC": {
+   "aggregation": "none",
+   "cdid": "NKWX",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps (S.1102+S.11003): Total financial assets (AF.A): Level: Current price: \u00a3m: Not seasonally adjusted",
+   "type": "stock"
+  },
+  "AL": {
+   "aggregation": "none",
+   "cdid": "MDUP",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "CG receipt: CPNSA: Aggregates levy: Cash receipts",
+   "type": "flow"
+  },
+  "ALAD": {
+   "aggregation": "none",
+   "cdid": "DMUM",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "CVM SA changes in inventories timing adjustment \u00a3m",
+   "type": "flow"
+  },
+  "ALROW": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "HBNR",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "BoP FA total Asset flows NSA \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "-HBNR"
+  },
+  "APIIH": {
+   "aggregation": "none",
+   "cdid": "ROYP",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Other investment income (D.44): Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "AROW": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "HBQB",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP IIP Liability level NSA \u00a3m",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JX97",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP: IIP: Liability level: Total financial derivatives & ESOs: NSA \u00a3m",
+     "type": "stock"
+    }
+   ],
+   "formula": "HBQB-JX97"
+  },
+  "BANKROLL": {
+   "aggregation": "none",
+   "cdid": "JT2Q",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "Bank Payroll Tax: Accrued receipts",
+   "type": "flow"
+  },
+  "BAROW": {
+   "aggregation": "none",
+   "cdid": "HLXY",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "BoP IIP PI liability level total debt securities NSA \u00a3m",
+   "type": "stock"
+  },
+  "BBC": {
+   "aggregation": "none",
+   "cdid": "DH7A",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "Television Licence Tax (excl licence fees paid by DWP for over-75s 2000/01)",
+   "type": "flow"
+  },
+  "BENAB": {
+   "aggregation": "none",
+   "cdid": "FLUK",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Govt Social Benefits (Debits) Total CP SA",
+   "type": "flow"
+  },
+  "BETLEVY": {
+   "aggregation": "none",
+   "cdid": "DW9E",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "CG resources: D51 Taxes on income & wealth: Horserace Betting Levy Board: NSA CP",
+   "type": "flow"
+  },
+  "BETPRF": {
+   "aggregation": "none",
+   "cdid": "MIYF",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Betting and gaming duty - switch from D.214 to D51",
+   "type": "flow"
+  },
+  "BLEVY": {
+   "aggregation": "none",
+   "cdid": "KIH3",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: Current receipts: Other taxes: Bank levy: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "BLIC": {
+   "aggregation": "none",
+   "cdid": "NKZA",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps (S.1102+S.11003): Debt securities (AF.3): Level: Liability: Current price: \u00a3m: Not seasonally adjusted",
+   "type": "stock"
+  },
+  "BLROW": {
+   "aggregation": "none",
+   "cdid": "HHZX",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "BoP FA PI Asset flows total debt securities NSA \u00a3m",
+   "type": "stock"
+  },
+  "BPA": {
+   "aggregation": "none",
+   "cdid": "NTAO",
+   "dataset": "PN2",
+   "source_freq": "quarterly",
+   "title": "Tot adjustment to basic prices (General Government + Rest of the World) CVM SA \u00a3m",
+   "type": "flow"
+  },
+  "CC": {
+   "aggregation": "none",
+   "cdid": "NMIS",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "Local Government:Other current taxes, received: D59: CP NSA",
+   "type": "flow"
+  },
+  "CCL": {
+   "aggregation": "none",
+   "cdid": "LSNS",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "CG receipt: CPNSA: Climate change levy: Cash receipts",
+   "type": "flow"
+  },
+  "CDUR": {
+   "aggregation": "none",
+   "cdid": "UTID",
+   "dataset": "CT",
+   "source_freq": "quarterly",
+   "title": "Durable goods :Total CVM NAYear SA \u00a3m",
+   "type": "flow"
+  },
+  "CETAX": {
+   "aggregation": "none",
+   "cdid": "ACAC",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Central Government: Consolidated fund Cash receipts from Customs & Excise: \u00a3m",
+   "type": "flow"
+  },
+  "CGACADJ": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ANRT",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Accounts receivable/payable (F7): \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ANRU",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Adjustment for interest on gilts (F.3): \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ANRV",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Other financial transactions: \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "ANRT+ANRU+ANRV"
+  },
+  "CGASC": {
+   "aggregation": "none",
+   "cdid": "GCMP",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "ESA95:CG:resources:D61112:Voluntary employers contributions from HH CP NSA",
+   "type": "flow"
+  },
+  "CGC": {
+   "aggregation": "none",
+   "cdid": "D69U",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Total CG interest on Reserves",
+   "type": "flow"
+  },
+  "CGCBOP": {
+   "aggregation": "none",
+   "cdid": "HHCC",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "BoP Inc credits earnings on reserve assets SA \u00a3m",
+   "type": "flow"
+  },
+  "CGCGLA": {
+   "aggregation": "none",
+   "cdid": "QYJR",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: Current transfers from central government to local government: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "CGGPSPSF": {
+   "aggregation": "none",
+   "cdid": "NMRP",
+   "dataset": "PN2",
+   "source_freq": "quarterly",
+   "title": "General Government: Final consumption expenditure (P3): CPSA \u00a3m",
+   "type": "flow"
+  },
+  "CGINTRA": {
+   "aggregation": "none",
+   "cdid": "ANNY",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Interest & dividends (net) from public sector: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "CGIPS": {
+   "aggregation": "none",
+   "cdid": "NMES",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "CG: Gross fixed capital formation: P51: CP NSA",
+   "type": "flow"
+  },
+  "CGISC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "M9WU",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "CG: D.612: Res: Employers imputed social contributions: CP: NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RUDY",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "D1/D75/6: NHS inflationary increase payments: PC element: CP NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "M9WU+RUDY"
+  },
+  "CGITFA": {
+   "aggregation": "none",
+   "cdid": "CGDN",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "Secondary Income Credits: Central Govt Other receipts: CP SA \u00a3m",
+   "type": "flow"
+  },
+  "CGKTA": {
+   "aggregation": "none",
+   "cdid": "FLWB",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "General Government Transfers (Debits) Total: CP SA: \u00a3m",
+   "type": "flow"
+  },
+  "CGLIQ": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BKSM",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "GG: CG deposits & short term assets: Bank and building society deposits:\u00a3m CPNSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BKSN",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "GG: CG deposits and other short term assets: Other liquid assets: \u00a3m CPNSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "BKSM+BKSN"
+  },
+  "CGLSFA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ANRH",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Net lending to private sector and rest of world (F.4): \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ANRS",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Net acquisition of company securities (F.5): \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "ANRH+ANRS"
+  },
+  "CGMISP": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ABIF",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Net cash requirement: Net acquisition of company securities: \u00a3m NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ANRS",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Net acquisition of company securities (F.5): \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "ANRS-ABIF"
+  },
+  "CGNB": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NMFJ",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "Central government (S.1311): Net Lending (+) / Net borrowing (-) (B.9N): CP \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-NMFJ"
+  },
+  "CGNCGA": {
+   "aggregation": "none",
+   "cdid": "GZSI",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Current expenditure: Net current grants aborad (D74): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "CGNCR": {
+   "aggregation": "none",
+   "cdid": "RUUW",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Net cash requirement: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "CGNDIV": {
+   "aggregation": "none",
+   "cdid": "GVHE",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Interest & dividends from private sector and rest of world (D41/42):\u00a3m CPNSA",
+   "type": "flow"
+  },
+  "CGOTR": {
+   "aggregation": "none",
+   "cdid": "NMFC",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Current expenditure: Other current grants: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "CGP": {
+   "aggregation": "none",
+   "cdid": "QWPT",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "ESA95:CG:COFOG:total net procurement: \u00a3m nsa",
+   "type": "flow"
+  },
+  "CGSB": {
+   "aggregation": "none",
+   "cdid": "GZSJ",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Current expenditure: Net social benefits payable: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "CGSUBP": {
+   "aggregation": "none",
+   "cdid": "NMCB",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: Subsidies on products, paid: D31: CP NSA",
+   "type": "flow"
+  },
+  "CGSUBPR": {
+   "aggregation": "none",
+   "cdid": "NMCC",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: Other subsidies on production, paid (D39): CP NSA",
+   "type": "flow"
+  },
+  "CGT": {
+   "aggregation": "none",
+   "cdid": "QYJX",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG resources: D51 capital gains tax from HH: CP NSA",
+   "type": "flow"
+  },
+  "CGTSUB": {
+   "aggregation": "none",
+   "cdid": "NMCD",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: Current expenditure: Subsidies: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "CGWS": {
+   "aggregation": "none",
+   "cdid": "QWPS",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "ESA95:CG:COFOG:D1 total compensation of employees",
+   "type": "flow"
+  },
+  "CIPD": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "HBOK",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP Investment Income Credits / Rest of the World (S.2): Property income (D.4): Use: Current price \u00a3m: Seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "HHCC",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP Inc credits earnings on reserve assets SA \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "HBOK-HHCC"
+  },
+  "CONACC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "GCMR",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95:CG:D41:uses:imputed interest for discount on gilts",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "GCSW",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95: CG: USES: D.41/F.33211: British gov securities: Accruals adjust CP NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-GCSW-GCMR"
+  },
+  "CPIRENT": {
+   "aggregation": "none",
+   "cdid": "D7CE",
+   "dataset": "MM23",
+   "source_freq": "quarterly",
+   "title": "CPI INDEX 04.1 : ACTUAL RENTS FOR HOUSING 2015=100",
+   "type": "index"
+  },
+  "CT": {
+   "aggregation": "none",
+   "cdid": "CPRN",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Receipts: Corporation tax: Accrued: Gross of tax credits: \u00a3m:NSA",
+   "type": "flow"
+  },
+  "CTC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "MDYL",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "CG Inland Revenue tax: WTC/CTC: Income tax negative tax",
+     "type": "flow"
+    }
+   ],
+   "formula": "-MDYL"
+  },
+  "DAROW": {
+   "aggregation": "none",
+   "cdid": "N2UG",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "BPM6:BoP:IIP:asset/liabs:liabs:total investment levels:nsa:\u00a3m",
+   "type": "stock"
+  },
+  "DEP": {
+   "aggregation": "none",
+   "cdid": "JW2S",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PS: exc PS Banks: Depreciation: Consumption of fixed capital: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "DEPHH": {
+   "aggregation": "none",
+   "cdid": "NNMP",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Currency and deposits (AF.2): Asset: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "DICGOP": {
+   "aggregation": "none",
+   "cdid": "NMFX",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Current expenditure: Net Interest payable: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "DILAPR": {
+   "aggregation": "none",
+   "cdid": "NUGW",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Current expenditure: Interest: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "DINVCG": {
+   "aggregation": "none",
+   "cdid": "ANMY",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Increase in inventories and valuables (P52&P52): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "DINVHH": {
+   "aggregation": "none",
+   "cdid": "RPZX",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Changes in inventories (P.52): Asset: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "DIPCOP": {
+   "aggregation": "none",
+   "cdid": "GZSO",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: Current exp: Interest & divs paid to private sector and RoW (D4): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "DIPD": {
+   "aggregation": "none",
+   "cdid": "HBOL",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "BoP Investment Income Debits / Rest of the World (S.2): Property income (D.4): Resource: Current price \u00a3m: Seasonally adjusted",
+   "type": "flow"
+  },
+  "DIPHH": {
+   "aggregation": "none",
+   "cdid": "ROYU",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Interest (D.41): Uses: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "DIPIC": {
+   "aggregation": "none",
+   "cdid": "ROCG",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps (S.1102+S.11003): Interest (D.41): Uses: Current price: \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "DIRHH": {
+   "aggregation": "none",
+   "cdid": "ROYM",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Interest (D.41): Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "DIRIC": {
+   "aggregation": "none",
+   "cdid": "ROAY",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps (S.1102+S.11003): Interest (D.41): Resources: Current price: \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "DLROW": {
+   "aggregation": "none",
+   "cdid": "N2V3",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "BPM6:BoP:IIP:asset/liabs:assets:total investment levels:nsa:\u00a3m",
+   "type": "stock"
+  },
+  "DRES": {
+   "aggregation": "none",
+   "cdid": "AIPA",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Central government finance: official reserves: Asset Flow: CP NSA: \u00a3m",
+   "type": "flow"
+  },
+  "ECG": {
+   "aggregation": "none",
+   "cdid": "G6NQ",
+   "dataset": "PSE",
+   "source_freq": "quarterly",
+   "title": "Public Sector Employment by Sector; Central Gov; UK; HC; SA; Thousands",
+   "type": "stock"
+  },
+  "ECNET": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "FKIJ",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Secondary Income (Credits) Other EU Receipts: CP NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FKKL",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Secondary Income (Credits) Govt Other Transfers [Abatement]: CP NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-FKKL-FKIJ"
+  },
+  "ECUPO": {
+   "aggregation": "none",
+   "cdid": "THAP",
+   "dataset": "MRET",
+   "source_freq": "quarterly",
+   "title": "Average Sterling exchange rate: Euro XUMAERS",
+   "type": "index"
+  },
+  "EECOMPC": {
+   "aggregation": "none",
+   "cdid": "IJAH",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "Rest of the World (S.2): Compensation of employees (D.1): Use: Current price \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "EECOMPD": {
+   "aggregation": "none",
+   "cdid": "IJAI",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "Rest of the World (S.2): Compensation of employees (D.1): Resource: Current price \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "EECPP": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "L8LQ",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Financial corporations (S.12): Social insurance scheme service charges (D.61SC): Resource: Current price \u00a3m: Seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "L8PE",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Financial corporations (S.12): Households' actual social contributions (D.613): Resource: Current price \u00a3m: Seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "L8Q2",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Financial corps (S.12): Households' social contributions supplements (D.614): Resource: Current price \u00a3m: Seasonally adjusted",
+     "type": "flow"
+    }
+   ],
+   "formula": "L8PE+L8Q2+L8LQ"
+  },
+  "EENIC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "AIIH",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Current receipts: Compulsory social contributions: Receivable: \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "CEAN",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "CG : employers social security contributions (accrued)",
+     "type": "flow"
+    }
+   ],
+   "formula": "AIIH-CEAN"
+  },
+  "EESC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "L8LU",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Social insurance scheme service charges (D.61SC): Uses: Current price: \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "L8PS",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Households' actual social contributions (D.613): Uses: Current price: \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "L8Q8",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Households' social contributions supplements (D.614): Uses: Current price: \u00a3m: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "L8PS+L8Q8+L8LU"
+  },
+  "EESCCG": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CX3X",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG res: D613 Voluntary Employees Social Cont.: Total: CP NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "annual->Q (/4)",
+     "cdid": "FJBH",
+     "dataset": "PB",
+     "source_freq": "annual",
+     "title": "BoP: Current Transfers (Credits): Social Contributions Total: CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "CX3X+FJBH"
+  },
+  "EESCLA": {
+   "aggregation": "none",
+   "cdid": "L8ND",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "S1313 Local Govt: D.611: Res: Employers actual social contributions: CP: NSA",
+   "type": "flow"
+  },
+  "EGG": {
+   "aggregation": "none",
+   "cdid": "G6NW",
+   "dataset": "PSE",
+   "source_freq": "quarterly",
+   "title": "Public Sector Employment by Sector; Total General Gov; UK; HC; SA; Thousands",
+   "type": "stock"
+  },
+  "ELA": {
+   "aggregation": "none",
+   "cdid": "G6NT",
+   "dataset": "PSE",
+   "source_freq": "quarterly",
+   "title": "Public Sector Employment by Sector; Local Gov; UK ;HC; SA; Thousands",
+   "type": "stock"
+  },
+  "EMPCPP": {
+   "aggregation": "none",
+   "cdid": "L8N8",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Financial corporations (S.12): Employers' actual social contributions (D.611): Resource: Current price \u00a3m: Seasonally adjusted",
+   "type": "flow"
+  },
+  "EMPISC": {
+   "aggregation": "none",
+   "cdid": "M9WZ",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "UK sector (S.1): Employers' imputed social contributions (D.612): Resources: Current price: \u00a3million: Not seasonally adjusted",
+   "type": "flow"
+  },
+  "EMPISCPP": {
+   "aggregation": "none",
+   "cdid": "M9X6",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Financial corporations (S.12): Employers' imputed social contributions (D.612): Resource: Current price \u00a3m: Seasonally adjusted",
+   "type": "flow"
+  },
+  "EMPNIC": {
+   "aggregation": "none",
+   "cdid": "CEAN",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "CG : employers social security contributions (accrued)",
+   "type": "flow"
+  },
+  "EMS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "G6NQ",
+     "dataset": "PSE",
+     "source_freq": "quarterly",
+     "title": "Public Sector Employment by Sector; Central Gov; UK; HC; SA; Thousands",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "G6NT",
+     "dataset": "PSE",
+     "source_freq": "quarterly",
+     "title": "Public Sector Employment by Sector; Local Gov; UK ;HC; SA; Thousands",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "MGRT",
+     "dataset": "LMS",
+     "source_freq": "quarterly",
+     "title": "LFS: Unpaid family workers: UK: All: Thousands: SA:",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "MGRW",
+     "dataset": "LMS",
+     "source_freq": "quarterly",
+     "title": "LFS: Government supported training & employment programmes: UK: All: 000s: SA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "MGRZ",
+     "dataset": "LMS",
+     "source_freq": "quarterly",
+     "title": "Number of People in Employment (aged 16 and over, seasonally adjusted):000s",
+     "type": "stock"
+    }
+   ],
+   "formula": "MGRZ-G6NQ-G6NT-MGRT-MGRW"
+  },
+  "EQAROW": {
+   "aggregation": "none",
+   "cdid": "HLXX",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "BoP IIP PI liability level total equity securities NSA \u00a3m",
+   "type": "stock"
+  },
+  "EQHH": {
+   "aggregation": "none",
+   "cdid": "NNOS",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Equity and investment fund shares/units (AF.5): Asset: Current price: \u00a3m: NSA",
+   "type": "stock"
+  },
+  "EQLIC": {
+   "aggregation": "none",
+   "cdid": "NLBU",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps: Equity and investment fund shares/units (AF.5): Level: Liability: Current price: \u00a3m: NSA",
+   "type": "stock"
+  },
+  "EQLROW": {
+   "aggregation": "none",
+   "cdid": "HEPX",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "BoP IIP PI Asset level total equity NSA \u00a3m",
+   "type": "stock"
+  },
+  "ERCG": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "C9K9",
+     "dataset": "PSE",
+     "source_freq": "quarterly",
+     "title": "Public Sector Employment by Sector; Central Gov; UK; HC; NSA; Thousands",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMAI",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "CG: Wages and salaries, paid (D11)",
+     "type": "index"
+    }
+   ],
+   "formula": "(NMAI*1000/C9K9)*(4/52)"
+  },
+  "ERLA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "C9KA",
+     "dataset": "PSE",
+     "source_freq": "quarterly",
+     "title": "Public Sector Employment by Sector; Local Gov; UK; HC; NSA; Thousands",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMJF",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Local Govt: Wages and salaries, paid (D11)",
+     "type": "index"
+    }
+   ],
+   "formula": "(NMJF*1000/C9KA)*(4/52)"
+  },
+  "ES": {
+   "aggregation": "none",
+   "cdid": "DYZN",
+   "dataset": "LMS",
+   "source_freq": "quarterly",
+   "title": "UK Self-employment jobs SA : Total (thousands)",
+   "type": "stock"
+  },
+  "EUKT": {
+   "aggregation": "none",
+   "cdid": "GTTY",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "Capital Account (Credits)Total of which EU Institutions: CP SA",
+   "type": "flow"
+  },
+  "EUOT": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "FJWE",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Rest of the World (S.2): Import duties (D.2121): Resource: Current price \u00a3million: Not seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FJWG",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Rest of the World (S2): Taxes on products except VAT and import taxes (D.214): Resource: Current price \u00a3m: Not seasonally adjusted",
+     "type": "flow"
+    }
+   ],
+   "formula": "FJWE+FJWG"
+  },
+  "EUSF": {
+   "aggregation": "none",
+   "cdid": "H5U3",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "Transfers credits: Other Sectors EC budget: social fund (D75): CP SA",
+   "type": "flow"
+  },
+  "EUSUBP": {
+   "aggregation": "none",
+   "cdid": "FKNG",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Rest of the World (S.2): Subsidies on products (D.31): Resource: Current price \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "EUSUBPR": {
+   "aggregation": "none",
+   "cdid": "FHLK",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Rest of the World (S.2): Other subsidies on production (D.39): Resource: Current price \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "EUVAT": {
+   "components": [
+    {
+     "aggregation": "annual->Q (/4)",
+     "cdid": "FSVL",
+     "dataset": "PB",
+     "source_freq": "annual",
+     "title": "Current Transfers (Debits) VAT Adjustment CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "annual->Q (/4)",
+     "cdid": "HCML",
+     "dataset": "PB",
+     "source_freq": "annual",
+     "title": "Transfers debits: general govt EC budget: gross VAT contributions CPNSA: Flow",
+     "type": "flow"
+    }
+   ],
+   "formula": "HCML+FSVL"
+  },
+  "EXDUTAC": {
+   "aggregation": "none",
+   "cdid": "RUSD",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "CG Receipts: Customs & Excise: Accruals adjustment",
+   "type": "flow"
+  },
+  "FCACA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "DKHH",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Total scheduale 20: accruals adjustment",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ZYBE",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Inland Revenue: Company IT witheld Check Total",
+     "type": "flow"
+    }
+   ],
+   "formula": "DKHH+ZYBE"
+  },
+  "FISIMGG": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "C6FP",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "FISIM: FISIM on loans to S.1313, local govt., CP NSA, \u00a3mn",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "C6FQ",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "FISIM: FISIM on deposits from S.1313, local govt., CP NSA, \u00a3mn",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "C6G9",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "FISIM: FISIM on loans to S.1311, central govt., CP NSA: \u00a3mn",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "C6GA",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "FISIM: FISIM on deposits from S1311, central govt., CP NSA: \u00a3mn",
+     "type": "flow"
+    }
+   ],
+   "formula": "C6GA+C6G9+C6FQ+C6FP"
+  },
+  "FISIMPS": {
+   "aggregation": "none",
+   "cdid": "IE9R",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "FC: Total adjustment for FISIM",
+   "type": "flow"
+  },
+  "FISIMROW": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "IV8E",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Rest of the World (S2) Financial intermediation services indirectly measured (P119) Use: Current price \u00a3m: Not seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "IV8F",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Rest of the World (S.2): Financial intermediation services indirectly measured (P.119): Resource: Current price \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "IV8F+IV8E"
+  },
+  "FLEASGG": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "F8YF",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "FA: CG: level: Finance Leasing incl PFI/PPP Control Total: \u00a3m CP NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "F8YH",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "FA: LG: level: Finance Leasing incl PFI/PPP Control Total: \u00a3m CP NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "F8YF+F8YH"
+  },
+  "FLEASPC": {
+   "aggregation": "none",
+   "cdid": "F8YJ",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "FA: PC: level: Finance Leasing incl PFI/PPP Control Total: \u00a3m CP NSA",
+   "type": "stock"
+  },
+  "FXLIC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NLBG",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Foreign currency loans by UK banks (AF.41N12): Level: Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NLBI",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Short term loans by rest of world (AF.41N9): Level: Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "NLBG+NLBI"
+  },
+  "GFWPE": {
+   "aggregation": "none",
+   "cdid": "NNML",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Total financial assets (AF.A): Asset: Current price: \u00a3m: NSA",
+   "type": "stock"
+  },
+  "GGFCD": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NMRP",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "General Government: Final consumption expenditure (P3): CPSA \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMRY",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "General Government: Final consumption expenditure: P3: CVM SA \u00a3m",
+     "type": "index"
+    }
+   ],
+   "formula": "100*NMRP/NMRY"
+  },
+  "GGIDEF": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "DLWF",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Gross Fixed Capital Formation:Total General Government P51:CVM SA: \u00a3m",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RPZG",
+     "dataset": "CXNV",
+     "source_freq": "quarterly",
+     "title": "GFCF : S.13 : TOTAL : TOTAL : CP : SA : VALUE : \u00a3m : P.51g",
+     "type": "index"
+    }
+   ],
+   "formula": "100*(RPZG/DLWF)"
+  },
+  "GGLIQ": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BKQJ",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: Total Liquid assets: \u00a3m CPNSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BKSP",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "PC liquid assets: level: bank and building society deposits",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BKSQ",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "PC liquid assets: level: PC other short term liquid assets",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "LTEB",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP IIP reserve assets NSA \u00a3m",
+     "type": "stock"
+    }
+   ],
+   "formula": "BKQJ-BKSQ-BKSP-LTEB"
+  },
+  "GGNB": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NNBK",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "General Government (S.13): Net lending (+) / Net borrowing (-) (B.9N): CP \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-NNBK"
+  },
+  "GGVAPS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NMXS",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "GG: Total compensation of employees, paid (D1)",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NTAR",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "General Government: PA: Uses: Operating surplus, gross: B2g: CP SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "NMXS+NTAR"
+  },
+  "GNP4": {
+   "components": [
+    {
+     "aggregation": "annual->Q (/4)",
+     "cdid": "HCSM",
+     "dataset": "PB",
+     "source_freq": "annual",
+     "title": "Transfers debits: GG: EC Budget: GNI Adjustment: CP NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "annual->Q (/4)",
+     "cdid": "HCSO",
+     "dataset": "PB",
+     "source_freq": "annual",
+     "title": "Transfers debits:GG: EC Budget:own resource based on GNI: CP NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "HCSO+HCSM"
+  },
+  "GTPFC": {
+   "aggregation": "none",
+   "cdid": "RITQ",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Gross trading profits of financial corporations: CP SA",
+   "type": "flow"
+  },
+  "GVA": {
+   "aggregation": "none",
+   "cdid": "ABMM",
+   "dataset": "PN2",
+   "source_freq": "quarterly",
+   "title": "Gross Value Added at basic prices:chained volume measures:Seasonally adjusted \u00a3m",
+   "type": "flow"
+  },
+  "GVAPS": {
+   "aggregation": "none",
+   "cdid": "ABML",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Gross Value Added (Average) at basic prices: CP SA \u00a3m",
+   "type": "flow"
+  },
+  "HHISC": {
+   "aggregation": "none",
+   "cdid": "L8RF",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Employers' imputed social contributions (D.612): Resources: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "HHSB": {
+   "aggregation": "none",
+   "cdid": "QWMZ",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Social benefits other than social transfers in kind (D.62): Uses: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "HHTA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CGDS",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Secondary Income debits: Other sectors, other payments: CP SA: \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FHLS",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Rest of the World (S.2): Non-life insurance claims (D.72): Resource: Current price \u00a3million: Seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FLVE",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Oth Sectors Current Taxes on Income, Wealth etc. (Debits) Total CP SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FLVY",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Oth Sectors Oth Transfers (Debits) Premiums paid by UK [OTIS07] (FJXS) CP SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "CGDS-FLVY-FHLS-FLVE"
+  },
+  "HHTCG": {
+   "aggregation": "none",
+   "cdid": "NMEZ",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG:Miscellaneous current transfers received from other sectors:CP NSA",
+   "type": "flow"
+  },
+  "HHTFA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CGDO",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Secondary Income Credits: Other sectors, other receipts: CP SA: \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FKNN",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Rest of the World (S.2): Net non-life insurance premiums (D.71): Use: Current price \u00a3million: Seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FLYE",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Insurance Memo (Exports) Gross Insurance Claims [OTIS08] CP SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "CGDO-FKNN-FLYE"
+  },
+  "HIMPROV": {
+   "aggregation": "none",
+   "cdid": "EED5",
+   "dataset": "CXNV",
+   "source_freq": "quarterly",
+   "title": "Total Sector: Improvements to existing Dwellings: Total Industry: \u00a3m: CP: SA",
+   "type": "flow"
+  },
+  "HRRPW": {
+   "aggregation": "monthly->Q mean",
+   "cdid": "KYHM",
+   "dataset": "MM23",
+   "source_freq": "monthly",
+   "title": "CPI INDEX: LOCAL AUTHORITY RENTALS FOR HOUSING 2015=100",
+   "type": "index"
+  },
+  "I4": {
+   "aggregation": "none",
+   "cdid": "DOBQ",
+   "dataset": "MM23",
+   "source_freq": "quarterly",
+   "title": "RPI: housing: mortgage interest payments (Jan 1987=100)",
+   "type": "index"
+  },
+  "I7": {
+   "aggregation": "none",
+   "cdid": "CHAW",
+   "dataset": "MM23",
+   "source_freq": "quarterly",
+   "title": "RPI All Items Index: Jan 1987=100",
+   "type": "index"
+  },
+  "I9": {
+   "aggregation": "none",
+   "cdid": "CHMK",
+   "dataset": "MM23",
+   "source_freq": "quarterly",
+   "title": "RPI All Items Index Excl Mortgage Interest (RPIX): Jan 1987=100",
+   "type": "index"
+  },
+  "IBPC": {
+   "aggregation": "none",
+   "cdid": "DHHL",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "Public corporations (S.11001): Changes in inventories (P.52): Current price: \u00a3million: Not seasonally adjusted",
+   "type": "flow"
+  },
+  "IBUSX": {
+   "aggregation": "none",
+   "cdid": "GAN8",
+   "dataset": "CXNV",
+   "source_freq": "quarterly",
+   "title": "Bus Inv exc. exceptional transfer: CVM SA",
+   "type": "flow"
+  },
+  "ICCPS": {
+   "aggregation": "none",
+   "cdid": "ROAW",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corporations (S.11002+S.11003): Gross fixed capital formation (P.51g): CP \u00a3m: SA",
+   "type": "flow"
+  },
+  "IHHPS": {
+   "aggregation": "none",
+   "cdid": "RPZW",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Gross fixed capital formation (P.51g): Asset: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "IHPS": {
+   "aggregation": "none",
+   "cdid": "L62T",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "GFCF:Private sector: TOTAL: Dwellings, excluding land: \u00a3m: CP: SA",
+   "type": "flow"
+  },
+  "ILGAC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NMQZ",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Accrued interest on index-linked gilts (gross) net of redemptions",
+     "type": "flow"
+    }
+   ],
+   "formula": "-NMQZ"
+  },
+  "INCTAC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CYNX",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "CG: PAYE Withheld: Accruals Adjustment: NSA: \u00a3 Million",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "DBKE",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Central Govt: Accruals adjustment: PC tax (interest) witheld",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "DKHE",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Local authority gross schedule 53: accruals adjustment",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "KIY5",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "New PAYE System Recoveries : Accrual Adjustments (flow)",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RUTC",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Tax deducted from savings interest (TDSI - TOBBI as was): Acca",
+     "type": "flow"
+    }
+   ],
+   "formula": "CYNX+RUTC+DKHE+DBKE+KIY5"
+  },
+  "INHT": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ACCH",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Inland Revenue : capital transfer/inheritance tax receipts \u00a3 million",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "LSON",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Inland Revenue taxes: Inheritance tax (non-cash receipts)",
+     "type": "flow"
+    }
+   ],
+   "formula": "ACCH+LSON"
+  },
+  "INSURE": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "FKNN",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Rest of the World (S.2): Net non-life insurance premiums (D.71): Use: Current price \u00a3million: Seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FLVY",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Oth Sectors Oth Transfers (Debits) Premiums paid by UK [OTIS07] (FJXS) CP SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "FKNN+FLVY"
+  },
+  "IPCPS": {
+   "aggregation": "none",
+   "cdid": "ANNQ",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: Gross fixed capital formation (K2): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "IPRL": {
+   "aggregation": "none",
+   "cdid": "L637",
+   "dataset": "PN2",
+   "source_freq": "quarterly",
+   "title": "GFCF:Private sector: TOTAL: Transfer of ownership costs: \u00a3m: CVM: SA",
+   "type": "flow"
+  },
+  "IPRLPS": {
+   "aggregation": "none",
+   "cdid": "L62U",
+   "dataset": "CXNV",
+   "source_freq": "quarterly",
+   "title": "GFCF:Private sector: TOTAL: Transfer of ownership costs: \u00a3m: CP: SA",
+   "type": "flow"
+  },
+  "ITA": {
+   "aggregation": "none",
+   "cdid": "FLVE",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Oth Sectors Current Taxes on Income, Wealth etc. (Debits) Total CP SA",
+   "type": "flow"
+  },
+  "KCGLA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NMGR",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95: CG uses: D92: investment grants to LA: CP NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMGT",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95: CG: D99 uses: Other capital transfers, paid to general government",
+     "type": "flow"
+    }
+   ],
+   "formula": "NMGR+NMGT"
+  },
+  "KCGPC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ANND",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Capital grants (net) within public sector (D92&D99): \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMGR",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95: CG uses: D92: investment grants to LA: CP NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMGT",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95: CG: D99 uses: Other capital transfers, paid to general government",
+     "type": "flow"
+    }
+   ],
+   "formula": "-ANND-NMGR-NMGT"
+  },
+  "KCGPSO": {
+   "aggregation": "none",
+   "cdid": "ANNI",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Capital transfers to private sector (D92&D99): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "KGHH": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "RPVO",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Investment grants, receivable (D.92r): Liability: Current price: \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RPVP",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Other capital transfers, receivable (D.99r): Liability: Current price: \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RPVS",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Capital taxes, payable (D.91p): Liability: Current price: \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RPVT",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Other capital transfers, payable (D.99p): Liability: Current price: \u00a3m: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "RPVO+RPVP-RPVS-RPVT"
+  },
+  "KGLA": {
+   "aggregation": "none",
+   "cdid": "ANNO",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Capital grants from private sector: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "KLA": {
+   "aggregation": "none",
+   "cdid": "NMNL",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "LG: Capital transfers payable: D9p: CP NSA",
+   "type": "flow"
+  },
+  "KPCPS": {
+   "aggregation": "none",
+   "cdid": "MIYZ",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "Public corporations: Capital transfers to the private sector: Total",
+   "type": "flow"
+  },
+  "KPSCG": {
+   "aggregation": "none",
+   "cdid": "ANNN",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Capital transfers from private sector (D92&D99): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "KPSPC": {
+   "aggregation": "none",
+   "cdid": "ADSE",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: Capital grants from private sector: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LAAC": {
+   "aggregation": "none",
+   "cdid": "ANML",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Accounts receivable/payable (F7 net): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LABRO": {
+   "aggregation": "none",
+   "cdid": "AAZK",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Other: Contribution to PS net cash requirement: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LAEPS": {
+   "aggregation": "annual->Q (/4)",
+   "cdid": "C625",
+   "dataset": "BB",
+   "source_freq": "annual",
+   "title": "Tax paid on LG equal pay settlements",
+   "type": "flow"
+  },
+  "LAGILT": {
+   "aggregation": "none",
+   "cdid": "NCBV",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "ESA95:DIM: LA F.33211 accr adj",
+   "type": "flow"
+  },
+  "LAINTRA": {
+   "aggregation": "none",
+   "cdid": "ANPZ",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Current receipts: Interest and dividends (net) from public sector: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LAIPS": {
+   "aggregation": "none",
+   "cdid": "NMOA",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "LG: Changes in assets:Gross fixed capital formation:CP NSA",
+   "type": "flow"
+  },
+  "LALEND": {
+   "aggregation": "none",
+   "cdid": "ADDU",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Net lending to private sector and Rest of World: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LALIQ": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BKQG",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "GG: Local government other liquid assets (short term assets): \u00a3m CPNSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BKSO",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "GG: Local government bank and building society depostits: \u00a3m CPNSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "BKSO+BKQG"
+  },
+  "LAMFT": {
+   "aggregation": "none",
+   "cdid": "ANMW",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Other financial transactions: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LAMISE": {
+   "aggregation": "none",
+   "cdid": "LSIB",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Net acquisition of company securities (F5 assets): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LANB": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NMOE",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "Local government (S.1313): Net Lending (+) / Net borrowing (-) (B.9N): CP \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-NMOE"
+  },
+  "LANCGA": {
+   "aggregation": "none",
+   "cdid": "C626",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG Net current grants abroad (PSAT2)",
+   "type": "flow"
+  },
+  "LANDIV": {
+   "aggregation": "none",
+   "cdid": "GVHF",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Interest & dividends from private sector and rest of world (D41/42):\u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LANNDR": {
+   "aggregation": "none",
+   "cdid": "CQOQ",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "LA: payments of business rates: D.59 deduction series : \u00a3m nsa",
+   "type": "flow"
+  },
+  "LAOTRHH": {
+   "aggregation": "none",
+   "cdid": "EBFE",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "LG: Current expenditure: Net current grants abroad (D75): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LAPR": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NMKK",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "LG: Resources D.44 Other investment income: CP NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "QWRZ",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95:LA:COFOG:total net procurement +VAT",
+     "type": "flow"
+    }
+   ],
+   "formula": "QWRZ-NMKK"
+  },
+  "LAPT": {
+   "aggregation": "none",
+   "cdid": "NMYH",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "LG: Current receipts: Taxes on production (D29b): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LARENT": {
+   "aggregation": "none",
+   "cdid": "ANBX",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Current receipts: Rent and other current transfers: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LASBHH": {
+   "aggregation": "none",
+   "cdid": "GZSK",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Current expenditure: Net social benefits: Total (D62): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LASC": {
+   "aggregation": "none",
+   "cdid": "M9WY",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Local Govt: D.612: Res: Employers imputed social contributions: CP: NSA",
+   "type": "flow"
+  },
+  "LASUBP": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ADAK",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "LG: Current expenditure: Subsidies: \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "LIUC",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "D.39: Local Govt subsidies on production",
+     "type": "flow"
+    }
+   ],
+   "formula": "ADAK-LIUC"
+  },
+  "LASUBPR": {
+   "aggregation": "none",
+   "cdid": "LIUC",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "D.39: Local Govt subsidies on production",
+   "type": "flow"
+  },
+  "LATSUB": {
+   "aggregation": "none",
+   "cdid": "ADAK",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: Current expenditure: Subsidies: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LAVAT": {
+   "aggregation": "none",
+   "cdid": "CUCZ",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "VAT paid by LG's",
+   "type": "flow"
+  },
+  "LAWS": {
+   "aggregation": "none",
+   "cdid": "QWRY",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "ESA95:LA: D1 Comp of employees:COFOG:Total NSA CP",
+   "type": "flow"
+  },
+  "LCGLA": {
+   "aggregation": "none",
+   "cdid": "ABEC",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "LG: From central government to local government: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LCGOS": {
+   "aggregation": "none",
+   "cdid": "HEUC",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "BoP FA OI Asset flow inter-government loans in the UK NSA \u00a3m",
+   "type": "flow"
+  },
+  "LCGPC": {
+   "aggregation": "none",
+   "cdid": "ABEI",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: From central government to public corporations: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "LCGPR": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ANRH",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Net lending to private sector and rest of world (F.4): \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "HEUC",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "BoP FA OI Asset flow inter-government loans in the UK NSA \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "ANRH-HEUC"
+  },
+  "LHP": {
+   "aggregation": "none",
+   "cdid": "NNRP",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Loans secured on dwellings (AF.422): Liability: Current price: \u00a3m: NSA",
+   "type": "stock"
+  },
+  "LIC": {
+   "aggregation": "none",
+   "cdid": "NLBB",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps: Total financial liabilities (AF.L): Level: Current price: \u00a3million: Not seasonally adjusted",
+   "type": "stock"
+  },
+  "LROW": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "HBQA",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP IIP Asset level NSA \u00a3m",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JX96",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "BoP: IIP: Asset level: Total financial derivatives & ESOs: NSA \u00a3m",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "LTEB",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP IIP reserve assets NSA \u00a3m",
+     "type": "stock"
+    }
+   ],
+   "formula": "HBQA-LTEB-JX96"
+  },
+  "M0": {
+   "aggregation": "none",
+   "cdid": "AVAB",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Notes & coins in circulation outside Bank of England (BOE): level SA \u00a3m",
+   "type": "stock"
+  },
+  "M4IC": {
+   "aggregation": "none",
+   "cdid": "VQSH",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "M4 sectoral analysis: holdings of M4 by ICCs: levels \u00a3m sa",
+   "type": "stock"
+  },
+  "M4OFC": {
+   "aggregation": "none",
+   "cdid": "VQSJ",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "M4 sectoral analysis: holdings of M4 by OFIs: levels \u00a3m sa",
+   "type": "stock"
+  },
+  "MFTPC": {
+   "aggregation": "none",
+   "cdid": "ANVU",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: Other financial transactions: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "MFTRAN": {
+   "aggregation": "none",
+   "cdid": "ANRV",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Other financial transactions: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "MI": {
+   "aggregation": "none",
+   "cdid": "RNKX",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Households (S.14): Mixed Income, gross (B.3g) Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "MILAPM": {
+   "aggregation": "none",
+   "cdid": "GCJG",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "D51,D62 income tax relief change series for MIRAS,LAPRAS and PMI",
+   "type": "flow"
+  },
+  "MNOG": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BPIX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Imports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BQKO",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods (T): WW: Imports: BOP: CVM: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "BQKO-BPIX"
+  },
+  "MOIL": {
+   "aggregation": "none",
+   "cdid": "BPIX",
+   "dataset": "MRET",
+   "source_freq": "quarterly",
+   "title": "Trade in Goods: Oil (33): WW: Imports: BOP: CVM: SA",
+   "type": "flow"
+  },
+  "MS": {
+   "aggregation": "none",
+   "cdid": "IKBF",
+   "dataset": "MRET",
+   "source_freq": "quarterly",
+   "title": "Trade in Services (TS): WW: Imports: BOP: CVM: SA",
+   "type": "flow"
+  },
+  "MSGVAPS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ABML",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Gross Value Added (Average) at basic prices: CP SA \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMXS",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "GG: Total compensation of employees, paid (D1)",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NTAR",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "General Government: PA: Uses: Operating surplus, gross: B2g: CP SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "ABML-NMXS-NTAR"
+  },
+  "MSTFE": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ABJR",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Household final consumption expenditure :National concept CVM SA - \u00a3m",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BOXX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Exports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BQKQ",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods (T): WW: Exports: BOP: CVM: SA",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "CAFU",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Changes in inventories including alignment adjustment - CVM NAYear SA \u00a3m",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "HAYO",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Final Consumption Expenditure of NPISHs CVM SA \u00a3m",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "IKBE",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Services (TS): WW: Exports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMRY",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "General Government: Final consumption expenditure: P3: CVM SA \u00a3m",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NPQT",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Total Gross Fixed Capital Formation CVM SA \u00a3m",
+     "type": "index"
+    }
+   ],
+   "formula": "0.081*(ABJR+HAYO) + 0.030*NMRY + 0.059*NPQT + 0.012*CAFU + 0.029*(BQKQ - BOXX) + 0.093*IKBE"
+  },
+  "NAAIC": {
+   "aggregation": "none",
+   "cdid": "NEQA",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps: Total net acquisition of financial assets (F.A): Flow: Current price: \u00a3m: Not seasonally adjusted",
+   "type": "flow"
+  },
+  "NABAROW": {
+   "aggregation": "none",
+   "cdid": "XBLX",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "IMF BoP FA PI liability flow debt securities 4669 NSA \u00a3m",
+   "type": "flow"
+  },
+  "NABLIC": {
+   "aggregation": "none",
+   "cdid": "NETR",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps (S.1102+S.11003): Debt securities (F.3): Flow: Liability: Current price: \u00a3m: Not seasonally adjusted",
+   "type": "flow"
+  },
+  "NABLROW": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "XBMW",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "IMF BoP FA PI asset flow debt securities NSA \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "-XBMW"
+  },
+  "NADLROW": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "N2SV",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BPM6:BoP:FA:a/l:FDI:asset:total investment net:nsa:\u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "-N2SV"
+  },
+  "NAEQAROW": {
+   "aggregation": "none",
+   "cdid": "XBLW",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "BoP: FA: PI: Liability flows: Total: Equity and investment fund shares: NSA; \u00a3m",
+   "type": "flow"
+  },
+  "NAEQHH": {
+   "aggregation": "none",
+   "cdid": "NFXV",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Equity and investment fund shares/units (F.5): Asset: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "NAEQLIC": {
+   "aggregation": "none",
+   "cdid": "NEVL",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps: Equity and investment fund shares/units (F.5): Flow: Liability: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "NAEQLROW": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "HBVI",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "BoP FA PI Equity and investment fund shares NSA \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "-HBVI"
+  },
+  "NAFFC": {
+   "aggregation": "none",
+   "cdid": "RPYN",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Financial corporations (S.12): Net Lending (+) / Net borrowing (-) (B.9N): CP \u00a3m: SA",
+   "type": "flow"
+  },
+  "NAFHHNSA": {
+   "aggregation": "none",
+   "cdid": "NSSZ",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Net lending (+) / Net borrowing (-) of the non-financial account (B.9n): Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "NAFROWNSA": {
+   "aggregation": "none",
+   "cdid": "NHRB",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Rest of the world (S.2): Net lending (+) / Net borrowing (-) of the non-financial account (B.9N): Net: CP: \u00a3million: Not seasonall",
+   "type": "flow"
+  },
+  "NAFXLIC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NEUX",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Foreign currency loans by UK banks (F.41N12): Flow: Liability: Current price: \u00a3m: NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NEUZ",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Short term loans by rest of world (F.41N9): Flow: Liability: Current price: \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "NEUX+NEUZ"
+  },
+  "NAINS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "M9WF",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Life insurance and annuity entitlements (F.62): Asset: Current price: \u00a3m: NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NFYO",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Non-life insurance technical reserves (F.61): Asset: Current price: \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "NFYO+M9WF"
+  },
+  "NALIC": {
+   "aggregation": "none",
+   "cdid": "NETE",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps: Total net acquisition of financial liabilities (F.L): Flow: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "NAOLPE": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NFYS",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Total net acquisition of financial liabilities (F.L): Liability: Current price: \u00a3m: NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NGAS",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Loans secured on dwellings (F.422): Liability: Current price: \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "NFYS-NGAS"
+  },
+  "NAOTAROW": {
+   "aggregation": "none",
+   "cdid": "XBMN",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "BoP FA OI total liabilities NSA \u00a3m",
+   "type": "flow"
+  },
+  "NAOTLROW": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "XBMM",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "BoP FA OI total assets NSA \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "-XBMM"
+  },
+  "NAPEN": {
+   "aggregation": "none",
+   "cdid": "MA2H",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Pension entitlements, claims of pension funds on pension managers etc. (F.6M): Asset: CP: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "NATSAV": {
+   "aggregation": "none",
+   "cdid": "ACUA",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: National savings: \u00a3m CPNSA",
+   "type": "stock"
+  },
+  "NDIV": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NETZ",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corporations sector (S1102+S11003): Dividends (D.421): Use: Current price: \u00a3m: Not seasonally adjusted",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NLBU",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Equity and investment fund shares/units (AF.5): Level: Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "NETZ/NLBU"
+  },
+  "NDIVHH": {
+   "aggregation": "none",
+   "cdid": "CRWF",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Dividends (D.421): Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "NEAHH": {
+   "aggregation": "none",
+   "cdid": "RPQJ",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Adjustment for the change in pension entitlements (D.8): Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "NFWPE": {
+   "aggregation": "none",
+   "cdid": "NZEA",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Net financial assets (BF.90): Current price: \u00a3m: NSA",
+   "type": "stock"
+  },
+  "NICAC": {
+   "aggregation": "none",
+   "cdid": "ACJY",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Central govt : accruals adjustment : social security contributions",
+   "type": "flow"
+  },
+  "NIS": {
+   "aggregation": "none",
+   "cdid": "GTAY",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "Central govt receipts: taxes on expenditure: national insurance surcharge",
+   "type": "flow"
+  },
+  "NLHH": {
+   "aggregation": "none",
+   "cdid": "NZDY",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Net lending (+) / Net borrowing (-) of the financial account (B.9f): Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "NLROW": {
+   "aggregation": "none",
+   "cdid": "NYOD",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Rest of the World (S.2): Net lending (+) / borrowing (-) from the financial account (B.9F): Flow: Current price \u00a3million: NSA",
+   "type": "flow"
+  },
+  "NMTRHH": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "RPHO",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Miscellaneous current transfers (D.75): Resources: Current price: \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RPID",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Miscellaneous current transfers (D.75): Uses: Current price: \u00a3m: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "RPHO-RPID"
+  },
+  "NNDRA": {
+   "aggregation": "none",
+   "cdid": "CUKY",
+   "dataset": "EDP2",
+   "source_freq": "quarterly",
+   "title": "CG: Current receipts: Taxes on production: Business rates (NNDR): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "NNSCTP": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CPRN",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Receipts: Corporation tax: Accrued: Gross of tax credits: \u00a3m:NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "DBJY",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Central Government Receipts: North Sea Corporation Tax",
+     "type": "flow"
+    }
+   ],
+   "formula": "CPRN-DBJY"
+  },
+  "NNSGVA": {
+   "aggregation": "none",
+   "cdid": "KLS2",
+   "dataset": "PN2",
+   "source_freq": "quarterly",
+   "title": "GVAx06 : GVA exc oil and gas \u00a3m:CVM",
+   "type": "flow"
+  },
+  "NPAA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "FHJL",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Acquisitions/Disposals of NPNF Assets (Credits) Total: CP SA: \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FLWT",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Acquisitions/Disposals of NPNF Assets (Debits) Total: CP SA: \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "FHJL-FLWT"
+  },
+  "NPACG": {
+   "aggregation": "none",
+   "cdid": "NMFG",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: Acquisitions - disposals of non-produced non-financial assets:K2:TotalCP NSA",
+   "type": "flow"
+  },
+  "NPAHH": {
+   "aggregation": "none",
+   "cdid": "RPZU",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Acquisition less disposals of non-produced / non-financial assets (NP): Asset: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "NPALA": {
+   "aggregation": "none",
+   "cdid": "NMOD",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "LG Uses :NP Acquisitions less sales of non produced non financial assets:CP NSA",
+   "type": "flow"
+  },
+  "NPISHTC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CFGW",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA: Tax credits - NPISH: NSA:",
+     "type": "flow"
+    }
+   ],
+   "formula": "-CFGW"
+  },
+  "NSCTP": {
+   "aggregation": "none",
+   "cdid": "DBJY",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Central Government Receipts: North Sea Corporation Tax",
+   "type": "flow"
+  },
+  "NSGTP": {
+   "aggregation": "none",
+   "cdid": "CAGD",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps (S.11002+S.11003): Gross trading profits of UK continental shelf companies: Resource: CP \u00a3m: SA",
+   "type": "flow"
+  },
+  "NSGVA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ABMM",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "Gross Value Added at basic prices:chained volume measures:Seasonally adjusted \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "KLS2",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "GVAx06 : GVA exc oil and gas \u00a3m:CVM",
+     "type": "flow"
+    }
+   ],
+   "formula": "ABMM-KLS2"
+  },
+  "NWIC": {
+   "aggregation": "none",
+   "cdid": "NYOT",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps (S.1102+S.11003): Financial net worth (BF.90): Current price: \u00a3million: Not seasonally adjusted",
+   "type": "stock"
+  },
+  "OAHH": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "MMW5",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Financial derivatives and employee stock options (AF.7): Asset: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNMY",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Debt securities (AF.3): Asset: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNOA",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Loans (AF.4): Asset: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNPM",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Other accounts receivable/payable (AF.8): Asset: Current price: \u00a3m: NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "NNMY+NNOA+NNPM+MMW5"
+  },
+  "OCT": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CQOQ",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "LA: payments of business rates: D.59 deduction series : \u00a3m nsa",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "KIH3",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG: Current receipts: Other taxes: Bank levy: \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NMCV",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: Current receipts: Other current taxes (D.59): \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "NMCV-CQOQ-KIH3"
+  },
+  "OFGEM": {
+   "aggregation": "none",
+   "cdid": "EO2E",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "CG: D511 res: OFGEM tax on NFPA renewable energy income \u00a3m nsa",
+   "type": "flow"
+  },
+  "OFLPS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ACUA",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "CG: National savings: \u00a3m CPNSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NIJI",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG:LI:LEVEL:British government securities",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NKIF",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Public corporations (S.11001): Total financial liabilities (AF.L): Level: Current price: \u00a3million: Not seasonally adjusted",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NPVQ",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "ESA:GG:LI:LEVEL:Total financial liabilities",
+     "type": "stock"
+    }
+   ],
+   "formula": "NKIF+NPVQ-NIJI-ACUA"
+  },
+  "OHT": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CQTC",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "CG: D.59 receipts: total NP payments of NNDR: \u00a3m nsa",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "IY9O",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CGr/HHu: D.59: Driver and Vehicle Agency NI: NSA CP",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NRQB",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Other current taxes,received: licences to fish (D59): CP NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NSFA",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG: Northern Ireland domestic rates (households)",
+     "type": "flow"
+    }
+   ],
+   "formula": "NSFA+CQTC+NRQB+IY9O"
+  },
+  "OLIC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "M9VL",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private NF corps: Pension entitlements, claims of pension funds on pension managers etc. (AF.6M): Level: Liability: CP: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "MMX4",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Financial derivatives and employee stock options (AF.7): Level: Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NLBC",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps (S.1102+S.11003): Loans (AF.4): Level: Liability: Current price: \u00a3million: Not seasonally adjusted",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NLBE",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Short term loans by UK MFI's (AF.41N1): Level: Liability: Current price: \u00a3m: Not seasonally adjusted",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NLBI",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Short term loans by rest of world (AF.41N9): Level: Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NLCO",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Other accounts receivable/payable (AF.8): Level: Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "NLCO+(NLBC-NLBE-NLBI)+MMX4+M9VL"
+  },
+  "OLPE": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NNPP",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Total financial liabilities (AF.L): Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNRP",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Loans secured on dwellings (AF.422): Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "NNPP-NNRP"
+  },
+  "OPSKTA": {
+   "aggregation": "none",
+   "cdid": "FLWI",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Other Sectors Transfers (Debits) Total: CP SA: \u00a3m",
+   "type": "flow"
+  },
+  "OPT": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CRSN",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG: Tax: Apprenticeship Levy: Flow: Accrued: CPNSA: \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "CT9U",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG: Receipt: Soft Drink Levy: Accrued: \u00a3million: NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "CUDB",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Customs & consumer credit act fee & fines",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "DFT5",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95: CG: OFGEM fees",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "L8UA",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG Receipts: D.29 related to Carbon Reduction Commitment (CRC) payments",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "LITK",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "MR69:Levy Funded Bodies - Total (millions)",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "LITR",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "D.29: Office of the Rail Regulator:Running Costs (millions)",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NSEZ",
+     "dataset": "EDP3",
+     "source_freq": "quarterly",
+     "title": "CG: Northern Ireland non-domestic rates (business)",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NZFS",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95: CG: OFTEL fees",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NZFV",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA95: CG: OFWAT fees",
+     "type": "flow"
+    }
+   ],
+   "formula": "NZFS+NZFV+LITR+NSEZ+CUDB+LITK+DFT5-L8UA+CT9U+CRSN"
+  },
+  "OS": {
+   "aggregation": "none",
+   "cdid": "ABNG",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "UK (S.1): Operating Surplus, gross (B.2g): Current price: \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "OSB": {
+   "aggregation": "none",
+   "cdid": "L8R4",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Financial corporations (S.12): Other social insurance benefits (D.622): Use: Current price \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "OSGG": {
+   "aggregation": "none",
+   "cdid": "NTAR",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "General Government: PA: Uses: Operating surplus, gross: B2g: CP SA",
+   "type": "flow"
+  },
+  "OSHH": {
+   "aggregation": "none",
+   "cdid": "CAEN",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Operating Surplus, gross (B.2g): Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "OSPC": {
+   "aggregation": "none",
+   "cdid": "CAEQ",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Public corporations (S.11001): Operating Surplus, gross (B.2g): Current price: \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "OTAROW": {
+   "aggregation": "none",
+   "cdid": "HLYD",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "BoP IIP total OI liability level NSA \u00a3m",
+   "type": "stock"
+  },
+  "OTLROW": {
+   "aggregation": "none",
+   "cdid": "HLXV",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "BoP IIP total OI Asset level NSA \u00a3m",
+   "type": "stock"
+  },
+  "PASSPORT": {
+   "aggregation": "none",
+   "cdid": "E8A6",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG res: D59 Tax: Passport Fees: Consular Element and part Cost of Issue: NSA CP",
+   "type": "flow"
+  },
+  "PCAC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ANVQ",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PC: Accounts receivable/payable: \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JXJ4",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "BoE: Accounts receivable/payable: \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "ANVQ+JXJ4"
+  },
+  "PCCON": {
+   "aggregation": "none",
+   "cdid": "NSRM",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "Consumption of fixed capital for public corporations",
+   "type": "flow"
+  },
+  "PCDUR": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "UTIB",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Durable goods: Total CP SA \u00a3m",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "UTID",
+     "dataset": "CT",
+     "source_freq": "quarterly",
+     "title": "Durable goods :Total CVM NAYear SA \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "100*(UTIB/UTID)"
+  },
+  "PCGILT": {
+   "aggregation": "none",
+   "cdid": "NCXS",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "ESA95:DIM PC F.33211 accr adj",
+   "type": "flow"
+  },
+  "PCINTRA": {
+   "aggregation": "none",
+   "cdid": "ANRW",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: Interest & dividends (net) from public sector (D41&D42): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PCLEB": {
+   "aggregation": "none",
+   "cdid": "L635",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "GFCF:Public non-fin corps: TOTAL: Transfer of ownership costs: \u00a3m: CVM: SA",
+   "type": "flow"
+  },
+  "PCLEND": {
+   "aggregation": "none",
+   "cdid": "ANRY",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: Net lending to private sector and Rest of World: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PCMISE": {
+   "aggregation": "none",
+   "cdid": "ANRZ",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: Net acquisition of company securities: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PCNB": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CPCM",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "Public Corporations (S.11001): Net Lending (+) / Net borrowing (-) (B.9N): CP \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-CPCM"
+  },
+  "PCNDIV": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "GVHG",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PC: Interest & dividends from private sector and rest of world (D41/42):\u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JW29",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "BoE: Interest & divs from private sector and rest of world (D41/42): \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "GVHG-JW29"
+  },
+  "PCRENT": {
+   "aggregation": "none",
+   "cdid": "ANCW",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PC: Current receipts: Rent and other current transfers: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PDINV": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CAEX",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "Changes in inventories (CP SA) including alignment adjustment \u00a3m",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "CAFU",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Changes in inventories including alignment adjustment - CVM NAYear SA \u00a3m",
+     "type": "index"
+    }
+   ],
+   "formula": "100*(CAEX/CAFU)"
+  },
+  "PGVA": {
+   "aggregation": "none",
+   "cdid": "CGBV",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Gross Value Added at basic prices: Implied deflator:SA",
+   "type": "index"
+  },
+  "PIH": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "L62T",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "GFCF:Private sector: TOTAL: Dwellings, excluding land: \u00a3m: CP: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "L636",
+     "dataset": "CXNV",
+     "source_freq": "quarterly",
+     "title": "GFCF:Private sector: TOTAL: Dwellings, excluding land: \u00a3m: CVM: SA",
+     "type": "index"
+    }
+   ],
+   "formula": "100*(L62T/L636)"
+  },
+  "PIHH": {
+   "aggregation": "none",
+   "cdid": "NPYL",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Insurance, pension and standardised guarantee schemes (AF.6): Asset: Current price: \u00a3m: NSA",
+   "type": "stock"
+  },
+  "PIPHH": {
+   "aggregation": "none",
+   "cdid": "ROYT",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Property income (D.4): Uses: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "PIRHH": {
+   "aggregation": "none",
+   "cdid": "ROYL",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Property income (D.4): Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "PMNOG": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BOKH",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods (T): WW: Imports: BOP: CP: SA",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BPIX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Imports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BQKO",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods (T): WW: Imports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ENXO",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Imports: BOP: CP: SA",
+     "type": "index"
+    }
+   ],
+   "formula": "100*(BOKH-ENXO)/(BQKO-BPIX)"
+  },
+  "PMOIL": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BPIX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Imports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ENXO",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Imports: BOP: CP: SA",
+     "type": "index"
+    }
+   ],
+   "formula": "(ENXO/BPIX)*100"
+  },
+  "PMS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "IKBC",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "Trade in Services (TS): WW: Imports: BOP: CP: SA",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "IKBF",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Services (TS): WW: Imports: BOP: CVM: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "100*(IKBC/IKBF)"
+  },
+  "POP16": {
+   "aggregation": "none",
+   "cdid": "MGSL",
+   "dataset": "LMS",
+   "source_freq": "quarterly",
+   "title": "LFS: Population aged 16+: UK: All: 000s: Annual = 4 quarter average",
+   "type": "stock"
+  },
+  "POPAL": {
+   "aggregation": "none",
+   "cdid": "EBAQ",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "UK resident population: mid-year estimates (Qtly data interpolated)",
+   "type": "stock"
+  },
+  "PPIY": {
+   "aggregation": "none",
+   "cdid": "GB7S",
+   "dataset": "PPI",
+   "source_freq": "quarterly",
+   "title": "PPI INDEX OUTPUT DOMESTIC - C Manufactured products, excluding Duty 2015=100",
+   "type": "index"
+  },
+  "PR": {
+   "aggregation": "none",
+   "cdid": "CHAW",
+   "dataset": "MM23",
+   "source_freq": "quarterly",
+   "title": "RPI All Items Index: Jan 1987=100",
+   "type": "index"
+  },
+  "PRENT": {
+   "aggregation": "none",
+   "cdid": "DOBP",
+   "dataset": "MM23",
+   "source_freq": "quarterly",
+   "title": "RPI: housing: rent (Jan 1987=100)",
+   "type": "index"
+  },
+  "PRMIP": {
+   "aggregation": "none",
+   "cdid": "DOBQ",
+   "dataset": "MM23",
+   "source_freq": "quarterly",
+   "title": "RPI: housing: mortgage interest payments (Jan 1987=100)",
+   "type": "index"
+  },
+  "PRP": {
+   "aggregation": "monthly->Q mean",
+   "cdid": "KYHL",
+   "dataset": "MM23",
+   "source_freq": "monthly",
+   "title": "CPI INDEX: REGISTERED SOCIAL LANDLORD RENTALS FOR HOUSING 2015=100",
+   "type": "index"
+  },
+  "PRT": {
+   "aggregation": "none",
+   "cdid": "ACCJ",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Current receipts: Taxes on income: Petroleum revenue tax: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PRXMIP": {
+   "aggregation": "none",
+   "cdid": "CHMK",
+   "dataset": "MM23",
+   "source_freq": "quarterly",
+   "title": "RPI All Items Index Excl Mortgage Interest (RPIX): Jan 1987=100",
+   "type": "index"
+  },
+  "PSACADJ": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "JW35",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: Accounts receivable/payable (exc PS Banks): \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JW36",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: Adjustment for interest on gilts (exc PS Banks) (F.3): \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JW37",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: Other financial transactions (exc PS Banks): \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "JW35+JW36+JW37"
+  },
+  "PSAVEI": {
+   "aggregation": "none",
+   "cdid": "KAC4",
+   "dataset": "EMP",
+   "source_freq": "quarterly",
+   "title": "AWE: Private Sector Level (\u00a3): Seasonally Adjusted Total Pay Excluding Arrears",
+   "type": "index"
+  },
+  "PSCB": {
+   "aggregation": "none",
+   "cdid": "JW2T",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PS: Current Budget Deficit (excluding public sector banks): \u00a3m: CPNSA",
+   "type": "flow"
+  },
+  "PSCE": {
+   "aggregation": "none",
+   "cdid": "JW2Q",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PS: exc PS Banks: Total current expenditure: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PSCR": {
+   "aggregation": "none",
+   "cdid": "JW2O",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PS: exc PS Banks: Total current receipts: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PSFA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NKFB",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Public corporations (S.11001): Total financial assets (AF.A): Level: Current price: \u00a3million: Not seasonally adjusted",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NPUP",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "GG:AS:LEVEL:Total Financial Assets: CP NSA \u00a3m",
+     "type": "stock"
+    }
+   ],
+   "formula": "NKFB+NPUP"
+  },
+  "PSFL": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NKIF",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Public corporations (S.11001): Total financial liabilities (AF.L): Level: Current price: \u00a3million: Not seasonally adjusted",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NPVQ",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "ESA:GG:LI:LEVEL:Total financial liabilities",
+     "type": "stock"
+    }
+   ],
+   "formula": "NKIF+NPVQ"
+  },
+  "PSINTR": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "JW2L",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: exc PS Banks: Interest & Divs from Private Sector and RoW: \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JW2M",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: exc PS Banks Interest & dividends (net) from public sector: \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "JW2L+JW2M"
+  },
+  "PSLSFA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "JW33",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: Net lending to private sector and rest of world (exc PS Banks) F.4: \u00a3m CPNA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JW34",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: Net acquisition of company securities (exc PS Banks) (F.5): \u00a3m CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "JW33+JW34"
+  },
+  "PSNBCY": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "RPZD",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "General Government (S.13): Net lending (+) / Net borrowing (-) (B.9N): CP \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RQBN",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Public corporations (S.11001): Net Lending (+) / Net borrowing (-) (B.9N): CP \u00a3m: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-RQBN-RPZD"
+  },
+  "PSNBNSA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "J5II",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: Net Borrowing (excluding public sector banks): \u00a3m: CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-J5II"
+  },
+  "PSNCR": {
+   "aggregation": "none",
+   "cdid": "JW38",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PS: Net cash requirement (exc PS Banks) (PSNCR exc): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PSNI": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "JW2Z",
+     "dataset": "PUSF",
+     "source_freq": "quarterly",
+     "title": "PS: Net Investment (excluding public sector banks): \u00a3m: CPNSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "-JW2Z"
+  },
+  "PSTA": {
+   "aggregation": "annual->Q (held flat)",
+   "cdid": "NG4K",
+   "dataset": "NBS",
+   "source_freq": "annual",
+   "title": "Balance Sheet: PS: LE: AN: Total non-financial assets: CP: NSA: \u00a3m",
+   "type": "stock"
+  },
+  "PUBSTIW": {
+   "aggregation": "none",
+   "cdid": "ANSO",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "PS: Current receipts: Taxes on income and wealth: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PUBSTPD": {
+   "aggregation": "none",
+   "cdid": "NMYE",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "GG: Current receipts: Taxes on production (D.2): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "PXNOG": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BOKG",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods (T): WW: Exports: BOP: CP: SA",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BOXX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Exports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BQKQ",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods (T): WW: Exports: BOP: CVM: SA",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ELBL",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Exports: BOP: CP: SA",
+     "type": "index"
+    }
+   ],
+   "formula": "100*(BOKG-ELBL)/(BQKQ-BOXX)"
+  },
+  "PXOIL": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BOXX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Exports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ELBL",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Exports: BOP: CP: SA",
+     "type": "index"
+    }
+   ],
+   "formula": "(ELBL/BOXX)*100"
+  },
+  "PXS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "IKBB",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "Trade in Services (TS): WW: Exports: BOP: CP: SA",
+     "type": "index"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "IKBE",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Services (TS): WW: Exports: BOP: CVM: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "100*(IKBB/IKBE)"
+  },
+  "RCGIM": {
+   "aggregation": "none",
+   "cdid": "NSRN",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "Public sector finances: Central Government: Depreciation: \u00a3m: CPNSA",
+   "type": "flow"
+  },
+  "RENTCO": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "DTWR",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corporations (S.11002+S.11003): Rental of buildings: Resource: CP \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "DTWS",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "ESA: B.2g: FC: Operating Surplus: Rent: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "DTWR+DTWS"
+  },
+  "REXC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "HBOK",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP Investment Income Credits / Rest of the World (S.2): Property income (D.4): Use: Current price \u00a3m: Seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "HBQA",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP IIP Asset level NSA \u00a3m",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "HHCC",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP Inc credits earnings on reserve assets SA \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JX96",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "BoP: IIP: Asset level: Total financial derivatives & ESOs: NSA \u00a3m",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "LTEB",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP IIP reserve assets NSA \u00a3m",
+     "type": "stock"
+    }
+   ],
+   "formula": "100*(HBOK-HHCC)/(HBQA-LTEB-JX96)"
+  },
+  "REXD": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "HBOL",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "BoP Investment Income Debits / Rest of the World (S.2): Property income (D.4): Resource: Current price \u00a3m: Seasonally adjusted",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "HBQB",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP IIP Liability level NSA \u00a3m",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "JX97",
+     "dataset": "PNBP",
+     "source_freq": "quarterly",
+     "title": "BoP: IIP: Liability level: Total financial derivatives & ESOs: NSA \u00a3m",
+     "type": "stock"
+    }
+   ],
+   "formula": "100*HBOL/(HBQB-JX97)"
+  },
+  "RFP": {
+   "aggregation": "none",
+   "cdid": "LITT",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "Rail Franchises Premia: total (switched from D45 to D214 - 23Nov07)",
+   "type": "flow"
+  },
+  "RLAIM": {
+   "aggregation": "none",
+   "cdid": "NSRO",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "Local Govt: P.51c: Consumption of fixed capital",
+   "type": "flow"
+  },
+  "RNCG": {
+   "aggregation": "none",
+   "cdid": "NMCK",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: Current receipts: Other receipts: Rent received (D45): \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "ROCS": {
+   "aggregation": "none",
+   "cdid": "EP89",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: D214/D31: Renewable Obligation Certificates (ROCs): CP NSA",
+   "type": "flow"
+  },
+  "SA": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "DLRA",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corporations (S.11002+S.11003): Inventory holding gains: Resource: CP \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "EQCB",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Financial companies: Holding gains in inventories: CP NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "DLRA+EQCB"
+  },
+  "SBHH": {
+   "aggregation": "none",
+   "cdid": "RPHL",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Social benefits other than social transfers in kind (D.62): Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "SDEPS": {
+   "aggregation": "none",
+   "cdid": "GIXM",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Difference between GDP(E) and GDP(A) MP (SA CP) \u00a3m",
+   "type": "flow"
+  },
+  "SDI": {
+   "aggregation": "none",
+   "cdid": "GIXQ",
+   "dataset": "PN2",
+   "source_freq": "quarterly",
+   "title": "Statistical discrepancy (income) \u00a3m",
+   "type": "flow"
+  },
+  "SDLHH": {
+   "aggregation": "none",
+   "cdid": "NZDV",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Discrepancy between net lending/net borrowing in non-financial and financial accounts (dB.9): CP:\u00a3m:NSA",
+   "type": "flow"
+  },
+  "SDLROW": {
+   "aggregation": "none",
+   "cdid": "NYPO",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Rest of the World (S2): Discrepancy between net lending/ borrowing in non-financial and financial accounts (dB9): Flow: CP \u00a3m: NSA",
+   "type": "flow"
+  },
+  "SRES": {
+   "aggregation": "none",
+   "cdid": "LTEB",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "BoP IIP reserve assets NSA \u00a3m",
+   "type": "stock"
+  },
+  "STLIC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "NLBE",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Short term loans by UK MFI's (AF.41N1): Level: Liability: Current price: \u00a3m: Not seasonally adjusted",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NLBG",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Private non-financial corps: Foreign currency loans by UK banks (AF.41N12): Level: Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "NLBE-NLBG"
+  },
+  "STUDENT": {
+   "aggregation": "none",
+   "cdid": "CT9E",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "CG: AF4 A: Net Lending to Private Sector: Student Loans (\u00a3m NSA)",
+   "type": "stock"
+  },
+  "SVHH": {
+   "aggregation": "none",
+   "cdid": "RPQL",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Households and NPISH (S.14+S.15): Saving, gross (B.8g): \u00a3million: Current price: Seasonally adjusted",
+   "type": "flow"
+  },
+  "SWAPS": {
+   "aggregation": "none",
+   "cdid": "CFZG",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "CG Assets F.34 Financial derivatives",
+   "type": "flow"
+  },
+  "SWISSCAP": {
+   "aggregation": "annual->Q (/4)",
+   "cdid": "KW69",
+   "dataset": "BB",
+   "source_freq": "annual",
+   "title": "Swiss Bank Tax - Accrued Cash",
+   "type": "flow"
+  },
+  "TCINV": {
+   "aggregation": "none",
+   "cdid": "GRXE",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Company Income Tax Reciepts, net of Repayments",
+   "type": "flow"
+  },
+  "TDOIL": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ABMM",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "Gross Value Added at basic prices:chained volume measures:Seasonally adjusted \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BOXX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Exports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BPIX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Imports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "KLS2",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "GVAx06 : GVA exc oil and gas \u00a3m:CVM",
+     "type": "flow"
+    }
+   ],
+   "formula": "ABMM-KLS2+BPIX-BOXX"
+  },
+  "TFEPS": {
+   "aggregation": "none",
+   "cdid": "ABMF",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Total gross final expenditure (aligned) - P.3+P.5+P.6 : CP SA \u00a3m",
+   "type": "flow"
+  },
+  "TPRODPS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CMVL",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "whole economy: D2 less D3: pre-ESA95 factor cost adjustment: SA CP \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NTAP",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Total adjustment to basic prices (General Government + ROW) CP SA \u00a3m",
+     "type": "flow"
+    }
+   ],
+   "formula": "CMVL-NTAP"
+  },
+  "TRANC": {
+   "aggregation": "none",
+   "cdid": "IKBN",
+   "dataset": "PNBP",
+   "source_freq": "quarterly",
+   "title": "Secondary Income: Total exports: \u00a3M: CP: SA",
+   "type": "flow"
+  },
+  "TRAND": {
+   "aggregation": "none",
+   "cdid": "IKBO",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Secondary Income: Total imports: \u00a3M: CP: SA",
+   "type": "flow"
+  },
+  "TROD": {
+   "components": [
+    {
+     "aggregation": "annual->Q (/4)",
+     "cdid": "FJCK",
+     "dataset": "PB",
+     "source_freq": "annual",
+     "title": "BoP: Current Transfers (Debits): Social Benefits Total: CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FJUO",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Secondary Income: General Government: Imports: \u00a3M: CP: NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "FKKM",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Secondary Income (Credits) Govt Other Transfers [Abatement]: CP SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "MUV5",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Payments to EU GNI: own resource and VAT NSA \u00a3m debits",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "MUV6",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "Payments to EU GNI adjustments and VAT adjustments NSA \u00a3m debits",
+     "type": "flow"
+    }
+   ],
+   "formula": "FJUO-FJCK-MUV5-MUV6+FKKM"
+  },
+  "TSD": {
+   "aggregation": "none",
+   "cdid": "ACCI",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "HMRC : stamp duty receipts UK Total \u00a3 million",
+   "type": "flow"
+  },
+  "TSEOP": {
+   "aggregation": "none",
+   "cdid": "ZAFG",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Households (S.14): Current taxes on income of which, Taxes on self employment & other (D.511): Use: Current price: \u00a3million: NSA",
+   "type": "flow"
+  },
+  "TXALC": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ACDF",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Customs & Excise : spirit duty receipts \u00a3 million",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ACDG",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Customs & Excise : beer duty receipts \u00a3 million",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ACDH",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Customs & Excise : wine duty receipts \u00a3 million",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ACDI",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Customs & Excise : made-wine , cider & perry duty receipts \u00a3 million",
+     "type": "flow"
+    }
+   ],
+   "formula": "ACDF+ACDG+ACDH+ACDI"
+  },
+  "TXCUS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "ACDJ",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Customs & Excise : betting & gaming levy receipts \u00a3 million",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ACDO",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Customs & Excise: Insurance Premium Tax \u00a3 million",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "ACDP",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "Customs & Excise: Air Passenger Duty \u00a3 million",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "DOLC",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "UK Total Landfill tax (cash)",
+     "type": "flow"
+    }
+   ],
+   "formula": "ACDJ+ACDP+ACDO+DOLC"
+  },
+  "TXFUEL": {
+   "aggregation": "none",
+   "cdid": "ACDD",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Customs & Excise : hydrocarbon oils duty receipts \u00a3 million",
+   "type": "flow"
+  },
+  "TXMIS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CSH8",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG: Tax: Immigration Skills Charge: Flow: Accrued: CPNSA: \u00a3m",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "CWR7",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG: Pensions: PPF Levy: \u00a3milllion: CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "CWUX",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Companies House Registration Tax (D29)",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "CWV7",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "Land Registry - Registration of Title tax (D29) - payable by companies",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "DPIH",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG D.29r : Light Dues (\u00a3m) NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "LIYH",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG resources: D214: NLDF receipts from Camelot: NSA CP",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "MVPC",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG: Current receipts: Taxes on production: Vehicle Registration Tax: \u00a3m, CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "N3DV",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG receipts - Air Travel Organiser Licence Fees",
+     "type": "flow"
+    }
+   ],
+   "formula": "LIYH+CSH8+CWUX+CWV7+CWR7+MVPC+DPIH+N3DV"
+  },
+  "TXTOB": {
+   "aggregation": "none",
+   "cdid": "ACDE",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Customs & Excise : tobacco duty receipts \u00a3 million",
+   "type": "flow"
+  },
+  "TYEM": {
+   "aggregation": "none",
+   "cdid": "DBBO",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Households (S.14): Current taxes on Income of which, Taxes on employment (D.511): Uses: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
+  "TYPCO": {
+   "aggregation": "none",
+   "cdid": "FCCS",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "Public corporations (S.11001): Taxes on income (D.51): Uses: Current price: \u00a3million: Not seasonally adjusted",
+   "type": "flow"
+  },
+  "TYWHH": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "RPHS",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Taxes on income (D.51): Uses: Current price: \u00a3m: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "RPHT",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Other current taxes (D.59): Uses: Current price: \u00a3m: SA",
+     "type": "flow"
+    }
+   ],
+   "formula": "RPHS+RPHT"
+  },
+  "VALHH": {
+   "aggregation": "none",
+   "cdid": "RPZY",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Acquisition less disposals of valuables (P.53): Asset: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "VEDCO": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CDDZ",
+     "dataset": "EDP",
+     "source_freq": "quarterly",
+     "title": "CG: Current receipts: Other taxes: Vehicle duty paid by households: \u00a3m CPNSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "GTAX",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "CG receipts: taxes on expenditure: motor vehicle duties",
+     "type": "flow"
+    }
+   ],
+   "formula": "GTAX-CDDZ"
+  },
+  "VEDHH": {
+   "aggregation": "none",
+   "cdid": "CDDZ",
+   "dataset": "EDP",
+   "source_freq": "quarterly",
+   "title": "CG: Current receipts: Other taxes: Vehicle duty paid by households: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "VREC": {
+   "aggregation": "none",
+   "cdid": "EYOO",
+   "dataset": "PUSF",
+   "source_freq": "quarterly",
+   "title": "CG: Net cash requirement: Cash receipts: HMRC: VAT: \u00a3m CPNSA",
+   "type": "flow"
+  },
+  "W1": {
+   "aggregation": "annual->Q (held flat)",
+   "cdid": "CZXD",
+   "dataset": "MM23",
+   "source_freq": "annual",
+   "title": "RPI:Weights (parts per 1000) - Rent",
+   "type": "index"
+  },
+  "W4": {
+   "aggregation": "annual->Q (held flat)",
+   "cdid": "CZXE",
+   "dataset": "MM23",
+   "source_freq": "annual",
+   "title": "RPI:Weights (parts per 1000) - Mortgage interest payments",
+   "type": "index"
+  },
+  "W5": {
+   "aggregation": "annual->Q (held flat)",
+   "cdid": "L5PA",
+   "dataset": "MM23",
+   "source_freq": "annual",
+   "title": "CPIH WEIGHTS 04.2: OWNER OCCUPIERS' HOUSING COSTS",
+   "type": "index"
+  },
+  "WRGTP": {
+   "aggregation": "none",
+   "cdid": "LOJU",
+   "dataset": "LMS",
+   "source_freq": "quarterly",
+   "title": "UK Government-Supported Trainees SA : Total (thousands)",
+   "type": "flow"
+  },
+  "WYQC": {
+   "aggregation": "none",
+   "cdid": "CRWH",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Withdrawals from income of quasi-corporations (D.422): Resources: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
+  "XLAVAT": {
+   "aggregation": "none",
+   "cdid": "CUNW",
+   "dataset": "QNA",
+   "source_freq": "quarterly",
+   "title": "Total vat refunds paid by cg, excl la's \u00a3m",
+   "type": "flow"
+  },
+  "XNOG": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "BOXX",
+     "dataset": "MRET",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods: Oil (33): WW: Exports: BOP: CVM: SA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "BQKQ",
+     "dataset": "PN2",
+     "source_freq": "quarterly",
+     "title": "Trade in Goods (T): WW: Exports: BOP: CVM: SA",
+     "type": "index"
+    }
+   ],
+   "formula": "BQKQ-BOXX"
+  },
+  "XOIL": {
+   "aggregation": "none",
+   "cdid": "BOXX",
+   "dataset": "MRET",
+   "source_freq": "quarterly",
+   "title": "Trade in Goods: Oil (33): WW: Exports: BOP: CVM: SA",
+   "type": "flow"
+  },
+  "XS": {
+   "aggregation": "none",
+   "cdid": "IKBE",
+   "dataset": "MRET",
+   "source_freq": "quarterly",
+   "title": "Trade in Services (TS): WW: Exports: BOP: CVM: SA",
+   "type": "flow"
+  }
+ }
+}

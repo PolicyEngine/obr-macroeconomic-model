@@ -25,7 +25,10 @@ from obr_macro.ons_fetch import fetch_series
 CACHE = DATA_DIR / "ons_cache"                       # gitignored, transient
 SEEDS = Path(__file__).parent / "seeds"              # committed
 SNAPSHOT = SEEDS / "ons_exogenous_snapshot.csv"
+MANIFEST = SEEDS / "snapshot_manifest.json"
 CDID_RE = re.compile(r"\b[A-Z][A-Z0-9]{3}\b")
+# Compound glossary formulas may only contain CDIDs and simple arithmetic.
+FORMULA_RE = re.compile(r"[A-Za-z0-9_ +\-*/().]+")
 
 
 def _lhs_var(lhs):
@@ -72,37 +75,56 @@ def get_roots(df):
 
 
 def fetch_cached(cdid):
+    """Fetch a CDID with an on-disk cache. Returns (series, meta).
+
+    The cache stores the already-aggregated quarterly values plus a meta
+    sidecar (title/dataset/frequency/aggregation). A cache entry without the
+    meta sidecar predates the typed flow/stock aggregation fix and is treated
+    as a miss so it gets re-fetched with the correct aggregation.
+    """
     CACHE.mkdir(parents=True, exist_ok=True)
     f = CACHE / f"{cdid}.csv"
-    if f.exists():
+    mf = CACHE / f"{cdid}.meta.json"
+    if f.exists() and mf.exists():
         s = pd.read_csv(f, index_col=0)["value"]
         s.index = pd.PeriodIndex(s.index, freq="Q")
-        return s
-    s, _title, _freq = fetch_series(cdid)
+        return s, json.load(open(mf))
+    s, meta = fetch_series(cdid)
     if s is None or s.empty:
-        return None
+        return None, meta
     s = s.dropna()
     s.rename("value").to_frame().to_csv(f)
+    json.dump(meta, open(mf, "w"), indent=1)
     time.sleep(0.4)
-    return s
+    return s, meta
 
 
 def eval_compound(formula):
+    """Evaluate a glossary arithmetic formula over its component CDIDs.
+
+    Returns (series, error, component_metas). The formula is validated against
+    a strict allowlist (CDIDs, digits, whitespace and + - * / parentheses,
+    no '**') before it is eval'd with builtins stripped.
+    """
+    if not FORMULA_RE.fullmatch(formula) or "**" in formula:
+        return None, f"formula rejected by allowlist: {formula!r}", []
     cdids = sorted(set(CDID_RE.findall(formula)))
     ns = {}
+    metas = []
     for c in cdids:
         try:
-            s = fetch_cached(c)
+            s, meta = fetch_cached(c)
         except Exception as e:
-            return None, f"component {c}: {type(e).__name__}: {e}"
+            return None, f"component {c}: {type(e).__name__}: {e}", metas
         if s is None:
-            return None, f"missing component {c}"
+            return None, f"missing component {c}", metas
         ns[c] = s
+        metas.append(meta)
     try:
         result = eval(formula, {"__builtins__": {}}, ns)  # series arithmetic
-        return result.dropna(), None
+        return result.dropna(), None, metas
     except Exception as e:
-        return None, f"{type(e).__name__}: {e}"
+        return None, f"{type(e).__name__}: {e}", metas
 
 
 def main():
@@ -112,36 +134,71 @@ def main():
     print(f"roots to pull: {len(simple)} simple + {len(compound)} compound\n")
     cols = {}
     fails = []
+    manifest = {}
 
     for i, (code, cdid) in enumerate(sorted(simple.items()), 1):
+        err = None
         try:
-            s = fetch_cached(cdid)
+            s, meta = fetch_cached(cdid)
         except Exception as e:
-            s, err = None, f"{type(e).__name__}: {e}"
+            s, meta, err = None, None, f"{type(e).__name__}: {e}"
         if s is None or s.empty:
-            fails.append((code, cdid, "no data"))
-            print(f"  [{i}/{len(simple)}] {code:9} {cdid:6} FAIL")
+            why = err or "no data"
+            fails.append((code, cdid, why))
+            print(f"  [{i}/{len(simple)}] {code:9} {cdid:6} FAIL ({why})")
             continue
         cols[code] = s.reindex(idx)
+        manifest[code] = {
+            "cdid": cdid,
+            "dataset": meta.get("dataset", ""),
+            "title": meta.get("title", ""),
+            "source_freq": meta.get("source_freq"),
+            "aggregation": meta.get("aggregation"),
+            "type": meta.get("type"),
+        }
         if i % 20 == 0:
             print(f"  ...{i}/{len(simple)} simple fetched")
 
     print(f"simple done: {sum(1 for c in simple if c in cols)}/{len(simple)} ok\n")
 
     for code, formula in sorted(compound.items()):
-        s, err = eval_compound(formula)
+        s, err, metas = eval_compound(formula)
         if s is None or s.empty:
             fails.append((code, formula, err))
             print(f"  compound {code:9} = {formula:30} FAIL ({err})")
             continue
         cols[code] = s.reindex(idx)
+        manifest[code] = {
+            "formula": formula,
+            "components": [
+                {
+                    "cdid": m.get("cdid"),
+                    "dataset": m.get("dataset", ""),
+                    "title": m.get("title", ""),
+                    "source_freq": m.get("source_freq"),
+                    "aggregation": m.get("aggregation"),
+                    "type": m.get("type"),
+                }
+                for m in metas
+            ],
+        }
     print(f"compound done: {sum(1 for c in compound if c in cols)}/{len(compound)} ok\n")
 
     SEEDS.mkdir(parents=True, exist_ok=True)
     snap = pd.DataFrame(cols).reindex(idx)
     snap.index = snap.index.astype(str)
     snap.to_csv(SNAPSHOT)
+    with open(MANIFEST, "w") as fh:
+        json.dump(
+            {
+                "pulled": pd.Timestamp.now().strftime("%Y-%m-%d"),
+                "n_series": len(manifest),
+                "series": manifest,
+            },
+            fh, indent=1, sort_keys=True,
+        )
     print(f"wrote {SNAPSHOT}: {snap.shape[1]} series x {snap.shape[0]} quarters")
+    print(f"wrote {MANIFEST}: {len(manifest)} series")
     cov = snap.notna().any().sum()
     print(f"series with any data: {cov}/{snap.shape[1]}")
     if fails:

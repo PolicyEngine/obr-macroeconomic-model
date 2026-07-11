@@ -57,7 +57,7 @@ def _download_validated(url: str, path: Path, kind: str) -> None:
           "text" (must be >10KB, contain '=', and not look like HTML).
     """
     req = urllib.request.Request(url, headers=_BROWSER_HEADERS)
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=60) as resp:
         if getattr(resp, "status", 200) != 200:
             raise RuntimeError(f"{kind} download for {path.name} returned HTTP {resp.status}")
         blob = resp.read()
@@ -129,6 +129,24 @@ def load_variable_definitions() -> list[dict]:
     return []
 
 
+def _assert_headers(wb: openpyxl.Workbook, sheet: str, checks: dict[tuple[int, int], str]) -> None:
+    """Sanity-check header text on a sheet read by absolute column position.
+
+    ``checks`` maps (row, col) -> expected substring (case-insensitive). Raises
+    a clear error if the sheet layout changed, instead of silently reading the
+    wrong columns into the wrong variables.
+    """
+    ws = wb[sheet]
+    for (r, c), expected in checks.items():
+        actual = str(ws.cell(r, c).value or "").strip()
+        if expected.lower() not in actual.lower():
+            raise RuntimeError(
+                f"OBR EFO sheet {sheet!r} layout changed: expected header cell "
+                f"({r},{c}) to contain {expected!r} but found {actual!r}. "
+                "The absolute column mapping in load_obr_data needs updating."
+            )
+
+
 def _read_quarterly_table(
     wb: openpyxl.Workbook,
     sheet: str,
@@ -172,6 +190,22 @@ def load_obr_data(merge_snapshot: bool = True) -> pd.DataFrame:
 
     # Economy tables
     wb = openpyxl.load_workbook(str(files["economy"]), data_only=True)
+
+    # Guard the absolute-column reads below: assert the expected table titles
+    # and key column headers so a re-laid-out EFO workbook fails loudly rather
+    # than loading the wrong columns into the wrong variables.
+    _assert_headers(wb, "1.1", {(2, 2): "1.1 GDP expend", (3, 3): "Private consum", (3, 4): "Government con"})
+    _assert_headers(wb, "1.2", {(2, 2): "1.2 GDP expend", (3, 3): "Private consum"})
+    _assert_headers(wb, "1.3", {(2, 2): "1.3 GDP income", (3, 3): "Labour income"})
+    _assert_headers(wb, "1.6", {(2, 2): "1.6 Labour mar", (3, 3): "Employment", (3, 6): "ILO unemployment"})
+    _assert_headers(wb, "1.7", {(2, 2): "1.7 Inflation", (3, 3): "Year-on-year"})
+    _assert_headers(wb, "1.9", {(2, 2): "1.9 Market", (3, 3): "Bank Rate", (3, 4): "Long-term"})
+    _assert_headers(wb, "1.11", {(2, 2): "1.11 Household"})
+    _assert_headers(wb, "1.12", {(2, 2): "1.12 Household", (3, 3): "Labour Income"})
+    _assert_headers(wb, "1.16", {(2, 2): "1.16 Housing", (3, 3): "House price in"})
+    _assert_headers(wb, "1.8", {(2, 2): "1.8 Balance of", (3, 3): "Trade balance"})
+    _assert_headers(wb, "1.10", {(2, 2): "1.10 Financial", (3, 3): "% GDP", (3, 8): "£ billion"})
+    _assert_headers(wb, "1.14", {(2, 2): "1.14 OBR centr"})
 
     # Table 1.1: Real GDP expenditure (£bn)
     data = _read_quarterly_table(wb, "1.1", period_col=2, data_cols={
@@ -478,9 +512,13 @@ def _derive_variables(df: pd.DataFrame) -> pd.DataFrame:
     if "ETLFS" in df.columns and "EEES" in df.columns:
         df["ESLFS"] = df["ETLFS"] - df["EEES"]
 
-    # Unemployment level
-    if "ULFSU" not in df.columns and "LFSUR" in df.columns and "ETLFS" in df.columns:
-        df["ULFS"] = df["ETLFS"] * df["LFSUR"] / (100 - df["LFSUR"])
+    # Unemployment level: the model equations reference ULFS, while the EFO
+    # table loads ULFSU (same LFS ILO unemployment level, thousands).
+    if "ULFS" not in df.columns:
+        if "ULFSU" in df.columns:
+            df["ULFS"] = df["ULFSU"]
+        elif "LFSUR" in df.columns and "ETLFS" in df.columns:
+            df["ULFS"] = df["ETLFS"] * df["LFSUR"] / (100 - df["LFSUR"])
 
     # Current account as % of GDP
     if "CB" in df.columns and "GDPMPS" in df.columns:
