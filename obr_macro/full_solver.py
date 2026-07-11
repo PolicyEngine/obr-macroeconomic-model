@@ -13,9 +13,8 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
-from pathlib import Path
 
-from obr_macro.data import load_obr_data, DATA_DIR, ensure_model_code
+from obr_macro.data import load_obr_data, ensure_model_code
 from obr_macro.transpiler import parse_model_file, ParsedEquation, IDENT, RESERVED_WORDS
 
 # Cache of parsed LHS forms, keyed by the raw LHS string (parsing is
@@ -26,10 +25,14 @@ _LHS_CACHE: dict = {}
 class FullOBRSolver:
     """Solve the complete OBR model as published."""
 
-    def __init__(self, verbose: bool = True, include_behavioral: bool = False,
-                 hist_floor: str = "2016Q1"):
+    def __init__(
+        self,
+        verbose: bool = True,
+        include_behavioral: bool = False,
+        hist_floor: str = "2016Q1",
+    ):
         self.verbose = verbose
-        self._code_cache = {}          # python_expr -> compiled code object
+        self._code_cache = {}  # python_expr -> compiled code object
         self._hist_floor = hist_floor  # earliest period to initialise/solve over
 
         # Load data and equations.
@@ -42,8 +45,7 @@ class FullOBRSolver:
         self.data = load_obr_data()
         self.index = self.data.index
         self.equations = parse_model_file(
-            str(ensure_model_code()),
-            include_behavioral=include_behavioral
+            str(ensure_model_code()), include_behavioral=include_behavioral
         )
 
         # Guard against the include_behavioral=True trap on current model files:
@@ -103,7 +105,7 @@ class FullOBRSolver:
         # lookbehind and function names via RESERVED_WORDS.
         all_vars = set()
         for eq in self.equations:
-            vars_in_eq = re.findall(rf'(?<![@\w])({IDENT})\b', eq.original)
+            vars_in_eq = re.findall(rf"(?<![@\w])({IDENT})\b", eq.original)
             all_vars.update(v for v in vars_in_eq if v not in RESERVED_WORDS)
 
         # Add missing variables with NaN (will be computed)
@@ -111,9 +113,7 @@ class FullOBRSolver:
         missing = all_vars - set(self.data.columns)
         if missing:
             missing_df = pd.DataFrame(
-                np.nan,
-                index=self.data.index,
-                columns=list(missing)
+                np.nan, index=self.data.index, columns=list(missing)
             )
             self.data = pd.concat([self.data, missing_df], axis=1)
 
@@ -121,13 +121,13 @@ class FullOBRSolver:
             print(f"Initialized {len(missing)} missing variables")
 
         # Add proxy variables
-        if 'GPW' not in self.data.columns or self.data['GPW'].isna().all():
-            if 'HHPHYSA' in self.data.columns:
-                self.data['GPW'] = self.data['HHPHYSA'] / 1000
+        if "GPW" not in self.data.columns or self.data["GPW"].isna().all():
+            if "HHPHYSA" in self.data.columns:
+                self.data["GPW"] = self.data["HHPHYSA"] / 1000
 
-        if 'NFWPE' not in self.data.columns or self.data['NFWPE'].isna().all():
-            if 'HHFINA' in self.data.columns:
-                self.data['NFWPE'] = self.data['HHFINA']
+        if "NFWPE" not in self.data.columns or self.data["NFWPE"].isna().all():
+            if "HHFINA" in self.data.columns:
+                self.data["NFWPE"] = self.data["HHFINA"]
 
     def _build_equation_index(self):
         """Build index of which variable each equation computes."""
@@ -140,12 +140,15 @@ class FullOBRSolver:
                 warnings.warn(
                     f"Equation LHS parsed to non-identifier {var!r} "
                     f"(from LHS {eq.lhs!r}) — possible corrupted/unsupported "
-                    "LHS form.", stacklevel=2)
+                    "LHS form.",
+                    stacklevel=2,
+                )
             if var in self.eq_for_var:
                 warnings.warn(
                     f"Duplicate equation for variable {var!r}; the later "
                     "equation overwrites the earlier in the index.",
-                    stacklevel=2)
+                    stacklevel=2,
+                )
             self.eq_for_var[var] = eq
             self.var_for_eq[i] = var
 
@@ -160,6 +163,7 @@ class FullOBRSolver:
         response. The *BASE normalisers are otherwise 2009 averages that @elem
         cannot resolve here (no 2009 history for the base variables).
         """
+
         def fill(col, value):
             if col in self.data.columns and np.isfinite(value):
                 mask = ~np.isfinite(self.data[col].to_numpy(dtype=float))
@@ -177,7 +181,7 @@ class FullOBRSolver:
                 return float(yr.mean())
             fin = s.dropna()
             if len(fin):
-                return float(fin.iloc[-min(len(fin), 4):].mean())  # recent rebase
+                return float(fin.iloc[-min(len(fin), 4) :].mean())  # recent rebase
             return default
 
         def ratio_base(num, den, default):
@@ -188,7 +192,7 @@ class FullOBRSolver:
             both = self.data[[num, den]].dropna()
             if not len(both):
                 return default
-            r = (both[num] / both[den]).iloc[-min(len(both), 4):]
+            r = (both[num] / both[den]).iloc[-min(len(both), 4) :]
             return float(r.mean()) if r.notna().any() else default
 
         # multiplicative adjustment factors -> 1, additive residuals -> 0
@@ -205,7 +209,10 @@ class FullOBRSolver:
             "TXRATEBASE": ratio_base("BPAPS", "GVAFC", 0.1),
         }
         for col in self.data.columns:
-            if col.endswith("BASE") and not np.isfinite(self.data[col].to_numpy(dtype=float)).any():
+            if (
+                col.endswith("BASE")
+                and not np.isfinite(self.data[col].to_numpy(dtype=float)).any()
+            ):
                 if col in explicit_base:
                     fill(col, explicit_base[col])
                 else:
@@ -213,7 +220,10 @@ class FullOBRSolver:
 
         # starting levels for price-index deflators with no history
         for col in ("PMNOG", "PMS", "ULCMS"):
-            if col in self.data.columns and not np.isfinite(self.data[col].to_numpy(dtype=float)).any():
+            if (
+                col in self.data.columns
+                and not np.isfinite(self.data[col].to_numpy(dtype=float)).any()
+            ):
                 fill(col, 100.0)
 
         # WPG (world prices) is an OBR external assumption absent from the data; it
@@ -226,13 +236,16 @@ class FullOBRSolver:
         # current account. Proxy world prices/equities with their UK analogues and
         # the rates with the gilt yield, so the block computes instead of freezing.
         def proxy(col, src, default):
-            if col in self.data.columns and not np.isfinite(self.data[col].to_numpy(dtype=float)).any():
+            if (
+                col in self.data.columns
+                and not np.isfinite(self.data[col].to_numpy(dtype=float)).any()
+            ):
                 if src in self.data.columns and self.data[src].notna().any():
                     self.data[col] = self.data[src].to_numpy()
                 else:
                     fill(col, default)
 
-        proxy("WPG", "PPIY", 100.0)        # world prices ~ producer prices
+        proxy("WPG", "PPIY", 100.0)  # world prices ~ producer prices
         # NOTE: proxying WEQPR/ROLT/ROCB (the investment-income drivers) was tried
         # to improve the current account, but it destabilised business investment
         # through the dividend/profit feedback (IBUS 7% -> 19%) for only a marginal
@@ -270,7 +283,9 @@ class FullOBRSolver:
             warnings.warn(
                 f"hist_floor {self._hist_floor!r} not found in data index "
                 f"({type(e).__name__}: {e}); initialising from "
-                f"{self.index[start_t]} instead.", stacklevel=2)
+                f"{self.index[start_t]} instead.",
+                stacklevel=2,
+            )
 
         if self.verbose:
             print(f"Initializing from period {self.index[start_t]}")
@@ -281,95 +296,102 @@ class FullOBRSolver:
         col_idx = {col: self.data.columns.get_loc(col) for col in self.data.columns}
 
         for t in range(start_t, len(self.data)):
-            gdpm = self._get('GDPM', t)
-            etlfs = self._get('ETLFS', t)
+            gdpm = self._get("GDPM", t)
+            etlfs = self._get("ETLFS", t)
 
             if np.isfinite(gdpm):
                 # BPA ≈ 15% of GDP (taxes on products - subsidies)
-                if np.isnan(self._get('BPA', t)):
-                    self.data.iloc[t, col_idx['BPA']] = gdpm * 0.15
+                if np.isnan(self._get("BPA", t)):
+                    self.data.iloc[t, col_idx["BPA"]] = gdpm * 0.15
 
                 # GGVA ≈ 20% of GDP (government value added)
-                if np.isnan(self._get('GGVA', t)):
-                    self.data.iloc[t, col_idx['GGVA']] = gdpm * 0.20
+                if np.isnan(self._get("GGVA", t)):
+                    self.data.iloc[t, col_idx["GGVA"]] = gdpm * 0.20
 
             if np.isfinite(etlfs):
                 # EMS (market sector employment) ≈ 80% of total employment
-                if np.isnan(self._get('EMS', t)):
-                    self.data.iloc[t, col_idx['EMS']] = etlfs * 0.80 * 1000  # ETLFS in thousands
+                if np.isnan(self._get("EMS", t)):
+                    self.data.iloc[t, col_idx["EMS"]] = (
+                        etlfs * 0.80 * 1000
+                    )  # ETLFS in thousands
 
                 # ET (total employment) from ETLFS
-                if np.isnan(self._get('ET', t)):
-                    self.data.iloc[t, col_idx['ET']] = etlfs * 1000
+                if np.isnan(self._get("ET", t)):
+                    self.data.iloc[t, col_idx["ET"]] = etlfs * 1000
 
             # Initialize corporation tax parameters
             # TCPRO = corporation tax rate (25% from April 2023)
-            if 'TCPRO' in col_idx and np.isnan(self._get('TCPRO', t)):
-                self.data.iloc[t, col_idx['TCPRO']] = 0.25
+            if "TCPRO" in col_idx and np.isnan(self._get("TCPRO", t)):
+                self.data.iloc[t, col_idx["TCPRO"]] = 0.25
 
             # DB, DP, DV = capital allowance rates (depreciation deductions)
             # Typical values: DB=0.18 (plant), DP=0.06 (buildings), DV=0.25 (vehicles)
-            if 'DB' in col_idx and np.isnan(self._get('DB', t)):
-                self.data.iloc[t, col_idx['DB']] = 0.18
-            if 'DP' in col_idx and np.isnan(self._get('DP', t)):
-                self.data.iloc[t, col_idx['DP']] = 0.06
-            if 'DV' in col_idx and np.isnan(self._get('DV', t)):
-                self.data.iloc[t, col_idx['DV']] = 0.25
+            if "DB" in col_idx and np.isnan(self._get("DB", t)):
+                self.data.iloc[t, col_idx["DB"]] = 0.18
+            if "DP" in col_idx and np.isnan(self._get("DP", t)):
+                self.data.iloc[t, col_idx["DP"]] = 0.06
+            if "DV" in col_idx and np.isnan(self._get("DV", t)):
+                self.data.iloc[t, col_idx["DV"]] = 0.25
 
             # WB, WP, WV = weights for capital types (sum to 1)
-            if 'WB' in col_idx and np.isnan(self._get('WB', t)):
-                self.data.iloc[t, col_idx['WB']] = 0.6
-            if 'WP' in col_idx and np.isnan(self._get('WP', t)):
-                self.data.iloc[t, col_idx['WP']] = 0.2
-            if 'WV' in col_idx and np.isnan(self._get('WV', t)):
-                self.data.iloc[t, col_idx['WV']] = 0.2
+            if "WB" in col_idx and np.isnan(self._get("WB", t)):
+                self.data.iloc[t, col_idx["WB"]] = 0.6
+            if "WP" in col_idx and np.isnan(self._get("WP", t)):
+                self.data.iloc[t, col_idx["WP"]] = 0.2
+            if "WV" in col_idx and np.isnan(self._get("WV", t)):
+                self.data.iloc[t, col_idx["WV"]] = 0.2
 
             # COCU = user cost of capital (pre-tax), typically ~0.1-0.15
-            if 'COCU' in col_idx and np.isnan(self._get('COCU', t)):
-                self.data.iloc[t, col_idx['COCU']] = 0.12
+            if "COCU" in col_idx and np.isnan(self._get("COCU", t)):
+                self.data.iloc[t, col_idx["COCU"]] = 0.12
 
             # CBIUD = CBI uncertainty index (exogenous, normalize to 0)
-            if 'CBIUD' in col_idx and np.isnan(self._get('CBIUD', t)):
-                self.data.iloc[t, col_idx['CBIUD']] = 0
+            if "CBIUD" in col_idx and np.isnan(self._get("CBIUD", t)):
+                self.data.iloc[t, col_idx["CBIUD"]] = 0
 
             # Initialize missing investment components
             # PCLEB = private capital leasing to business (small component)
-            if 'PCLEB' in col_idx and np.isnan(self._get('PCLEB', t)):
-                self.data.iloc[t, col_idx['PCLEB']] = 0
+            if "PCLEB" in col_idx and np.isnan(self._get("PCLEB", t)):
+                self.data.iloc[t, col_idx["PCLEB"]] = 0
 
             # IPRL = private landlord investment (included in housing investment)
-            if 'IPRL' in col_idx and np.isnan(self._get('IPRL', t)):
-                self.data.iloc[t, col_idx['IPRL']] = 0
+            if "IPRL" in col_idx and np.isnan(self._get("IPRL", t)):
+                self.data.iloc[t, col_idx["IPRL"]] = 0
 
             # RDELTA = depreciation rate, typically ~0.025 (10% annual)
-            if 'RDELTA' in col_idx and np.isnan(self._get('RDELTA', t)):
-                self.data.iloc[t, col_idx['RDELTA']] = 0.025
+            if "RDELTA" in col_idx and np.isnan(self._get("RDELTA", t)):
+                self.data.iloc[t, col_idx["RDELTA"]] = 0.025
 
             # Initialize business investment components if we have IF
-            if_val = self._get('IF', t)
+            if_val = self._get("IF", t)
             if np.isfinite(if_val):
                 # IBUS ≈ 50% of total investment (business investment)
-                if 'IBUS' in col_idx and np.isnan(self._get('IBUS', t)):
-                    self.data.iloc[t, col_idx['IBUS']] = if_val * 0.5
+                if "IBUS" in col_idx and np.isnan(self._get("IBUS", t)):
+                    self.data.iloc[t, col_idx["IBUS"]] = if_val * 0.5
 
                 # IBUSX = real business investment (similar scale to IBUS)
-                if 'IBUSX' in col_idx and np.isnan(self._get('IBUSX', t)):
-                    self.data.iloc[t, col_idx['IBUSX']] = if_val * 0.5
+                if "IBUSX" in col_idx and np.isnan(self._get("IBUSX", t)):
+                    self.data.iloc[t, col_idx["IBUSX"]] = if_val * 0.5
 
             # Initialize capital stock (KMSXH) from steady-state relationship
             # K = I / (g + delta) where g ≈ 0.005 (quarterly growth), delta ≈ 0.025
-            if 'KMSXH' in col_idx and np.isnan(self._get('KMSXH', t)):
-                ibusx = self._get('IBUSX', t)
+            if "KMSXH" in col_idx and np.isnan(self._get("KMSXH", t)):
+                ibusx = self._get("IBUSX", t)
                 if np.isfinite(ibusx):
                     # KMSXH is in £bn, IBUSX in £m
-                    self.data.iloc[t, col_idx['KMSXH']] = (ibusx / 1000) / 0.03
+                    self.data.iloc[t, col_idx["KMSXH"]] = (ibusx / 1000) / 0.03
 
         # Solve identity equations only (no residuals yet)
         # Need multiple passes because equations may depend on each other
-        identity_eqs = [eq for eq in self.equations
-                       if not ("/" in eq.lhs or
-                               eq.lhs.lower().startswith("dlog(") or
-                               eq.lhs.lower().startswith("d("))]
+        identity_eqs = [
+            eq
+            for eq in self.equations
+            if not (
+                "/" in eq.lhs
+                or eq.lhs.lower().startswith("dlog(")
+                or eq.lhs.lower().startswith("d(")
+            )
+        ]
 
         col_idx = {col: self.data.columns.get_loc(col) for col in self.data.columns}
 
@@ -385,7 +407,9 @@ class FullOBRSolver:
                     "v": v,
                     "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
                     "_lead": lambda var, lead, t=t: self._lead(var, lead, t),
-                    "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(t, period, op, tv, fv),
+                    "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(
+                        t, period, op, tv, fv
+                    ),
                     "_trend": lambda t_arg, base, t=t: self._trend(t, base),
                     "_elem": self._elem,
                     "t": t,
@@ -419,9 +443,11 @@ class FullOBRSolver:
             print(f"Initialized {initialized} values from identities")
             if self.init_failures:
                 top = self.init_failures.most_common(5)
-                print(f"  ({sum(self.init_failures.values())} failed identity "
-                      f"evaluations across {len(self.init_failures)} equations; "
-                      "top: " + ", ".join(f"{v}({n})" for v, n in top) + ")")
+                print(
+                    f"  ({sum(self.init_failures.values())} failed identity "
+                    f"evaluations across {len(self.init_failures)} equations; "
+                    "top: " + ", ".join(f"{v}({n})" for v, n in top) + ")"
+                )
 
     def _compute_residuals(self):
         """Compute residuals between OBR data and equation predictions.
@@ -450,10 +476,13 @@ class FullOBRSolver:
         # lambdas can carry the correct signatures without silently changing
         # which equations get add-factored.
         behavioral_eqs = [
-            eq for eq in self.equations
-            if ("/" in eq.lhs or
-                eq.lhs.lower().startswith("dlog(") or
-                eq.lhs.lower().startswith("d("))
+            eq
+            for eq in self.equations
+            if (
+                "/" in eq.lhs
+                or eq.lhs.lower().startswith("dlog(")
+                or eq.lhs.lower().startswith("d(")
+            )
             and "_recode(" not in eq.python_expr
             and "_trend(" not in eq.python_expr
         ]
@@ -470,7 +499,9 @@ class FullOBRSolver:
                 "v": v,
                 "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
                 "_lead": lambda var, lead, t=t: self._lead(var, lead, t),
-                "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(t, period, op, tv, fv),
+                "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(
+                    t, period, op, tv, fv
+                ),
                 "_trend": lambda t_arg, base, t=t: self._trend(t, base),
                 "_elem": self._elem,
                 "t": t,
@@ -494,9 +525,11 @@ class FullOBRSolver:
             print(f"Computed {len(self.residuals)} residuals")
             if self.residual_failures:
                 top = self.residual_failures.most_common(5)
-                print(f"  ({sum(self.residual_failures.values())} failed residual "
-                      f"evaluations across {len(self.residual_failures)} equations; "
-                      "top: " + ", ".join(f"{v}({n})" for v, n in top) + ")")
+                print(
+                    f"  ({sum(self.residual_failures.values())} failed residual "
+                    f"evaluations across {len(self.residual_failures)} equations; "
+                    "top: " + ", ".join(f"{v}({n})" for v, n in top) + ")"
+                )
 
     def _parse_lhs(self, lhs: str) -> tuple:
         """Parse an equation LHS into (var, kind, lag).
@@ -514,12 +547,12 @@ class FullOBRSolver:
 
         # Collapse whitespace so forms like 'dlog (X)' / 'd (X) / X( - 4 )'
         # parse the same as their tight-spaced equivalents.
-        s = re.sub(r'\s+', '', lhs)
+        s = re.sub(r"\s+", "", lhs)
         if "/" in s:
             num, den = s.split("/", 1)
             num, den = num.strip(), den.strip()
             # Parse the actual lag from the denominator, e.g. PCE(-4) -> 4
-            m = re.match(rf'({IDENT})\(\s*-\s*(\d+)\s*\)$', den)
+            m = re.match(rf"({IDENT})\(\s*-\s*(\d+)\s*\)$", den)
             lag = int(m.group(2)) if m else 1
             if num.lower().startswith("d(") and num.endswith(")"):
                 # growth-rate LHS: d(X) / X(-n)
@@ -542,8 +575,9 @@ class FullOBRSolver:
         """Extract variable name from LHS."""
         return self._parse_lhs(lhs)[0]
 
-    def _lhs_new_value(self, var: str, kind: str, lag: int, rhs_val: float,
-                       t: int) -> float:
+    def _lhs_new_value(
+        self, var: str, kind: str, lag: int, rhs_val: float, t: int
+    ) -> float:
         """Compute the implied LHS-variable value from an evaluated RHS."""
         if kind == "ratio":
             lag_val = self._lag(var, lag, t)
@@ -582,7 +616,9 @@ class FullOBRSolver:
         """Future-dated term VAR(+n): value at t + n."""
         return self._get(var, t + lead)
 
-    def _recode(self, t: int, period: str, op: str, true_val: float, false_val: float) -> float:
+    def _recode(
+        self, t: int, period: str, op: str, true_val: float, false_val: float
+    ) -> float:
         target = pd.Period(period, freq="Q")
         current = self.index[t]
         if op == "=":
@@ -627,7 +663,9 @@ class FullOBRSolver:
             "v": v,
             "_lag": lambda var, lag: self._lag(var, lag, t),
             "_lead": lambda var, lead: self._lead(var, lead, t),
-            "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
+            "_recode": lambda t_arg, period, op, tv, fv: self._recode(
+                t, period, op, tv, fv
+            ),
             "_trend": lambda t_arg, base: self._trend(t, base),
             "_elem": self._elem,
             "t": t,
@@ -641,13 +679,13 @@ class FullOBRSolver:
         """
         new = FullOBRSolver.__new__(FullOBRSolver)
         new.verbose = self.verbose
-        new._code_cache = self._code_cache          # compiled code objects (immutable)
+        new._code_cache = self._code_cache  # compiled code objects (immutable)
         new._hist_floor = self._hist_floor
         new.index = self.index
         new.base_values = self.base_values
         new.residuals = self.residuals
-        new.equations = list(self.equations)        # own list; shared eq objects
-        new.data = self.data.copy()                 # own data
+        new.equations = list(self.equations)  # own list; shared eq objects
+        new.data = self.data.copy()  # own data
         new.baseline = self.baseline
         new._shock_active = getattr(self, "_shock_active", False)
         new._build_equation_index()
@@ -659,8 +697,9 @@ class FullOBRSolver:
         For fiscal shock: remove DINV equation, add GDPM equation.
         """
         # Remove equation for remove_var
-        self.equations = [eq for eq in self.equations
-                         if self._extract_lhs_var(eq.lhs) != remove_var]
+        self.equations = [
+            eq for eq in self.equations if self._extract_lhs_var(eq.lhs) != remove_var
+        ]
 
         # Add new equation
         self.equations.append(add_eq)
@@ -673,8 +712,9 @@ class FullOBRSolver:
 
     def make_exogenous(self, var: str):
         """Make a variable exogenous by removing its equation."""
-        self.equations = [eq for eq in self.equations
-                         if self._extract_lhs_var(eq.lhs) != var]
+        self.equations = [
+            eq for eq in self.equations if self._extract_lhs_var(eq.lhs) != var
+        ]
         self._build_equation_index()
 
         if self.verbose:
@@ -695,13 +735,16 @@ class FullOBRSolver:
                 self._set(var, t, old_val + shock)
 
         if self.verbose:
-            print(f"Applied shock: {var} += {shock:+,.0f} for {periods} periods from {start}")
+            print(
+                f"Applied shock: {var} += {shock:+,.0f} for {periods} periods from {start}"
+            )
 
     def period_idx(self, period: str) -> int:
         return self.index.get_loc(pd.Period(period, freq="Q"))
 
-    def solve_period(self, t: int, max_iter: int = 60, tol: float = 1e-6,
-                     stall_patience: int = 8) -> int:
+    def solve_period(
+        self, t: int, max_iter: int = 60, tol: float = 1e-6, stall_patience: int = 8
+    ) -> int:
         """Solve all equations for period t using Gauss-Seidel.
 
         Records failure visibility without changing solve semantics:
@@ -733,7 +776,9 @@ class FullOBRSolver:
                 "v": v,
                 "_lag": lambda var, lag: self._lag(var, lag, t),
                 "_lead": lambda var, lead: self._lead(var, lead, t),
-                "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
+                "_recode": lambda t_arg, period, op, tv, fv: self._recode(
+                    t, period, op, tv, fv
+                ),
                 "_trend": lambda t_arg, base: self._trend(t, base),
                 "_elem": self._elem,
                 "t": t,
@@ -752,7 +797,7 @@ class FullOBRSolver:
                     if np.isfinite(new_val):
                         # Add residual adjustment for behavioral equations
                         # But only if we're not in shock mode (baseline preserved)
-                        if not hasattr(self, '_shock_active') or not self._shock_active:
+                        if not hasattr(self, "_shock_active") or not self._shock_active:
                             residual = self.residuals.get((var, t), 0)
                             new_val += residual
 
@@ -762,13 +807,20 @@ class FullOBRSolver:
                         v[var] = new_val
 
                         if np.isfinite(old_val):
-                            # Relative change with an absolute floor so
+                            # Relative change scaled by the larger of the old
+                            # and new magnitudes, with an absolute floor so
                             # near-zero variables still register movement.
-                            # The floor must stay well below the model's
-                            # smallest meaningful scales (rates ~0.1) or
-                            # periods converge before small-magnitude
-                            # channels propagate.
-                            change = abs(new_val - old_val) / max(abs(old_val), 1e-8)
+                            # Using max(|old|, |new|) keeps the criterion
+                            # symmetric and stops a near-zero *old* value from
+                            # inflating the ratio of an already-tiny update
+                            # (which forced periods to hit the stall break
+                            # mid-oscillation and desynchronised base vs shock
+                            # runs). The 1e-6 floor stays well below the
+                            # model's smallest meaningful scales (rates ~0.1)
+                            # so small-magnitude channels still propagate.
+                            change = abs(new_val - old_val) / max(
+                                abs(old_val), abs(new_val), 1e-6
+                            )
                             max_change = max(max_change, change)
                         else:
                             # NaN -> finite transition is a change; the period
@@ -816,7 +868,9 @@ class FullOBRSolver:
             "v": v,
             "_lag": lambda var, lag: self._lag(var, lag, t),
             "_lead": lambda var, lead: self._lead(var, lead, t),
-            "_recode": lambda t_arg, period, op, tv, fv: self._recode(t, period, op, tv, fv),
+            "_recode": lambda t_arg, period, op, tv, fv: self._recode(
+                t, period, op, tv, fv
+            ),
             "_trend": lambda t_arg, base: self._trend(t, base),
             "_elem": self._elem,
             "t": t,
@@ -841,12 +895,25 @@ class FullOBRSolver:
                 val = eval(self._compiled(eq.python_expr), ctx)
                 if not np.isfinite(val):
                     inputs = nan_inputs(eq.python_expr)
-                    out.append({"var": var, "lhs": eq.lhs, "status": "nonfinite",
-                                "reason": ("NaN inputs: " + ", ".join(inputs)) if inputs
-                                else "evaluates to NaN/inf"})
+                    out.append(
+                        {
+                            "var": var,
+                            "lhs": eq.lhs,
+                            "status": "nonfinite",
+                            "reason": ("NaN inputs: " + ", ".join(inputs))
+                            if inputs
+                            else "evaluates to NaN/inf",
+                        }
+                    )
             except Exception as e:
-                out.append({"var": var, "lhs": eq.lhs, "status": "error",
-                            "reason": f"{type(e).__name__}: {e}"})
+                out.append(
+                    {
+                        "var": var,
+                        "lhs": eq.lhs,
+                        "status": "error",
+                        "reason": f"{type(e).__name__}: {e}",
+                    }
+                )
         return out
 
     def solve(self, start: str, end: str) -> dict:
@@ -886,12 +953,16 @@ class FullOBRSolver:
             total_failures = sum(self.eq_failures.values())
             if total_failures:
                 top = self.eq_failures.most_common(10)
-                print(f"Equation failures: {total_failures} evaluations across "
-                      f"{len(self.eq_failures)} equations. Top: "
-                      + ", ".join(f"{v}({n})" for v, n in top))
+                print(
+                    f"Equation failures: {total_failures} evaluations across "
+                    f"{len(self.eq_failures)} equations. Top: "
+                    + ", ".join(f"{v}({n})" for v, n in top)
+                )
             if nonconverged:
-                print(f"Non-converged periods ({len(nonconverged)}): "
-                      + ", ".join(nonconverged))
+                print(
+                    f"Non-converged periods ({len(nonconverged)}): "
+                    + ", ".join(nonconverged)
+                )
 
         return results
 
@@ -912,7 +983,7 @@ def run_fiscal_shock(shock_bn: float = 1.0):
         rhs="CGG + CONS + IF + DINV + VAL + X - M + SDE",
         original="GDPM = CGG + CONS + IF + DINV + VAL + X - M + SDE",
         equation_type="identity",
-        python_expr="v['CGG'] + v['CONS'] + v['IF'] + v['DINV'] + v['VAL'] + v['X'] - v['M'] + v['SDE']"
+        python_expr="v['CGG'] + v['CONS'] + v['IF'] + v['DINV'] + v['VAL'] + v['X'] - v['M'] + v['SDE']",
     )
     solver.swap_closure("DINV", gdpm_eq)
 
@@ -946,22 +1017,24 @@ def run_fiscal_shock(shock_bn: float = 1.0):
     for t in range(solver.period_idx("2025Q1"), solver.period_idx("2027Q4") + 1):
         period = str(solver.index[t])
 
-        cgg_base = control.data.iloc[t]['CGG']
-        cgg_curr = solver._get('CGG', t)
+        cgg_base = control.data.iloc[t]["CGG"]
+        cgg_curr = solver._get("CGG", t)
         delta_cgg = cgg_curr - cgg_base
 
-        cons_base = control.data.iloc[t]['CONS']
-        cons_curr = solver._get('CONS', t)
+        cons_base = control.data.iloc[t]["CONS"]
+        cons_curr = solver._get("CONS", t)
         delta_cons = cons_curr - cons_base
 
-        gdpm_base = control.data.iloc[t]['GDPM']
-        gdpm_curr = solver._get('GDPM', t)
+        gdpm_base = control.data.iloc[t]["GDPM"]
+        gdpm_curr = solver._get("GDPM", t)
         delta_gdpm = gdpm_curr - gdpm_base
 
         mult = delta_gdpm / delta_cgg if delta_cgg > 0 else np.nan
         mult_str = f"{mult:.2f}" if np.isfinite(mult) else "N/A"
 
-        print(f"{period:<10} {delta_cgg:>+12,.0f} {delta_cons:>+12,.0f} {delta_gdpm:>+12,.0f} {mult_str:>12}")
+        print(
+            f"{period:<10} {delta_cgg:>+12,.0f} {delta_cons:>+12,.0f} {delta_gdpm:>+12,.0f} {mult_str:>12}"
+        )
 
     return solver
 
