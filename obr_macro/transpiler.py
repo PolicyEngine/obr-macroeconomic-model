@@ -43,6 +43,11 @@ class EViewsTranspiler:
         """Convert EViews expression to Python."""
         s = eviews_expr.strip()
 
+        # Step 0: Normalise whitespace between dlog/d and their opening paren
+        # ('dlog (X)', 'd (X)') so the balanced-paren scanners below match.
+        s = re.sub(r'(?<![A-Za-z0-9_])(dlog)\s+\(', r'\1(', s, flags=re.IGNORECASE)
+        s = re.sub(r'(?<![A-Za-z0-9_])(d)\s+\(', r'\1(', s, flags=re.IGNORECASE)
+
         # Step 1: Handle @elem(VAR, "PERIOD") - base period lookups
         s = self._convert_elem(s)
 
@@ -93,9 +98,10 @@ class EViewsTranspiler:
             op = m.group(1)
             year = m.group(2)
             quarter = int(m.group(3))
-            # Convert quarter: 01->1, 02->2, 03->3, 04->4
+            # Values 1-4 are quarters already; values 5-12 are month numbers
+            # (EViews @dateval("2008:07") means July 2008 -> Q3).
             if quarter > 4:
-                quarter = (quarter - 1) % 4 + 1
+                quarter = (quarter + 2) // 3
             true_val = m.group(4)
             false_val = m.group(5)
             period = f"{year}Q{quarter}"

@@ -91,7 +91,15 @@ def run_reform(name: str, var: str, shock: float, start: str = "2025Q1",
         _ensure_ibusx_inputs(baseline)
         baseline.swap_closure("IBUSX", IBUSX_EQ)
         baseline.swap_closure("IBUS", IBUS_EQ)
-        baseline.swap_closure("IF_PLACEHOLDER", IF_EQ)
+        # IF has no live equation in the published model (both IF identities
+        # are commented out), so IF_EQ is a pure addition. Guard against a
+        # second live IF equation ever coexisting: remove any existing one
+        # before adding (swap on "IF" is a no-op removal when none exists).
+        assert "IF" not in baseline.eq_for_var, (
+            "Model already has a live IF equation; adding IF_EQ would create "
+            "two competing IF equations."
+        )
+        baseline.swap_closure("IF", IF_EQ)
     baseline.make_exogenous(var)
     baseline._shock_active = True
 

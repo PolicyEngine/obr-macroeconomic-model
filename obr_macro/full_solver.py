@@ -8,6 +8,7 @@ This solver:
 """
 
 import re
+import warnings
 from collections import Counter
 
 import numpy as np
@@ -135,6 +136,16 @@ class FullOBRSolver:
 
         for i, eq in enumerate(self.equations):
             var = self._extract_lhs_var(eq.lhs)
+            if not re.fullmatch(IDENT, var):
+                warnings.warn(
+                    f"Equation LHS parsed to non-identifier {var!r} "
+                    f"(from LHS {eq.lhs!r}) — possible corrupted/unsupported "
+                    "LHS form.", stacklevel=2)
+            if var in self.eq_for_var:
+                warnings.warn(
+                    f"Duplicate equation for variable {var!r}; the later "
+                    "equation overwrites the earlier in the index.",
+                    stacklevel=2)
             self.eq_for_var[var] = eq
             self.var_for_eq[i] = var
 
@@ -255,8 +266,11 @@ class FullOBRSolver:
         # history dominated build time (the snapshot pushes data back to 1972).
         try:
             start_t = max(start_t, self.period_idx(self._hist_floor))
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(
+                f"hist_floor {self._hist_floor!r} not found in data index "
+                f"({type(e).__name__}: {e}); initialising from "
+                f"{self.index[start_t]} instead.", stacklevel=2)
 
         if self.verbose:
             print(f"Initializing from period {self.index[start_t]}")
@@ -367,6 +381,7 @@ class FullOBRSolver:
                 v = {col: self.data.iloc[t][col] for col in self.data.columns}
                 ctx = {
                     "np": np,
+                    "__builtins__": {},
                     "v": v,
                     "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
                     "_lead": lambda var, lead, t=t: self._lead(var, lead, t),
@@ -423,7 +438,7 @@ class FullOBRSolver:
         # Only compute for forecast period
         try:
             start_t = self.period_idx("2024Q1")
-        except:
+        except Exception:
             start_t = len(self.data) - 20  # Last 20 periods
 
         # Pre-filter behavioral equations.
@@ -451,6 +466,7 @@ class FullOBRSolver:
             v = {col: self.data.iloc[t][col] for col in self.data.columns}
             ctx = {
                 "np": np,
+                "__builtins__": {},
                 "v": v,
                 "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
                 "_lead": lambda var, lead, t=t: self._lead(var, lead, t),
@@ -487,7 +503,7 @@ class FullOBRSolver:
 
         Kinds:
           'ratio':  X / X(-n) = rhs      ->  X = X(-n) * rhs
-          'growth': d(X) / X(-n) = rhs   ->  X = X(-n) * (1 + rhs)
+          'growth': d(X) / X(-n) = rhs   ->  X = X(-1) + rhs * X(-n)
           'dlog':   dlog(X) = rhs        ->  X = X(-1) * exp(rhs)
           'd':      d(X) = rhs           ->  X = X(-1) + rhs
           'level':  X = rhs              ->  X = rhs
@@ -496,7 +512,9 @@ class FullOBRSolver:
         if cached is not None:
             return cached
 
-        s = lhs.strip()
+        # Collapse whitespace so forms like 'dlog (X)' / 'd (X) / X( - 4 )'
+        # parse the same as their tight-spaced equivalents.
+        s = re.sub(r'\s+', '', lhs)
         if "/" in s:
             num, den = s.split("/", 1)
             num, den = num.strip(), den.strip()
@@ -531,8 +549,14 @@ class FullOBRSolver:
             lag_val = self._lag(var, lag, t)
             return lag_val * rhs_val if np.isfinite(lag_val) else np.nan
         if kind == "growth":
+            # d(X)/X(-n) = rhs  <=>  (X - X(-1)) / X(-n) = rhs
+            #                   =>   X = X(-1) + rhs * X(-n)
+            # (For n=1 this reduces to X(-1) * (1 + rhs).)
+            prev = self._lag(var, 1, t)
             lag_val = self._lag(var, lag, t)
-            return lag_val * (1 + rhs_val) if np.isfinite(lag_val) else np.nan
+            if np.isfinite(prev) and np.isfinite(lag_val):
+                return prev + rhs_val * lag_val
+            return np.nan
         if kind == "dlog":
             lag_val = self._lag(var, lag, t)
             return lag_val * np.exp(rhs_val) if np.isfinite(lag_val) else np.nan
@@ -578,7 +602,7 @@ class FullOBRSolver:
             base_p = pd.Period(base, freq="Q")
             base_idx = self.index.get_loc(base_p)
             return float(t - base_idx)
-        except:
+        except Exception:
             return 0.0
 
     def _elem(self, var: str, period: str) -> float:
@@ -599,6 +623,7 @@ class FullOBRSolver:
         v = {col: self.data.iloc[t][col] for col in self.data.columns}
         return {
             "np": np,
+            "__builtins__": {},
             "v": v,
             "_lag": lambda var, lag: self._lag(var, lag, t),
             "_lead": lambda var, lead: self._lead(var, lead, t),
@@ -704,6 +729,7 @@ class FullOBRSolver:
 
             ctx = {
                 "np": np,
+                "__builtins__": {},
                 "v": v,
                 "_lag": lambda var, lag: self._lag(var, lag, t),
                 "_lead": lambda var, lead: self._lead(var, lead, t),
@@ -735,9 +761,19 @@ class FullOBRSolver:
                             self.data.iloc[t, col_idx[var]] = new_val
                         v[var] = new_val
 
-                        if np.isfinite(old_val) and abs(old_val) > 1e-10:
-                            change = abs(new_val - old_val) / abs(old_val)
+                        if np.isfinite(old_val):
+                            # Relative change with an absolute floor so
+                            # near-zero variables still register movement.
+                            # The floor must stay well below the model's
+                            # smallest meaningful scales (rates ~0.1) or
+                            # periods converge before small-magnitude
+                            # channels propagate.
+                            change = abs(new_val - old_val) / max(abs(old_val), 1e-8)
                             max_change = max(max_change, change)
+                        else:
+                            # NaN -> finite transition is a change; the period
+                            # must not report converged while values appear.
+                            max_change = max(max_change, 1.0)
                 except Exception:
                     # Skip equations that can't be evaluated, but count them
                     # so dead equations are visible in the solve report.
@@ -776,6 +812,7 @@ class FullOBRSolver:
         v = {col: row[col] for col in self.data.columns}
         ctx = {
             "np": np,
+            "__builtins__": {},
             "v": v,
             "_lag": lambda var, lag: self._lag(var, lag, t),
             "_lead": lambda var, lead: self._lead(var, lead, t),
