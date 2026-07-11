@@ -31,11 +31,22 @@ MAX_BLOCK_CHARS = 50_000  # per serialized tool-use/tool-result turn (server-gen
 
 RATE_LIMIT = 20           # requests ...
 RATE_WINDOW_S = 60        # ... per this many seconds, per client IP
+MAX_TRACKED_IPS = 10_000  # bound on the rate-limit dict so it can't grow forever
 _hits: dict[str, deque] = defaultdict(deque)
+
+# Content-block types the API accepts per role. The UI round-trips server
+# responses verbatim, so assistant turns can carry tool_use/thinking blocks;
+# user turns can only carry text and tool_result blocks. We can't cheaply
+# verify a tool_use block is one the server itself produced (that would need
+# per-session state), so instead the shapes and sizes are validated strictly.
+ALLOWED_BLOCK_TYPES = {
+    "user": {"text", "tool_result"},
+    "assistant": {"text", "thinking", "redacted_thinking", "tool_use"},
+}
 
 
 def _check_rate_limit(ip: str) -> None:
-    """Simple in-process sliding-window rate limiter."""
+    """Simple in-process sliding-window rate limiter (bounded memory)."""
     now = time.monotonic()
     window = _hits[ip]
     while window and now - window[0] > RATE_WINDOW_S:
@@ -47,6 +58,37 @@ def _check_rate_limit(ip: str) -> None:
                    "Please wait a moment and try again.",
         )
     window.append(now)
+    # Evict idle IPs so _hits stays bounded.
+    if len(_hits) > MAX_TRACKED_IPS:
+        for k in [k for k, w in _hits.items() if not w or now - w[-1] > RATE_WINDOW_S]:
+            _hits.pop(k, None)
+
+
+def _validate_blocks(role: str, content: list) -> None:
+    """Validate a list-of-content-blocks message the client round-tripped."""
+    allowed = ALLOWED_BLOCK_TYPES[role]
+    for block in content:
+        if not isinstance(block, dict):
+            raise HTTPException(status_code=422, detail="Malformed content block.")
+        btype = block.get("type")
+        if btype not in allowed:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Content block type '{btype}' is not allowed in a "
+                       f"{role} message.",
+            )
+        if btype == "text" and len(str(block.get("text", ""))) > MAX_TEXT_CHARS:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Message too long — the limit is {MAX_TEXT_CHARS} characters.",
+            )
+        if btype == "tool_result" and not isinstance(block.get("tool_use_id"), str):
+            raise HTTPException(status_code=422, detail="Malformed tool_result block.")
+    if len(json.dumps(content, default=str)) > MAX_BLOCK_CHARS:
+        raise HTTPException(
+            status_code=413,
+            detail="Conversation history too large — please start a new chat.",
+        )
 
 
 class ChatMessage(BaseModel):
@@ -71,11 +113,8 @@ def chat(req: ChatRequest, request: Request):
                     status_code=413,
                     detail=f"Message too long — the limit is {MAX_TEXT_CHARS} characters.",
                 )
-        elif len(json.dumps(m.content, default=str)) > MAX_BLOCK_CHARS:
-            raise HTTPException(
-                status_code=413,
-                detail="Conversation history too large — please start a new chat.",
-            )
+        else:
+            _validate_blocks(m.role, m.content)
         msgs.append({"role": m.role, "content": m.content})
 
     reply, messages = respond(msgs)

@@ -102,17 +102,23 @@ export default function EquationsTab({ model }) {
   const items = (model && model.items) || [];
   const groups = ((model && model.groups) || []).filter(Boolean);
 
+  // Only items with a real equation (defensive: older data files carried
+  // placeholder cells like "No Equation"; a real equation always contains "=").
+  const withEq = useMemo(
+    () => items.filter((it) => it.eq && it.eq.includes("=")),
+    [items]
+  );
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return items.filter(
+    return withEq.filter(
       (it) =>
-        it.eq &&
         (!group || it.group === group) &&
         (!q ||
           (it.code || "").toLowerCase().indexOf(q) >= 0 ||
           (it.desc || "").toLowerCase().indexOf(q) >= 0)
     );
-  }, [items, search, group]);
+  }, [withEq, search, group]);
 
   return (
     <div className="space-y-6">
@@ -153,7 +159,9 @@ export default function EquationsTab({ model }) {
             show transpiled Python
           </label>
           <span className="text-sm text-slate-500">
-            {filtered.length} equations
+            {filtered.length === withEq.length
+              ? `${withEq.length} equations`
+              : `${filtered.length} of ${withEq.length} equations`}
           </span>
         </div>
 

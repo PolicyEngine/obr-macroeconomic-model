@@ -129,14 +129,12 @@ export default function ExploreTab({ explorer, embedded = false }) {
       ? variablesForScenario(explorer, scenIdx)
       : variablesAll(explorer);
 
-  // If the current variable isn't available, default to GDPM else first.
+  // If the current variable isn't available, fall back to GDPM else first —
+  // derived during render (no setState here), same pattern as CustomReformTab.
   let activeVar = varCode;
   if (!vlist.find((v) => v.code === activeVar)) {
     const fallback = vlist.find((v) => v.code === "GDPM") || vlist[0];
     activeVar = fallback ? fallback.code : null;
-    if (activeVar !== varCode) {
-      setVarCode(activeVar);
-    }
   }
 
   const varMeta =
@@ -395,7 +393,14 @@ export default function ExploreTab({ explorer, embedded = false }) {
                   tickLine={false}
                   axisLine={false}
                 />
-                <Tooltip formatter={(v) => tooltipFormatter(v)} />
+                <Tooltip
+                  formatter={(v, name, item) => {
+                    const sc = seriesScenarios.find(
+                      (s) => s.id === (item && item.dataKey),
+                    );
+                    return [tooltipFormatter(v), sc ? sc.name : name];
+                  }}
+                />
                 <Legend />
                 <ReferenceLine
                   y={0}

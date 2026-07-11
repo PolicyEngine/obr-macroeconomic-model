@@ -39,6 +39,10 @@ def main():
         if not c2:
             continue
         eq = str(c4).strip() if c4 else ""
+        # Normalise placeholder cells ("No Equation", "-", ...) to empty: a real
+        # equation always contains "=". Downstream consumers treat "" as "no equation".
+        if "=" not in eq:
+            eq = ""
         py = ""
         if eq and "=" in eq:
             try:

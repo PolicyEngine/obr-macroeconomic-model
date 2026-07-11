@@ -40,21 +40,32 @@ function Dashboard() {
 
   useEffect(() => {
     async function loadData() {
-      try {
-        const [mRes, eRes, gRes] = await Promise.all([
-          fetch("/data/model_data.json"),
-          fetch("/data/explorer_data.json"),
-          fetch("/data/reform_grid.json"),
-        ]);
-        if (!mRes.ok) throw new Error("model_data.json not found");
-        setModel(await mRes.json());
-        setExplorer(eRes.ok ? await eRes.json() : null);
-        setGrid(gRes.ok ? await gRes.json() : null);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      // Fetch each dataset independently so one failure doesn't blank the
+      // tabs that did load. `error` is only set if nothing loads at all.
+      const safeFetch = async (url) => {
+        try {
+          const res = await fetch(url);
+          return res.ok ? await res.json() : null;
+        } catch {
+          return null;
+        }
+      };
+      const [m, e, g] = await Promise.all([
+        safeFetch("/data/model_data.json"),
+        safeFetch("/data/explorer_data.json"),
+        safeFetch("/data/reform_grid.json"),
+      ]);
+      setModel(m);
+      setExplorer(e);
+      setGrid(g);
+      if (!m && !e && !g) {
+        setError("Dashboard data could not be loaded. Please try refreshing.");
+      } else if (!m) {
+        setError(
+          "The variables and equations data (model_data.json) could not be loaded; other tabs still work."
+        );
       }
+      setLoading(false);
     }
     loadData();
   }, []);
@@ -95,10 +106,16 @@ function Dashboard() {
           </p>
         </div>
 
-        <div className="mb-8 mt-8 flex w-full flex-wrap border-b-2 border-slate-200">
+        <div
+          role="tablist"
+          aria-label="Dashboard sections"
+          className="mb-8 mt-8 flex w-full flex-wrap border-b-2 border-slate-200"
+        >
           {TAB_OPTIONS.map((tab) => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
               className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
               onClick={() => handleTabChange(tab.id)}
             >
@@ -108,17 +125,17 @@ function Dashboard() {
         </div>
 
         {error && (
-          <p className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-            Error: {error}
+          <p className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+            {error}
           </p>
         )}
-        {loading && !error && (
+        {loading && (
           <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
             Loading data...
           </p>
         )}
 
-        {!loading && !error && model && (
+        {!loading && (model || explorer || grid) && (
           <div className="animate-[fadeIn_0.4s_ease-out]">
             {activeTab === "about" && <AboutTab model={model} explorer={explorer} />}
             {activeTab === "how" && <HowItWorksTab model={model} explorer={explorer} />}

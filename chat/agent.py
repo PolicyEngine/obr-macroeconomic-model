@@ -31,6 +31,10 @@ _type_counts = dict(Counter(it["type"] for it in _items))
 _group_count = len({it["group"] for it in _items})
 _with_python = sum(1 for it in _items if it.get("py"))
 
+# Scenario ids come from the loaded explorer data so the tool schema can never
+# drift from what actually exists.
+_scenario_ids = [s["id"] for s in _explorer["scenarios"]]
+
 
 # --------------------------------------------------------------------------
 # tools — each returns a JSON-serialisable result
@@ -119,10 +123,11 @@ TOOLS = [
      "input_schema": {"type": "object", "properties": {}}},
     {"name": "scenario_impact", "description": "Get the modelled quarter-by-quarter impact of a scenario on a variable (delta vs an unchanged baseline).",
      "input_schema": {"type": "object", "properties": {
-         "scenario_id": {"type": "string", "description": "e.g. gov_spend, corp_cut, corp_rise, gov_invest, austerity"},
+         "scenario_id": {"type": "string", "enum": _scenario_ids,
+                         "description": "One of: " + ", ".join(_scenario_ids)},
          "variable_code": {"type": "string", "description": "e.g. GDPM, CONS, IF, IBUS. Defaults to GDPM."}},
          "required": ["scenario_id"]}},
-    {"name": "search_variables", "description": "Search the 636 model variables by code or description; returns code, meaning, group, type, ONS series.",
+    {"name": "search_variables", "description": f"Search the {len(_items)} model variables by code or description; returns code, meaning, group, type, ONS series.",
      "input_schema": {"type": "object", "properties": {
          "query": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["query"]}},
     {"name": "get_equation", "description": "Get a variable's published EViews equation and the transpiled Python for a given model code.",
