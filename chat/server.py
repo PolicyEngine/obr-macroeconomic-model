@@ -6,6 +6,7 @@ GET  /          serves the minimal chat UI.
 Run:  uv run uvicorn chat.server:app --reload --port 8000   (from the repo root)
 Uvicorn binds to 127.0.0.1 by default; pass --host explicitly to expose it.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,13 +25,13 @@ app = FastAPI(title="OBR macro model chat")
 HERE = Path(__file__).resolve().parent
 
 # ---- request limits (proportionate for a local demo server) ----------------
-MAX_MESSAGES = 40         # per conversation sent to the API
-MAX_TEXT_CHARS = 8_000    # per plain-text message
+MAX_MESSAGES = 40  # per conversation sent to the API
+MAX_TEXT_CHARS = 8_000  # per plain-text message
 MAX_BLOCK_CHARS = 50_000  # per serialized tool-use/tool-result turn (server-generated,
-                          # round-tripped by the UI, so allowed to be larger)
+# round-tripped by the UI, so allowed to be larger)
 
-RATE_LIMIT = 20           # requests ...
-RATE_WINDOW_S = 60        # ... per this many seconds, per client IP
+RATE_LIMIT = 20  # requests ...
+RATE_WINDOW_S = 60  # ... per this many seconds, per client IP
 MAX_TRACKED_IPS = 10_000  # bound on the rate-limit dict so it can't grow forever
 _hits: dict[str, deque] = defaultdict(deque)
 
@@ -55,7 +56,7 @@ def _check_rate_limit(ip: str) -> None:
         raise HTTPException(
             status_code=429,
             detail=f"Too many requests — limit is {RATE_LIMIT} per minute. "
-                   "Please wait a moment and try again.",
+            "Please wait a moment and try again.",
         )
     window.append(now)
     # Evict idle IPs so _hits stays bounded.
@@ -75,7 +76,7 @@ def _validate_blocks(role: str, content: list) -> None:
             raise HTTPException(
                 status_code=422,
                 detail=f"Content block type '{btype}' is not allowed in a "
-                       f"{role} message.",
+                f"{role} message.",
             )
         if btype == "text" and len(str(block.get("text", ""))) > MAX_TEXT_CHARS:
             raise HTTPException(

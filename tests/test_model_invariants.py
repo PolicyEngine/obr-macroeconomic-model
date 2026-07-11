@@ -8,10 +8,13 @@ for the baseline/shock-asymmetry, LHS-parsing and silent-failure fixes.
 The solver build is expensive, so the shared baseline solver is built once per
 module via a fixture.
 """
+
 import warnings
 
 import numpy as np
 import pytest
+
+pytestmark = pytest.mark.slow  # needs OBR download + full solver build
 
 warnings.filterwarnings("ignore")  # the model overflows a few dead equations by design
 
@@ -19,10 +22,12 @@ warnings.filterwarnings("ignore")  # the model overflows a few dead equations by
 @pytest.fixture(scope="module")
 def solver():
     from obr_macro import FullOBRSolver
+
     return FullOBRSolver(verbose=False)
 
 
 # --- LHS parsing (ratio lag, growth form, mixed-case identifiers) -----------
+
 
 def test_ratio_lhs_lag_is_parsed_not_hardcoded(solver):
     """'PCE / PCE(-4) = ...' must resolve to lag 4, not the old hardcoded 1."""
@@ -43,12 +48,16 @@ def test_growth_lhs_is_supported(solver):
 def test_mixed_case_equations_are_indexed(solver):
     """The uppercase-only regex silently dropped 18 mixed-case equations
     (OAHHx, DIPHHmf, ...). They must now be parsed and indexed."""
-    mixed = [v for v in solver.eq_for_var if any(c.islower() for c in v)
-             and not v.startswith("log(")]
+    mixed = [
+        v
+        for v in solver.eq_for_var
+        if any(c.islower() for c in v) and not v.startswith("log(")
+    ]
     assert len(mixed) >= 10, f"expected the mixed-case block back, got {mixed}"
 
 
 # --- Silent-failure visibility ----------------------------------------------
+
 
 def test_solve_reports_failures_and_convergence(solver):
     """solve() must expose a report: what failed and which periods converged,
@@ -65,13 +74,15 @@ def test_solve_reports_failures_and_convergence(solver):
 
 # --- Reform invariants (the baseline/shock-asymmetry fix) -------------------
 
+
 @pytest.fixture(scope="module")
 def spending_reforms():
     """A +/- symmetric pair of CGG shocks plus a zero-shock control, solved once."""
     from obr_macro.reform_analysis import run_reform
+
     return {
         "zero": run_reform("zero", "CGG", 0, periods=12),
-        "plus": run_reform("plus", "CGG", 1250, periods=12),   # +£1.25bn/qtr
+        "plus": run_reform("plus", "CGG", 1250, periods=12),  # +£1.25bn/qtr
         "minus": run_reform("minus", "CGG", -1250, periods=12),
     }
 

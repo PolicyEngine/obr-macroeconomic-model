@@ -15,32 +15,37 @@ not work, so map them before fixing anything.
 Run from the repo root (slow — a full solve per shock):
     uv run python -m obr_macro.transmission_audit
 """
+
 from __future__ import annotations
 
 import numpy as np
 
 from obr_macro.full_solver import FullOBRSolver
 from obr_macro.reform_analysis import (
-    GDPM_EQ, IBUS_EQ, IF_EQ, IBUSX_EQ, _ensure_ibusx_inputs,
+    GDPM_EQ,
+    IBUS_EQ,
+    IF_EQ,
+    IBUSX_EQ,
+    _ensure_ibusx_inputs,
 )
 
-START, END = "2025Q1", "2026Q2"   # 6-quarter horizon keeps the audit tractable
-PERIODS = 6                         # shock sustained across the horizon
+START, END = "2025Q1", "2026Q2"  # 6-quarter horizon keeps the audit tractable
+PERIODS = 6  # shock sustained across the horizon
 
 # Panel of aggregates to watch. kind: "pct" = % change vs baseline at the final
 # period; "pp" = change in percentage points (for rates).
 PANEL = [
-    ("GDPM",  "GDP",            "pct"),
-    ("CONS",  "Consumption",    "pct"),
-    ("IF",    "Investment",     "pct"),
-    ("IBUS",  "Bus. invest.",   "pct"),
-    ("X",     "Exports",        "pct"),
-    ("M",     "Imports",        "pct"),
-    ("ETLFS", "Employment",     "pct"),
-    ("LFSUR", "Unemp. rate",    "pp"),
-    ("CPI",   "CPI",            "pct"),
-    ("APH",   "House prices",   "pct"),
-    ("RL",    "Gilt yield",     "pp"),
+    ("GDPM", "GDP", "pct"),
+    ("CONS", "Consumption", "pct"),
+    ("IF", "Investment", "pct"),
+    ("IBUS", "Bus. invest.", "pct"),
+    ("X", "Exports", "pct"),
+    ("M", "Imports", "pct"),
+    ("ETLFS", "Employment", "pct"),
+    ("LFSUR", "Unemp. rate", "pp"),
+    ("CPI", "CPI", "pct"),
+    ("APH", "House prices", "pct"),
+    ("RL", "Gilt yield", "pp"),
 ]
 # Behavioural channels (everything that is NOT a pure spending identity): if a
 # shock moves GDP but none of these, the behavioural multiplier is missing.
@@ -49,16 +54,20 @@ BEHAVIOURAL = {"CONS", "IBUS", "ETLFS", "LFSUR", "CPI", "X", "M", "APH", "RL"}
 # Shocks. size is absolute unless rel=True, in which case it is a fraction of the
 # variable's baseline value at the start period.
 SHOCKS = [
-    dict(label="Gov consumption +£1.25bn/q", var="CGG",   size=1250.0, closure="standard"),
-    dict(label="Gov investment +£3bn/q",     var="CGIPS", size=3000.0, closure="standard"),
-    dict(label="Corp tax +1pp",              var="TCPRO", size=0.01,   closure="investment"),
-    dict(label="Bank Rate +1pp",             var="R",     size=1.0,    closure="standard"),
-    dict(label="Sterling -10% (ERI)",        var="RX",    size=-0.10,  closure="standard", rel=True),
-    dict(label="Oil price +$10/bbl",         var="PBRENT", size=10.0,  closure="standard"),
+    dict(
+        label="Gov consumption +£1.25bn/q", var="CGG", size=1250.0, closure="standard"
+    ),
+    dict(label="Gov investment +£3bn/q", var="CGIPS", size=3000.0, closure="standard"),
+    dict(label="Corp tax +1pp", var="TCPRO", size=0.01, closure="investment"),
+    dict(label="Bank Rate +1pp", var="R", size=1.0, closure="standard"),
+    dict(
+        label="Sterling -10% (ERI)", var="RX", size=-0.10, closure="standard", rel=True
+    ),
+    dict(label="Oil price +$10/bbl", var="PBRENT", size=10.0, closure="standard"),
 ]
 
-PCT_THRESH = 0.02   # % — below this a level response counts as "no move"
-PP_THRESH = 0.005   # percentage points
+PCT_THRESH = 0.02  # % — below this a level response counts as "no move"
+PP_THRESH = 0.005  # percentage points
 # A response within ±20% of its threshold is a borderline call, not a
 # categorical one: such channels are reported as "marginal" rather than
 # cleanly transmitting/dead (e.g. Bank Rate landing at exactly 0.02%).
@@ -81,7 +90,7 @@ def _resp(kind, base, shock):
         return None
     if kind == "pct":
         return 100.0 * (shock - base) / base if abs(base) > 1e-9 else None
-    return shock - base   # pp
+    return shock - base  # pp
 
 
 def _material(kind, v):
@@ -123,7 +132,9 @@ def run_one(shock, base):
     row = {}
     for code, _lab, kind in PANEL:
         if code in bdat.columns and code in sdat.columns:
-            row[code] = _resp(kind, float(bdat.iloc[tN][code]), float(sdat.iloc[tN][code]))
+            row[code] = _resp(
+                kind, float(bdat.iloc[tN][code]), float(sdat.iloc[tN][code])
+            )
         else:
             row[code] = None
     return row
@@ -173,15 +184,19 @@ def main():
         row = run_one(sh, baselines[sh["closure"]])
         verdict, beh = classify(row)
         results.append((sh, row, verdict, beh))
-        print(f"[audit]   -> {verdict} ({len(beh)} behavioural channels: {', '.join(beh) or 'none'})",
-              flush=True)
+        print(
+            f"[audit]   -> {verdict} ({len(beh)} behavioural channels: {', '.join(beh) or 'none'})",
+            flush=True,
+        )
 
     # markdown report
     cols = [lab for _c, lab, _k in PANEL]
     lines = []
     lines.append("# Transmission audit (Stage 1a)\n")
-    lines.append(f"Horizon {START}–{END} ({PERIODS} quarters), final-period response "
-                 "vs an unchanged baseline. Generated by `obr_macro/transmission_audit.py`.\n")
+    lines.append(
+        f"Horizon {START}–{END} ({PERIODS} quarters), final-period response "
+        "vs an unchanged baseline. Generated by `obr_macro/transmission_audit.py`.\n"
+    )
     lines.append("| Shock | Verdict | " + " | ".join(cols) + " |")
     lines.append("|---|---|" + "|".join(["---"] * len(cols)) + "|")
     for sh, row, verdict, _beh in results:
@@ -189,23 +204,33 @@ def main():
         lines.append(f"| {sh['label']} | **{verdict}** | " + " | ".join(cells) + " |")
     lines.append("")
     lines.append("## Reading this\n")
-    lines.append("- **transmitting** — the shock reaches behavioural variables "
-                 "(consumption, investment, jobs, prices), not just the spending identity.")
-    lines.append("- **identity-only** — GDP moves but no behavioural channel does; "
-                 "the multiplier is missing and the result is just the mechanical add to demand.")
-    lines.append("- **dead** — nothing moves; the shock does not propagate. These are the "
-                 "first channels to fix in Stage 1b.")
+    lines.append(
+        "- **transmitting** — the shock reaches behavioural variables "
+        "(consumption, investment, jobs, prices), not just the spending identity."
+    )
+    lines.append(
+        "- **identity-only** — GDP moves but no behavioural channel does; "
+        "the multiplier is missing and the result is just the mechanical add to demand."
+    )
+    lines.append(
+        "- **dead** — nothing moves; the shock does not propagate. These are the "
+        "first channels to fix in Stage 1b."
+    )
     lines.append("")
-    lines.append(f"Materiality thresholds: a level response counts as a move at "
-                 f"|Δ| ≥ {PCT_THRESH}% and a rate response at |Δ| ≥ {PP_THRESH}pp. "
-                 f"Responses within ±{int(100*MARGINAL_FRAC)}% of the threshold are "
-                 "borderline: a verdict resting only on such channels is flagged "
-                 "**(marginal)** rather than treated as categorical.")
+    lines.append(
+        f"Materiality thresholds: a level response counts as a move at "
+        f"|Δ| ≥ {PCT_THRESH}% and a rate response at |Δ| ≥ {PP_THRESH}pp. "
+        f"Responses within ±{int(100 * MARGINAL_FRAC)}% of the threshold are "
+        "borderline: a verdict resting only on such channels is flagged "
+        "**(marginal)** rather than treated as categorical."
+    )
     lines.append("")
     counts = {}
     for _s, _r, v, _b in results:
         counts[v] = counts.get(v, 0) + 1
-    lines.append("**Summary:** " + ", ".join(f"{n} {k}" for k, n in sorted(counts.items())) + ".")
+    lines.append(
+        "**Summary:** " + ", ".join(f"{n} {k}" for k, n in sorted(counts.items())) + "."
+    )
     lines.append("")
 
     out = "docs/transmission_audit.md"

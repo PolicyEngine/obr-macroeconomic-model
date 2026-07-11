@@ -16,9 +16,9 @@ Two modes:
 
     uv run python -m obr_macro.baseline
 """
+
 from __future__ import annotations
 
-import numpy as np
 
 from obr_macro.full_solver import FullOBRSolver
 from obr_macro.reform_analysis import GDPM_EQ
@@ -61,7 +61,9 @@ def main():
     raw = s_raw.data.copy()
 
     print(f"Forward baseline {START}..{END}\n")
-    print(f"{'Variable':22}{'OBR (EFO)':>14}{'Anchored':>14}{'Raw model':>14}   at {END}")
+    print(
+        f"{'Variable':22}{'OBR (EFO)':>14}{'Anchored':>14}{'Raw model':>14}   at {END}"
+    )
     for code, label, unit in CHECK:
         if code not in efo.columns:
             continue
@@ -71,19 +73,23 @@ def main():
         print(f"{label:22}{e:14,.1f}{a:14,.1f}{r:14,.1f}   ({unit})")
 
     # coherence + coverage over the horizon
-    hor = anchored.iloc[t0:t1 + 1]
+    hor = anchored.iloc[t0 : t1 + 1]
     finite_full = int(hor.notna().all().sum())
     finite_any = int(hor.notna().any().sum())
-    print(f"\nCoverage over horizon: {finite_full}/{hor.shape[1]} variables fully finite, "
-          f"{finite_any} partially.")
+    print(
+        f"\nCoverage over horizon: {finite_full}/{hor.shape[1]} variables fully finite, "
+        f"{finite_any} partially."
+    )
 
     # how closely the anchored baseline reproduces the OBR aggregates
     gdp_e = efo.iloc[t1]["GDPM"]
     gdp_a = anchored.iloc[t1]["GDPM"]
     gdp_r = raw.iloc[t1]["GDPM"]
-    print(f"\nReal GDP at {END}: anchored reproduces OBR to "
-          f"{100*abs(gdp_a-gdp_e)/gdp_e:.2f}%; raw model is "
-          f"{100*(gdp_r-gdp_e)/gdp_e:+.2f}% vs OBR.")
+    print(
+        f"\nReal GDP at {END}: anchored reproduces OBR to "
+        f"{100 * abs(gdp_a - gdp_e) / gdp_e:.2f}%; raw model is "
+        f"{100 * (gdp_r - gdp_e) / gdp_e:+.2f}% vs OBR."
+    )
 
 
 if __name__ == "__main__":

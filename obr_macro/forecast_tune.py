@@ -10,6 +10,7 @@ investment, trade balance, current account) plus the overall hit rate.
 
     uv run python -m obr_macro.forecast_tune
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -85,13 +86,17 @@ def main():
         return f"{err:6.2f}pp" if kind == "pp" else f"{err:6.2f}%"
 
     print(f"Tuning held-add-factor forecast ({FC_START}..{FC_END})\n")
-    print(f"{'config':28}{'Bus.inv':>10}{'TradeBal':>10}{'CurrAcc':>10}{'within band':>12}")
+    print(
+        f"{'config':28}{'Bus.inv':>10}{'TradeBal':>10}{'CurrAcc':>10}{'within band':>12}"
+    )
     for label, window in WINDOWS:
         for ic in (False, True):
             rows, computed, good = run(base, base_residuals, efo, window, ic)
             cfg = f"{label}{' +inv-closure' if ic else ''}"
-            print(f"{cfg:28}{fmt(rows,'IBUS'):>10}{fmt(rows,'TB'):>10}{fmt(rows,'CB'):>10}"
-                  f"{f'{good}/{computed}':>12}")
+            print(
+                f"{cfg:28}{fmt(rows, 'IBUS'):>10}{fmt(rows, 'TB'):>10}{fmt(rows, 'CB'):>10}"
+                f"{f'{good}/{computed}':>12}"
+            )
     print(f"\n{BAND_LEGEND}")
 
 

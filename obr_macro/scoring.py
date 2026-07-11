@@ -15,18 +15,21 @@ Three different error metrics share the four marks [OK]/[~]/[!]/[X]:
 "Within band" means OK or ~ under the matching thresholds below. It is NOT a
 single "within 10%" cut: 10% is only the lvl fair threshold.
 """
+
 from __future__ import annotations
 
 import numpy as np
 
 # Band thresholds: value < GOOD -> "OK", < FAIR -> "~", < POOR -> "!", else "X".
-PP_GOOD, PP_FAIR, PP_POOR = 0.3, 1.0, 3.0      # percentage points
-GDP_GOOD, GDP_FAIR, GDP_POOR = 0.5, 1.5, 3.0   # % of GDP
+PP_GOOD, PP_FAIR, PP_POOR = 0.3, 1.0, 3.0  # percentage points
+GDP_GOOD, GDP_FAIR, GDP_POOR = 0.5, 1.5, 3.0  # % of GDP
 LVL_GOOD, LVL_FAIR, LVL_POOR = 2.0, 10.0, 25.0  # % of own value (MAPE)
 
 # One-line legend for printed scorecards ("within band" = OK or ~).
-BAND_LEGEND = (f"within band = [OK] or [~]: rates <{PP_FAIR}pp | "
-               f"net balances <{GDP_FAIR}% of GDP | levels <{LVL_FAIR}% MAPE")
+BAND_LEGEND = (
+    f"within band = [OK] or [~]: rates <{PP_FAIR}pp | "
+    f"net balances <{GDP_FAIR}% of GDP | levels <{LVL_FAIR}% MAPE"
+)
 
 WORDS = {"OK": "good", "~": "fair", "!": "poor", "X": "off"}
 

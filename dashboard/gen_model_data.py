@@ -8,6 +8,7 @@ the project's EViews transpiler, and writes dashboard/public/data/model_data.jso
 Run from the repo root:
     uv run python dashboard/gen_model_data.py
 """
+
 import json
 
 import openpyxl
@@ -29,11 +30,16 @@ def main():
     group = None
     items = []
     n_eq = 0
-    for r in rows[hdr + 1:]:
+    for r in rows[hdr + 1 :]:
         if not r:
             continue
         c0, c1, c2, c3, c4, c5 = (list(r) + [None] * 6)[:6]
-        if c0 and isinstance(c0, str) and c0.strip().lower().startswith("group") and not c2:
+        if (
+            c0
+            and isinstance(c0, str)
+            and c0.strip().lower().startswith("group")
+            and not c2
+        ):
             group = c0.strip()
             continue
         if not c2:
@@ -52,16 +58,18 @@ def main():
                     n_eq += 1
             except Exception:
                 py = ""
-        items.append({
-            "n": str(c0).strip() if c0 else "",
-            "code": str(c2).strip(),
-            "desc": str(c1).strip() if c1 else "",
-            "ons": str(c3).strip() if c3 else "",
-            "group": group or "",
-            "eq": eq,
-            "type": str(c5).strip() if c5 else "",
-            "py": py,
-        })
+        items.append(
+            {
+                "n": str(c0).strip() if c0 else "",
+                "code": str(c2).strip(),
+                "desc": str(c1).strip() if c1 else "",
+                "ons": str(c3).strip() if c3 else "",
+                "group": group or "",
+                "eq": eq,
+                "type": str(c5).strip() if c5 else "",
+                "py": py,
+            }
+        )
 
     groups = []
     for it in items:
@@ -70,7 +78,9 @@ def main():
 
     with open(OUT, "w") as f:
         json.dump({"groups": groups, "items": items}, f, separators=(",", ":"))
-    print(f"wrote {OUT}: {len(items)} variables, {n_eq} transpiled equations, {len(groups)} groups")
+    print(
+        f"wrote {OUT}: {len(items)} variables, {n_eq} transpiled equations, {len(groups)} groups"
+    )
 
 
 if __name__ == "__main__":

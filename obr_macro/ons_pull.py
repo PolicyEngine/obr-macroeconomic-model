@@ -8,6 +8,7 @@ resumable and reproducible, and the result is written as a committed snapshot
 
     uv run python -m obr_macro.ons_pull
 """
+
 from __future__ import annotations
 
 import json
@@ -15,15 +16,14 @@ import re
 import time
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from obr_macro.data import load_obr_data, DATA_DIR, ensure_model_code
 from obr_macro.transpiler import parse_model_file
 from obr_macro.ons_fetch import fetch_series
 
-CACHE = DATA_DIR / "ons_cache"                       # gitignored, transient
-SEEDS = Path(__file__).parent / "seeds"              # committed
+CACHE = DATA_DIR / "ons_cache"  # gitignored, transient
+SEEDS = Path(__file__).parent / "seeds"  # committed
 SNAPSHOT = SEEDS / "ons_exogenous_snapshot.csv"
 MANIFEST = SEEDS / "snapshot_manifest.json"
 CDID_RE = re.compile(r"\b[A-Z][A-Z0-9]{3}\b")
@@ -60,7 +60,10 @@ def get_roots(df):
     missing = sorted(referenced - present)
 
     mdp = Path(__file__).parent.parent / "dashboard/public/data/model_data.json"
-    ons = {it["code"]: (it.get("ons") or "").strip() for it in json.load(open(mdp))["items"]}
+    ons = {
+        it["code"]: (it.get("ons") or "").strip()
+        for it in json.load(open(mdp))["items"]
+    }
 
     simple, compound = {}, {}
     for v in missing:
@@ -68,9 +71,9 @@ def get_roots(df):
         if not code or code.upper() in ("", "NO CODES", "N/A", "-"):
             continue
         if re.search(r"[+\-/*()]", code) or " " in code:
-            compound[v] = code        # arithmetic over several CDIDs
+            compound[v] = code  # arithmetic over several CDIDs
         else:
-            simple[v] = code          # a single ONS series
+            simple[v] = code  # a single ONS series
     return simple, compound
 
 
@@ -128,8 +131,8 @@ def eval_compound(formula):
 
 
 def main():
-    idx = load_obr_data().index                    # full (snapshot-extended) index
-    df_efo = load_obr_data(merge_snapshot=False)    # EFO-only, to find what's missing
+    idx = load_obr_data().index  # full (snapshot-extended) index
+    df_efo = load_obr_data(merge_snapshot=False)  # EFO-only, to find what's missing
     simple, compound = get_roots(df_efo)
     print(f"roots to pull: {len(simple)} simple + {len(compound)} compound\n")
     cols = {}
@@ -182,7 +185,9 @@ def main():
                 for m in metas
             ],
         }
-    print(f"compound done: {sum(1 for c in compound if c in cols)}/{len(compound)} ok\n")
+    print(
+        f"compound done: {sum(1 for c in compound if c in cols)}/{len(compound)} ok\n"
+    )
 
     SEEDS.mkdir(parents=True, exist_ok=True)
     snap = pd.DataFrame(cols).reindex(idx)
@@ -195,7 +200,9 @@ def main():
                 "n_series": len(manifest),
                 "series": manifest,
             },
-            fh, indent=1, sort_keys=True,
+            fh,
+            indent=1,
+            sort_keys=True,
         )
     print(f"wrote {SNAPSHOT}: {snap.shape[1]} series x {snap.shape[0]} quarters")
     print(f"wrote {MANIFEST}: {len(manifest)} series")

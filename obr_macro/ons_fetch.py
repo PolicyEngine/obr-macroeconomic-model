@@ -12,6 +12,7 @@ averaged over months (an annual value is held flat across the four quarters).
 
     uv run python -m obr_macro.ons_fetch
 """
+
 from __future__ import annotations
 
 import json
@@ -19,20 +20,21 @@ import time
 import urllib.error
 import urllib.request
 
-import numpy as np
 import pandas as pd
 
 _HEADERS = {"User-Agent": "Mozilla/5.0"}
-_SEARCH = "https://api.beta.ons.gov.uk/v1/search?q={cdid}&content_type=timeseries&limit=10"
+_SEARCH = (
+    "https://api.beta.ons.gov.uk/v1/search?q={cdid}&content_type=timeseries&limit=10"
+)
 _DATA = "https://www.ons.gov.uk{uri}/data"
 
 # A handful of model variables -> CDID, for the proof of concept.
 POC = {
-    "CGIPS":  "NMES",   # CG gross fixed capital formation (£m)
-    "PPIY":   "GB7S",   # producer output price index
-    "POPAL":  "EBAQ",   # population, all ages
-    "EMPNIC": "CEAN",   # employers' NICs (£m)
-    "VREC":   "EYOO",   # net VAT receipts (£m)
+    "CGIPS": "NMES",  # CG gross fixed capital formation (£m)
+    "PPIY": "GB7S",  # producer output price index
+    "POPAL": "EBAQ",  # population, all ages
+    "EMPNIC": "CEAN",  # employers' NICs (£m)
+    "VREC": "EYOO",  # net VAT receipts (£m)
 }
 
 # Per-CDID series type, used to pick the monthly->quarterly / annual->quarterly
@@ -427,8 +429,8 @@ SERIES_TYPE: dict[str, str] = {
     "NUGW": "flow",  # DILAPR: LA interest/dividends paid to private sector & RoW
     "NYOD": "flow",  # NLROW: Net lending (from financial account): HH (NSA)
     "NYOT": "stock",  # NWIC: PNFC Net wealth
-    "NYPO": "flow",  # SDLROW: Net lending stat. discrp. between capital and fin a/c: HH 
-    "NZDV": "flow",  # SDLHH: Net lending stat. discrp. between capital and fin a/c: HH 
+    "NYPO": "flow",  # SDLROW: Net lending stat. discrp. between capital and fin a/c: HH
+    "NZDV": "flow",  # SDLHH: Net lending stat. discrp. between capital and fin a/c: HH
     "NZDY": "flow",  # NLHH: Net lending (from financial account): HH (NSA)
     "NZEA": "stock",  # NFWPE: HH net financial assets (NSA)
     "NZFS": "flow",  # OPT: Other taxes on production
@@ -508,13 +510,13 @@ def _get_json(url, tries=4):
                 return json.load(r)
         except urllib.error.HTTPError as e:
             if e.code >= 500 or e.code == 429:
-                last = e                    # transient server-side failure
+                last = e  # transient server-side failure
             else:
-                raise                       # 404 etc: permanent, don't retry
+                raise  # 404 etc: permanent, don't retry
         except json.JSONDecodeError:
-            raise                           # bad payload won't fix itself
+            raise  # bad payload won't fix itself
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
-            last = e                        # network trouble: back off, retry
+            last = e  # network trouble: back off, retry
         time.sleep(1.5 * (i + 1))
     raise last
 
@@ -544,7 +546,11 @@ def fetch_series(cdid):
             d = _get_json(_DATA.format(uri=uri))
         except Exception:
             continue
-        n = len(d.get("quarters", [])) or len(d.get("months", [])) or len(d.get("years", []))
+        n = (
+            len(d.get("quarters", []))
+            or len(d.get("months", []))
+            or len(d.get("years", []))
+        )
         if n > best_n:
             best_n, best = n, d
     if best is None:
@@ -637,7 +643,9 @@ def fetch_series(cdid):
 
 
 def main():
-    print(f"Fetching {len(POC)} ONS series via the beta search + website data endpoints\n")
+    print(
+        f"Fetching {len(POC)} ONS series via the beta search + website data endpoints\n"
+    )
     for code, cdid in POC.items():
         try:
             s, meta = fetch_series(cdid)
@@ -650,7 +658,9 @@ def main():
         s = s.dropna()
         title, agg = meta["title"], meta["aggregation"]
         tail = ", ".join(f"{p}={v:,.0f}" for p, v in s.tail(3).items())
-        print(f"  {code:7} ({cdid})  {agg:22}  {len(s):3} obs  {s.index.min()}..{s.index.max()}")
+        print(
+            f"  {code:7} ({cdid})  {agg:22}  {len(s):3} obs  {s.index.min()}..{s.index.max()}"
+        )
         print(f"           {title[:60]}")
         print(f"           latest: {tail}\n")
 

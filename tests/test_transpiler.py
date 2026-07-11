@@ -25,6 +25,7 @@ def make_bare_solver(df: pd.DataFrame) -> FullOBRSolver:
 # d(X)/X(-n) growth-form reconstruction algebra
 # ---------------------------------------------------------------------------
 
+
 def test_parse_lhs_growth_lag4():
     s = make_bare_solver(pd.DataFrame())
     assert s._parse_lhs("d(X) / X(-4)") == ("X", "growth", 4)
@@ -69,6 +70,7 @@ def test_parse_lhs_tolerates_whitespace():
 # @dateval month vs quarter mapping
 # ---------------------------------------------------------------------------
 
+
 def test_dateval_month_maps_to_quarter(tp):
     out = tp.transpile('@recode(@date = @dateval("2008:07") , 1 , 0)')
     assert "'2008Q3'" in out  # July -> Q3
@@ -90,6 +92,7 @@ def test_dateval_quarter_passthrough(tp):
 # Lag whitespace and identifiers
 # ---------------------------------------------------------------------------
 
+
 def test_lag_whitespace_tolerated(tp):
     assert tp.transpile("PCE(- 1)") == "_lag('PCE', 1)"
     assert tp.transpile("PCE( -1 )") == "_lag('PCE', 1)"
@@ -105,6 +108,7 @@ def test_mixed_case_identifiers(tp):
 # ---------------------------------------------------------------------------
 # dlog / d with whitespace before the paren
 # ---------------------------------------------------------------------------
+
 
 def test_dlog_with_space(tp):
     tight = tp.transpile("dlog(PCE)")

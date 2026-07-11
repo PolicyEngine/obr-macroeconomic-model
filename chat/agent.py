@@ -5,6 +5,7 @@ pre-computed model data — scenarios, variables, equations — so a user can as
 questions in natural language and get grounded answers. The tools read the
 inlined JSON the dashboard already builds, so they are instant (no slow solves).
 """
+
 from __future__ import annotations
 
 import json
@@ -42,31 +43,45 @@ _scenario_ids = [s["id"] for s in _explorer["scenarios"]]
 def list_scenarios() -> dict:
     out = []
     for s in _explorer["scenarios"]:
-        out.append({
-            "id": s["id"], "name": s["name"], "tag": s["tag"],
-            "shock": s["shock"], "closure": s["closure"],
-            "variables_available": list(s["series"].keys()),
-        })
+        out.append(
+            {
+                "id": s["id"],
+                "name": s["name"],
+                "tag": s["tag"],
+                "shock": s["shock"],
+                "closure": s["closure"],
+                "variables_available": list(s["series"].keys()),
+            }
+        )
     return {"scenarios": out, "note": _explorer["meta"].get("note", "")}
 
 
 def scenario_impact(scenario_id: str, variable_code: str = "GDPM") -> dict:
     sc = next((s for s in _explorer["scenarios"] if s["id"] == scenario_id), None)
     if sc is None:
-        return {"error": f"unknown scenario '{scenario_id}'",
-                "valid": [s["id"] for s in _explorer["scenarios"]]}
+        return {
+            "error": f"unknown scenario '{scenario_id}'",
+            "valid": [s["id"] for s in _explorer["scenarios"]],
+        }
     if not sc["series"]:
-        return {"scenario": sc["name"],
-                "note": "This scenario produced no material change in the tracked "
-                        "variables under its closure (a known limitation)."}
+        return {
+            "scenario": sc["name"],
+            "note": "This scenario produced no material change in the tracked "
+            "variables under its closure (a known limitation).",
+        }
     if variable_code not in sc["series"]:
-        return {"scenario": sc["name"],
-                "error": f"variable '{variable_code}' not available for this scenario",
-                "available": list(sc["series"].keys())}
+        return {
+            "scenario": sc["name"],
+            "error": f"variable '{variable_code}' not available for this scenario",
+            "available": list(sc["series"].keys()),
+        }
     meta = next((v for v in _explorer["variables"] if v["code"] == variable_code), {})
     return {
-        "scenario": sc["name"], "shock": sc["shock"], "closure": sc["closure"],
-        "variable": variable_code, "label": meta.get("label", variable_code),
+        "scenario": sc["name"],
+        "shock": sc["shock"],
+        "closure": sc["closure"],
+        "variable": variable_code,
+        "label": meta.get("label", variable_code),
         "unit": meta.get("unit", ""),
         "periods": _explorer["periods"],
         "delta_vs_baseline": sc["series"][variable_code],
@@ -76,31 +91,49 @@ def scenario_impact(scenario_id: str, variable_code: str = "GDPM") -> dict:
 
 def search_variables(query: str, limit: int = 12) -> dict:
     q = query.lower()
-    hits = [it for it in _items
-            if q in it["code"].lower() or q in (it["desc"] or "").lower()]
-    return {"count": len(hits), "showing": min(len(hits), limit), "matches": [
-        {"code": it["code"], "description": it["desc"], "group": it["group"],
-         "type": it["type"], "ons": it["ons"]}
-        for it in hits[:limit]]}
+    hits = [
+        it
+        for it in _items
+        if q in it["code"].lower() or q in (it["desc"] or "").lower()
+    ]
+    return {
+        "count": len(hits),
+        "showing": min(len(hits), limit),
+        "matches": [
+            {
+                "code": it["code"],
+                "description": it["desc"],
+                "group": it["group"],
+                "type": it["type"],
+                "ons": it["ons"],
+            }
+            for it in hits[:limit]
+        ],
+    }
 
 
 def get_equation(code: str) -> dict:
     it = _by_code.get(code)
     if it is None:
         return {"error": f"unknown variable code '{code}'"}
-    return {"code": it["code"], "description": it["desc"], "type": it["type"],
-            "group": it["group"], "eviews": it["eq"] or "(exogenous — no equation)",
-            "transpiled_python": it["py"] or ""}
+    return {
+        "code": it["code"],
+        "description": it["desc"],
+        "type": it["type"],
+        "group": it["group"],
+        "eviews": it["eq"] or "(exogenous — no equation)",
+        "transpiled_python": it["py"] or "",
+    }
 
 
 def model_overview() -> dict:
     return {
         "what": "An independent Python re-implementation of the OBR's published "
-                "macroeconomic model (15 October 2025 code).",
+        "macroeconomic model (15 October 2025 code).",
         "published_equations": 372,
         "published_equations_note": "372 is the equation count in the OBR's published "
-                                    "model files; the dataset served here covers every "
-                                    "variable, including exogenous inputs.",
+        "model files; the dataset served here covers every "
+        "variable, including exogenous inputs.",
         "variables": len(_items),
         "groups": _group_count,
         "variables_by_type": _type_counts,
@@ -117,21 +150,53 @@ def model_overview() -> dict:
 
 
 TOOLS = [
-    {"name": "model_overview", "description": "What this model is, its scale, and its honest limitations. Call for 'what is this' questions.",
-     "input_schema": {"type": "object", "properties": {}}},
-    {"name": "list_scenarios", "description": "List the available pre-computed policy scenarios and which variables each one moves.",
-     "input_schema": {"type": "object", "properties": {}}},
-    {"name": "scenario_impact", "description": "Get the modelled quarter-by-quarter impact of a scenario on a variable (delta vs an unchanged baseline).",
-     "input_schema": {"type": "object", "properties": {
-         "scenario_id": {"type": "string", "enum": _scenario_ids,
-                         "description": "One of: " + ", ".join(_scenario_ids)},
-         "variable_code": {"type": "string", "description": "e.g. GDPM, CONS, IF, IBUS. Defaults to GDPM."}},
-         "required": ["scenario_id"]}},
-    {"name": "search_variables", "description": f"Search the {len(_items)} model variables by code or description; returns code, meaning, group, type, ONS series.",
-     "input_schema": {"type": "object", "properties": {
-         "query": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["query"]}},
-    {"name": "get_equation", "description": "Get a variable's published EViews equation and the transpiled Python for a given model code.",
-     "input_schema": {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]}},
+    {
+        "name": "model_overview",
+        "description": "What this model is, its scale, and its honest limitations. Call for 'what is this' questions.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "list_scenarios",
+        "description": "List the available pre-computed policy scenarios and which variables each one moves.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "scenario_impact",
+        "description": "Get the modelled quarter-by-quarter impact of a scenario on a variable (delta vs an unchanged baseline).",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "scenario_id": {
+                    "type": "string",
+                    "enum": _scenario_ids,
+                    "description": "One of: " + ", ".join(_scenario_ids),
+                },
+                "variable_code": {
+                    "type": "string",
+                    "description": "e.g. GDPM, CONS, IF, IBUS. Defaults to GDPM.",
+                },
+            },
+            "required": ["scenario_id"],
+        },
+    },
+    {
+        "name": "search_variables",
+        "description": f"Search the {len(_items)} model variables by code or description; returns code, meaning, group, type, ONS series.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}},
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "get_equation",
+        "description": "Get a variable's published EViews equation and the transpiled Python for a given model code.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"code": {"type": "string"}},
+            "required": ["code"],
+        },
+    },
 ]
 
 _DISPATCH = {
@@ -175,9 +240,11 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
     notes: list[str] = []
     for _ in range(max_rounds):
         if time.monotonic() - start > REQUEST_BUDGET_S:
-            notes.append(f"[Note: stopped early — this request exceeded its "
-                         f"{REQUEST_BUDGET_S}s time budget, so this is the best "
-                         "answer so far.]")
+            notes.append(
+                f"[Note: stopped early — this request exceeded its "
+                f"{REQUEST_BUDGET_S}s time budget, so this is the best "
+                "answer so far.]"
+            )
             break
         try:
             response = client.messages.create(
@@ -190,20 +257,35 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
                 messages=messages,
             )
         except anthropic.APIError as e:
-            return (f"Sorry — the model API call failed "
-                    f"({type(e).__name__}: {e}). Please try again."), messages
+            return (
+                f"Sorry — the model API call failed "
+                f"({type(e).__name__}: {e}). Please try again."
+            ), messages
         messages.append({"role": "assistant", "content": response.content})
         if response.stop_reason == "max_tokens":
-            notes.append("[Note: the answer was cut off at the output token limit "
-                         "and may be incomplete.]")
+            notes.append(
+                "[Note: the answer was cut off at the output token limit "
+                "and may be incomplete.]"
+            )
         tool_uses = [b for b in response.content if b.type == "tool_use"]
         if not tool_uses:
             break
-        messages.append({"role": "user", "content": [
-            {"type": "tool_result", "tool_use_id": b.id,
-             "content": json.dumps(execute_tool(b.name, b.input))}
-            for b in tool_uses]})
-    text = "\n".join(b.text for b in (response.content if response else []) if b.type == "text")
+        messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": b.id,
+                        "content": json.dumps(execute_tool(b.name, b.input)),
+                    }
+                    for b in tool_uses
+                ],
+            }
+        )
+    text = "\n".join(
+        b.text for b in (response.content if response else []) if b.type == "text"
+    )
     text = text.strip() or "(no answer)"
     if notes:
         text = text + "\n\n" + "\n".join(notes)

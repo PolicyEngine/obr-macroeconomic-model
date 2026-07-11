@@ -18,6 +18,7 @@ Concretely:
 
     uv run python -m dashboard.gen_reform_grid
 """
+
 from __future__ import annotations
 
 import json
@@ -27,19 +28,19 @@ import numpy as np
 
 from obr_macro.baseline import build as build_baseline
 
-BASE_START, BASE_END = "2024Q1", "2025Q4"   # window the add-factors are fit over
-START, END = "2026Q1", "2027Q4"             # reform horizon (the validated window)
-NQ = 8                                       # quarters in START..END inclusive
+BASE_START, BASE_END = "2024Q1", "2025Q4"  # window the add-factors are fit over
+START, END = "2026Q1", "2027Q4"  # reform horizon (the validated window)
+NQ = 8  # quarters in START..END inclusive
 
 VARS = [
-    ("GDPM",  "Real GDP",              "£bn",       "money"),
-    ("CONS",  "Household consumption", "£bn",       "money"),
-    ("IF",    "Total investment",      "£bn",       "money"),
-    ("IBUS",  "Business investment",   "£bn",       "money"),
-    ("ETLFS", "Employment",            "000s jobs", "raw"),
-    ("LFSUR", "Unemployment rate",     "pp",        "raw"),
-    ("CPI",   "Consumer prices (CPI)", "% vs base", "pct"),
-    ("RHHDI", "Real household income", "£bn",       "money"),
+    ("GDPM", "Real GDP", "£bn", "money"),
+    ("CONS", "Household consumption", "£bn", "money"),
+    ("IF", "Total investment", "£bn", "money"),
+    ("IBUS", "Business investment", "£bn", "money"),
+    ("ETLFS", "Employment", "000s jobs", "raw"),
+    ("LFSUR", "Unemployment rate", "pp", "raw"),
+    ("CPI", "Consumer prices (CPI)", "% vs base", "pct"),
+    ("RHHDI", "Real household income", "£bn", "money"),
 ]
 
 # Each lever overrides one instrument. `to_internal` maps a display value to the
@@ -49,15 +50,39 @@ VARS = [
 # move GDP the same way under the demand closure, and the cost-of-capital closure
 # diverges) — it needs that channel re-calibrated before it can be shown honestly.
 LEVERS = [
-    dict(id="CGG", name="Government consumption", var="CGG", unit="£bn/yr",
-         lo=-10.0, hi=10.0, step=0.5, to_internal=lambda v: v * 1000.0 / 4.0,
-         desc="Day-to-day government spending — a direct part of GDP. Higher spending lifts demand; the multiplier builds over time."),
-    dict(id="X", name="Export demand", var="X", unit="£bn/yr",
-         lo=-10.0, hi=10.0, step=0.5, to_internal=lambda v: v * 1000.0 / 4.0,
-         desc="External demand for UK exports (e.g. stronger or weaker world growth). Exports add directly to GDP."),
-    dict(id="R", name="Bank Rate", var="R", unit="pp",
-         lo=-1.0, hi=1.0, step=0.25, to_internal=lambda v: v,
-         desc="Bank Rate. A rise weighs on investment and demand; the effect is clearest over the first six quarters."),
+    dict(
+        id="CGG",
+        name="Government consumption",
+        var="CGG",
+        unit="£bn/yr",
+        lo=-10.0,
+        hi=10.0,
+        step=0.5,
+        to_internal=lambda v: v * 1000.0 / 4.0,
+        desc="Day-to-day government spending — a direct part of GDP. Higher spending lifts demand; the multiplier builds over time.",
+    ),
+    dict(
+        id="X",
+        name="Export demand",
+        var="X",
+        unit="£bn/yr",
+        lo=-10.0,
+        hi=10.0,
+        step=0.5,
+        to_internal=lambda v: v * 1000.0 / 4.0,
+        desc="External demand for UK exports (e.g. stronger or weaker world growth). Exports add directly to GDP.",
+    ),
+    dict(
+        id="R",
+        name="Bank Rate",
+        var="R",
+        unit="pp",
+        lo=-1.0,
+        hi=1.0,
+        step=0.25,
+        to_internal=lambda v: v,
+        desc="Bank Rate. A rise weighs on investment and demand; the effect is clearest over the first six quarters.",
+    ),
 ]
 
 
@@ -76,7 +101,7 @@ def held_baseline():
         af = float(np.mean(rs))
         for t in range(ft0, ft1 + 1):
             s.residuals[(var, t)] = af
-    s._shock_active = False    # held add-factors APPLIED (not a free run)
+    s._shock_active = False  # held add-factors APPLIED (not a free run)
     s.solve(START, END)
     return s
 
@@ -122,7 +147,7 @@ def solve_override(base, lever, value):
     """Override the instrument (EViews `model.override`) and re-solve against the
     held baseline. Residuals stay ON, shared with the baseline, so the held
     add-factors cancel in the difference. Returns the re-solved data frame."""
-    sh = base.clone()                       # inherits residuals + _shock_active=False
+    sh = base.clone()  # inherits residuals + _shock_active=False
     var = lever["var"]
     sh.make_exogenous(var)
     t0 = sh.period_idx(START)
@@ -146,10 +171,14 @@ def run_point(base, lever, value, control):
     series = {}
     for code, _l, _u, kind in VARS:
         if code in control.columns and code in sdat.columns:
-            arr = [disp(kind, float(control.iloc[t][code]), float(sdat.iloc[t][code]))
-                   for t in range(t0, t1 + 1)]
+            arr = [
+                disp(kind, float(control.iloc[t][code]), float(sdat.iloc[t][code]))
+                for t in range(t0, t1 + 1)
+            ]
             if not is_sane(kind, arr):
-                print(f"[grid]   ! dropping {code} (diverged, |Δ| over cap)", flush=True)
+                print(
+                    f"[grid]   ! dropping {code} (diverged, |Δ| over cap)", flush=True
+                )
                 continue
             if any(v is not None and abs(v) > 1e-9 for v in arr):
                 series[code] = arr
@@ -169,39 +198,57 @@ def main():
         points = []
         for value in (lev["lo"], lev["hi"]):
             print(f"[grid] {lev['id']} = {value}{lev['unit']} ...", flush=True)
-            points.append({"shock": value, "series": run_point(base, lev, value, control)})
+            points.append(
+                {"shock": value, "series": run_point(base, lev, value, control)}
+            )
         # The dashboard scales each endpoint, so a variable is only usable if BOTH
         # endpoints kept it AND the ± responses roughly mirror each other
         # (asymmetry at this scale is solver noise, not nonlinearity).
         common = set(points[0]["series"]) & set(points[1]["series"])
         for code in sorted(common):
             if not is_symmetric(points[0]["series"][code], points[1]["series"][code]):
-                print(f"[grid]   ! dropping {code} (± responses do not mirror; artifact-dominated)",
-                      flush=True)
+                print(
+                    f"[grid]   ! dropping {code} (± responses do not mirror; artifact-dominated)",
+                    flush=True,
+                )
                 common.discard(code)
         for p in points:
             p["series"] = {k: v for k, v in p["series"].items() if k in common}
         if not common:
-            print(f"[grid]   ! dropping lever {lev['id']} entirely: no channel survived "
-                  "the symmetry guard", flush=True)
+            print(
+                f"[grid]   ! dropping lever {lev['id']} entirely: no channel survived "
+                "the symmetry guard",
+                flush=True,
+            )
             continue
-        out_levers.append({
-            "id": lev["id"], "name": lev["name"], "var": lev["var"], "unit": lev["unit"],
-            "lo": lev["lo"], "hi": lev["hi"], "step": lev["step"], "desc": lev["desc"],
-            "points": points,
-        })
+        out_levers.append(
+            {
+                "id": lev["id"],
+                "name": lev["name"],
+                "var": lev["var"],
+                "unit": lev["unit"],
+                "lo": lev["lo"],
+                "hi": lev["hi"],
+                "step": lev["step"],
+                "desc": lev["desc"],
+                "points": points,
+            }
+        )
         print(f"[grid]   moved: {', '.join(sorted(common))}", flush=True)
 
     data = {
-        "meta": {"start": START, "end": END,
-                 "note": "Emulator output (15 Oct 2025 OBR model code). The reform is run as in "
-                         "EViews: the policy instrument is overridden in a scenario and solved "
-                         "against a baseline that already carries the OBR's held add-factors, so "
-                         "the impact is scenario − baseline with the model's common drift cancelled. "
-                         "Endpoints are solved; the slider scales linearly between them. "
-                         "Illustrative, not an OBR forecast."},
+        "meta": {
+            "start": START,
+            "end": END,
+            "note": "Emulator output (15 Oct 2025 OBR model code). The reform is run as in "
+            "EViews: the policy instrument is overridden in a scenario and solved "
+            "against a baseline that already carries the OBR's held add-factors, so "
+            "the impact is scenario − baseline with the model's common drift cancelled. "
+            "Endpoints are solved; the slider scales linearly between them. "
+            "Illustrative, not an OBR forecast.",
+        },
         "periods": periods_ref,
-        "variables": [{"code": c, "label": l, "unit": u} for c, l, u, _ in VARS],
+        "variables": [{"code": c, "label": lbl, "unit": u} for c, lbl, u, _ in VARS],
         "levers": out_levers,
     }
     out = "dashboard/public/data/reform_grid.json"

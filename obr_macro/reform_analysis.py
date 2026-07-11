@@ -15,7 +15,7 @@ GDPM_EQ = ParsedEquation(
     rhs="CGG + CONS + IF + DINV + VAL + X - M + SDE",
     original="GDPM = CGG + CONS + IF + DINV + VAL + X - M + SDE",
     equation_type="identity",
-    python_expr="v['CGG'] + v['CONS'] + v['IF'] + v['DINV'] + v['VAL'] + v['X'] - v['M'] + v['SDE']"
+    python_expr="v['CGG'] + v['CONS'] + v['IF'] + v['DINV'] + v['VAL'] + v['X'] - v['M'] + v['SDE']",
 )
 
 IBUS_EQ = ParsedEquation(
@@ -23,7 +23,7 @@ IBUS_EQ = ParsedEquation(
     rhs="IBUSX + adjustment",
     original="IBUS = IBUSX + 17394 * @recode(...)",
     equation_type="identity",
-    python_expr="v['IBUSX'] + 17394 * _recode(t, '2005Q2', '=', 1, 0)"
+    python_expr="v['IBUSX'] + 17394 * _recode(t, '2005Q2', '=', 1, 0)",
 )
 
 IF_EQ = ParsedEquation(
@@ -31,7 +31,7 @@ IF_EQ = ParsedEquation(
     rhs="IBUS + GGI + PCIH + PCLEB + IH + IPRL",
     original="IF = IBUS + GGI + PCIH + PCLEB + IH + IPRL",
     equation_type="identity",
-    python_expr="v['IBUS'] + v['GGI'] + v['PCIH'] + v['PCLEB'] + v['IH'] + v['IPRL']"
+    python_expr="v['IBUS'] + v['GGI'] + v['PCIH'] + v['PCLEB'] + v['IH'] + v['IPRL']",
 )
 
 # Business-investment error-correction equation, dlog(IBUSX).
@@ -44,8 +44,8 @@ IF_EQ = ParsedEquation(
 # it, business investment is a pure residual and corporation-tax shocks have no
 # effect on investment.
 _IBUSX_SRC = (
-    'dlog(IBUSX) = 0.1992007 * dlog(IBUSX(-3)) + 1.00573 * dlog(MSGVA(-1)) '
-    '- 0.0012369*CBIUD - 0.0418036*(log(IBUSX(-1)) - log(KMSXH(-2) * 1000) '
+    "dlog(IBUSX) = 0.1992007 * dlog(IBUSX(-3)) + 1.00573 * dlog(MSGVA(-1)) "
+    "- 0.0012369*CBIUD - 0.0418036*(log(IBUSX(-1)) - log(KMSXH(-2) * 1000) "
     '+ KGAP(-2) + 0.0544706 * @recode(@date = @dateval("1998:01") , 1 , 0) '
     '+ 0.0597525 * @recode(@date = @dateval("2005:02") , 1 , 0) - 0.0884031)'
 )
@@ -67,8 +67,15 @@ def _ensure_ibusx_inputs(solver):
         solver.data["CBIUD"] = 0.0
 
 
-def run_reform(name: str, var: str, shock: float, start: str = "2025Q1",
-               end: str = "2027Q4", periods: int = 12, investment_closure: bool = False):
+def run_reform(
+    name: str,
+    var: str,
+    shock: float,
+    start: str = "2025Q1",
+    end: str = "2027Q4",
+    periods: int = 12,
+    investment_closure: bool = False,
+):
     """Run a reform scenario and return results DataFrame.
 
     Args:
@@ -131,15 +138,17 @@ def run_reform(name: str, var: str, shock: float, start: str = "2025Q1",
         if_shock = shocked_data.iloc[t]["IF"]
         delta_if = if_shock - if_base
 
-        results.append({
-            "period": period,
-            "reform": name,
-            "delta_gdp_m": delta_gdp,
-            "delta_gdp_bn": delta_gdp / 1000,
-            "pct_gdp": pct_gdp,
-            "delta_cons_m": delta_cons,
-            "delta_if_m": delta_if,
-        })
+        results.append(
+            {
+                "period": period,
+                "reform": name,
+                "delta_gdp_m": delta_gdp,
+                "delta_gdp_bn": delta_gdp / 1000,
+                "pct_gdp": pct_gdp,
+                "delta_cons_m": delta_cons,
+                "delta_if_m": delta_if,
+            }
+        )
 
     return pd.DataFrame(results)
 
@@ -156,7 +165,7 @@ def run_five_reforms():
         var="CGG",
         shock=1250,  # £1.25bn per quarter = £5bn/year
         periods=12,
-        investment_closure=False
+        investment_closure=False,
     )
     reforms.append(df)
 
@@ -167,7 +176,7 @@ def run_five_reforms():
         var="TCPRO",
         shock=-0.05,  # -5pp
         periods=12,
-        investment_closure=True
+        investment_closure=True,
     )
     reforms.append(df)
 
@@ -178,7 +187,7 @@ def run_five_reforms():
         var="TCPRO",
         shock=0.05,  # +5pp
         periods=12,
-        investment_closure=True
+        investment_closure=True,
     )
     reforms.append(df)
 
@@ -191,7 +200,7 @@ def run_five_reforms():
         var="CGIPS",
         shock=3000,  # £3bn nominal per quarter ≈ £2.5bn real
         periods=12,
-        investment_closure=False
+        investment_closure=False,
     )
     reforms.append(df)
 
@@ -202,7 +211,7 @@ def run_five_reforms():
         var="CGG",
         shock=-2500,  # -£2.5bn per quarter
         periods=12,
-        investment_closure=False
+        investment_closure=False,
     )
     reforms.append(df)
 
@@ -218,7 +227,7 @@ def create_visualisations(results: pd.DataFrame, output_dir: str = None):
     output_dir.mkdir(exist_ok=True)
 
     # Set style
-    plt.style.use('seaborn-v0_8-whitegrid')
+    plt.style.use("seaborn-v0_8-whitegrid")
 
     reforms = results["reform"].unique()
     colors = plt.cm.tab10(np.linspace(0, 1, len(reforms)))
@@ -228,9 +237,14 @@ def create_visualisations(results: pd.DataFrame, output_dir: str = None):
     fig, ax = plt.subplots(figsize=(12, 6))
     for reform in reforms:
         df = results[results["reform"] == reform]
-        ax.plot(df["period"], df["delta_gdp_bn"],
-                label=reform, color=color_map[reform], linewidth=2)
-    ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+        ax.plot(
+            df["period"],
+            df["delta_gdp_bn"],
+            label=reform,
+            color=color_map[reform],
+            linewidth=2,
+        )
+    ax.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
     ax.set_xlabel("Quarter", fontsize=12)
     ax.set_ylabel("Change in GDP (£bn)", fontsize=12)
     ax.set_title("GDP Impact of Policy Reforms\n(OBR Model)", fontsize=14)
@@ -245,9 +259,14 @@ def create_visualisations(results: pd.DataFrame, output_dir: str = None):
     fig, ax = plt.subplots(figsize=(12, 6))
     for reform in reforms:
         df = results[results["reform"] == reform]
-        ax.plot(df["period"], df["pct_gdp"],
-                label=reform, color=color_map[reform], linewidth=2)
-    ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+        ax.plot(
+            df["period"],
+            df["pct_gdp"],
+            label=reform,
+            color=color_map[reform],
+            linewidth=2,
+        )
+    ax.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
     ax.set_xlabel("Quarter", fontsize=12)
     ax.set_ylabel("Change in GDP (%)", fontsize=12)
     ax.set_title("GDP Impact of Policy Reforms (% Change)\n(OBR Model)", fontsize=14)
@@ -264,9 +283,12 @@ def create_visualisations(results: pd.DataFrame, output_dir: str = None):
 
     fig, ax = plt.subplots(figsize=(10, 6))
     x = np.arange(len(final_results))
-    bars = ax.bar(x, final_results["delta_gdp_bn"],
-                  color=[color_map[r] for r in final_results["reform"]])
-    ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+    bars = ax.bar(
+        x,
+        final_results["delta_gdp_bn"],
+        color=[color_map[r] for r in final_results["reform"]],
+    )
+    ax.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
     ax.set_xticks(x)
     ax.set_xticklabels(final_results["reform"], rotation=30, ha="right")
     ax.set_ylabel("Change in GDP (£bn)", fontsize=12)
@@ -275,12 +297,15 @@ def create_visualisations(results: pd.DataFrame, output_dir: str = None):
     # Add value labels
     for bar, val in zip(bars, final_results["delta_gdp_bn"]):
         height = bar.get_height()
-        ax.annotate(f'{val:+.1f}',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0, 3 if height >= 0 else -12),
-                    textcoords="offset points",
-                    ha='center', va='bottom' if height >= 0 else 'top',
-                    fontsize=10)
+        ax.annotate(
+            f"{val:+.1f}",
+            xy=(bar.get_x() + bar.get_width() / 2, height),
+            xytext=(0, 3 if height >= 0 else -12),
+            textcoords="offset points",
+            ha="center",
+            va="bottom" if height >= 0 else "top",
+            fontsize=10,
+        )
 
     plt.tight_layout()
     plt.savefig(output_dir / "reform_comparison.png", dpi=150)
@@ -291,32 +316,34 @@ def create_visualisations(results: pd.DataFrame, output_dir: str = None):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
     # Spending reforms
-    spending_reforms = ["£5bn Gov Spending", "£10bn Gov Investment", "£10bn Spending Cut"]
+    spending_reforms = [
+        "£5bn Gov Spending",
+        "£10bn Gov Investment",
+        "£10bn Spending Cut",
+    ]
     for reform in spending_reforms:
         if reform in reforms:
             df = results[results["reform"] == reform]
-            ax1.plot(df["period"], df["delta_gdp_bn"],
-                    label=reform, linewidth=2)
-    ax1.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+            ax1.plot(df["period"], df["delta_gdp_bn"], label=reform, linewidth=2)
+    ax1.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
     ax1.set_xlabel("Quarter")
     ax1.set_ylabel("Change in GDP (£bn)")
     ax1.set_title("Spending Policy Reforms")
     ax1.legend()
-    ax1.tick_params(axis='x', rotation=45)
+    ax1.tick_params(axis="x", rotation=45)
 
     # Tax reforms
     tax_reforms = ["5pp Corp Tax Cut", "5pp Corp Tax Rise"]
     for reform in tax_reforms:
         if reform in reforms:
             df = results[results["reform"] == reform]
-            ax2.plot(df["period"], df["delta_gdp_bn"],
-                    label=reform, linewidth=2)
-    ax2.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+            ax2.plot(df["period"], df["delta_gdp_bn"], label=reform, linewidth=2)
+    ax2.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
     ax2.set_xlabel("Quarter")
     ax2.set_ylabel("Change in GDP (£bn)")
     ax2.set_title("Corporation Tax Reforms")
     ax2.legend()
-    ax2.tick_params(axis='x', rotation=45)
+    ax2.tick_params(axis="x", rotation=45)
 
     plt.tight_layout()
     plt.savefig(output_dir / "reform_spending_vs_tax.png", dpi=150)
@@ -352,7 +379,9 @@ def main():
     print("=" * 70)
     final = results[results["period"] == results["period"].iloc[-1]]
     for _, row in final.iterrows():
-        print(f"{row['reform']:<25} {row['delta_gdp_bn']:>+8.1f} £bn ({row['pct_gdp']:>+6.2f}%)")
+        print(
+            f"{row['reform']:<25} {row['delta_gdp_bn']:>+8.1f} £bn ({row['pct_gdp']:>+6.2f}%)"
+        )
 
     return results
 

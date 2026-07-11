@@ -15,6 +15,7 @@ Fast (no forward solve — just parse + data load).
 Run from the repo root:
     uv run python -m obr_macro.stage1c_scope
 """
+
 from __future__ import annotations
 
 import json
@@ -69,17 +70,23 @@ def main():
     exo_simple = [v for v in exo_with_ons if not re.search(r"[+\-/]", ons[v])]
     exo_compound = [v for v in exo_with_ons if re.search(r"[+\-/]", ons[v])]
 
-    print(f"equations: {len(eqs)} | referenced vars: {len(referenced)} | present in data: {len(present)}")
+    print(
+        f"equations: {len(eqs)} | referenced vars: {len(referenced)} | present in data: {len(present)}"
+    )
     print(f"MISSING referenced vars: {len(missing)}")
     print(f"  endogenous (would compute once inputs exist): {len(endo_missing)}")
     print(f"  exogenous ROOTS (need external value):         {len(exo_missing)}")
-    print(f"      - with ONS code (fetchable):  {len(exo_with_ons)}  "
-          f"(simple {len(exo_simple)}, compound {len(exo_compound)})")
+    print(
+        f"      - with ONS code (fetchable):  {len(exo_with_ons)}  "
+        f"(simple {len(exo_simple)}, compound {len(exo_compound)})"
+    )
     print(f"      - no ONS code (policy/calib): {len(exo_without_ons)}")
 
     print("\nEXOGENOUS ROOTS with a simple ONS series (the first data to pull):")
     for v in exo_simple:
-        print(f"   {v:12} {ons[v]:18} {next((it['desc'] for it in json.load(open(mdp))['items'] if it['code']==v), '')[:48]}")
+        print(
+            f"   {v:12} {ons[v]:18} {next((it['desc'] for it in json.load(open(mdp))['items'] if it['code'] == v), '')[:48]}"
+        )
 
     print("\nEXOGENOUS ROOTS with compound ONS codes (need construction):")
     print("   " + ", ".join(f"{v}={ons[v]}" for v in exo_compound[:25]))

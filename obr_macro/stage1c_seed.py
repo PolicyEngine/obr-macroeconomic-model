@@ -13,12 +13,12 @@ NaN. This:
 Run from the repo root:
     uv run python -m obr_macro.stage1c_seed
 """
+
 from __future__ import annotations
 
 import re
 from collections import Counter
 
-import numpy as np
 
 from obr_macro.full_solver import FullOBRSolver
 
@@ -73,7 +73,9 @@ def main():
     has_eq = {s._extract_lhs_var(eq.lhs) for eq in s.equations}
 
     before = s.diagnose_period(t)
-    print(f"[1c] before seeding: {len(before)} / {len(s.equations)} equations skipped at {PROBE}")
+    print(
+        f"[1c] before seeding: {len(before)} / {len(s.equations)} equations skipped at {PROBE}"
+    )
 
     # classify the blocking NaN inputs
     blockers = Counter()
@@ -81,28 +83,40 @@ def main():
         if d["status"] == "nonfinite" and d["reason"].startswith("NaN inputs:"):
             for nm in d["reason"].split(":", 1)[1].split(","):
                 blockers[nm.strip()] += 1
-    print("\n[1c] top blocking inputs (var | #eqs blocked | has_equation | #finite history):")
+    print(
+        "\n[1c] top blocking inputs (var | #eqs blocked | has_equation | #finite history):"
+    )
     for nm, n in blockers.most_common(25):
         finite = int(s.data[nm].notna().sum()) if nm in s.data.columns else "no-col"
-        print(f"      {nm:14} {n:3}   eq={'Y' if nm in has_eq else 'n'}   hist={finite}")
+        print(
+            f"      {nm:14} {n:3}   eq={'Y' if nm in has_eq else 'n'}   hist={finite}"
+        )
 
     summary = seed_inputs(s)
     after = s.diagnose_period(t)
-    print(f"\n[1c] after seeding: {len(after)} / {len(s.equations)} equations skipped "
-          f"(was {len(before)}) -> unblocked {len(before) - len(after)}")
+    print(
+        f"\n[1c] after seeding: {len(after)} / {len(s.equations)} equations skipped "
+        f"(was {len(before)}) -> unblocked {len(before) - len(after)}"
+    )
     print(f"[1c] columns with any NaN filled: {summary['cols_filled']}")
-    print(f"[1c] *BASE constants set: {len(summary['base_constants_set'])} "
-          f"-> {', '.join(summary['base_constants_set'][:12])}{' ...' if len(summary['base_constants_set'])>12 else ''}")
-    print(f"[1c] still entirely-missing columns: {len(summary['still_missing'])} "
-          f"-> {', '.join(summary['still_missing'][:20])}{' ...' if len(summary['still_missing'])>20 else ''}")
+    print(
+        f"[1c] *BASE constants set: {len(summary['base_constants_set'])} "
+        f"-> {', '.join(summary['base_constants_set'][:12])}{' ...' if len(summary['base_constants_set']) > 12 else ''}"
+    )
+    print(
+        f"[1c] still entirely-missing columns: {len(summary['still_missing'])} "
+        f"-> {', '.join(summary['still_missing'][:20])}{' ...' if len(summary['still_missing']) > 20 else ''}"
+    )
 
     # of the still-missing, which are referenced by equations (genuinely needed)?
     referenced = set()
     for eq in s.equations:
         referenced |= referenced_vars(eq)
     needed_missing = sorted(set(summary["still_missing"]) & referenced)
-    print(f"\n[1c] still-missing AND referenced by an equation ({len(needed_missing)}): "
-          f"{', '.join(needed_missing)}")
+    print(
+        f"\n[1c] still-missing AND referenced by an equation ({len(needed_missing)}): "
+        f"{', '.join(needed_missing)}"
+    )
 
 
 if __name__ == "__main__":

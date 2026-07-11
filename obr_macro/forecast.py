@@ -8,6 +8,7 @@ period gives).
 
     uv run python -m obr_macro.forecast
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -23,25 +24,35 @@ from obr_macro.scoring import BAND_LEGEND, band, var_error
 # November-2025 EFO) are the OBR's own forecast, so residuals there are fit
 # against the OBR's judgement, not data. See docs/forecasting_framework.md.
 BASE_START, BASE_END = "2024Q1", "2025Q4"
-FC_START, FC_END = "2026Q1", "2027Q4"        # the projected horizon
+FC_START, FC_END = "2026Q1", "2027Q4"  # the projected horizon
 
 PANEL = [
-    ("GDPM", "Real GDP", "lvl"), ("CONS", "Consumption", "lvl"),
-    ("IF", "Total investment", "lvl"), ("IBUS", "Business investment", "lvl"),
-    ("X", "Exports", "lvl"), ("M", "Imports", "lvl"),
-    ("ETLFS", "Employment", "lvl"), ("LFSUR", "Unemployment rate", "pp"),
-    ("CPI", "CPI index", "lvl"), ("CPIGR", "CPI inflation", "pp"),
-    ("WFP", "Wages & salaries", "lvl"), ("HHDI", "Household income", "lvl"),
-    ("RHHDI", "Real household income", "lvl"), ("FYCPR", "Company profits", "lvl"),
+    ("GDPM", "Real GDP", "lvl"),
+    ("CONS", "Consumption", "lvl"),
+    ("IF", "Total investment", "lvl"),
+    ("IBUS", "Business investment", "lvl"),
+    ("X", "Exports", "lvl"),
+    ("M", "Imports", "lvl"),
+    ("ETLFS", "Employment", "lvl"),
+    ("LFSUR", "Unemployment rate", "pp"),
+    ("CPI", "CPI index", "lvl"),
+    ("CPIGR", "CPI inflation", "pp"),
+    ("WFP", "Wages & salaries", "lvl"),
+    ("HHDI", "Household income", "lvl"),
+    ("RHHDI", "Real household income", "lvl"),
+    ("FYCPR", "Company profits", "lvl"),
     # net balances are scored as % of GDP (the OBR convention): a % error against
     # their own tiny value is meaninglessly amplified.
-    ("CB", "Current account", "gdp"), ("TB", "Trade balance", "gdp"),
+    ("CB", "Current account", "gdp"),
+    ("TB", "Trade balance", "gdp"),
 ]
 
 
-def forecast(base_start=BASE_START, base_end=BASE_END, fc_start=FC_START, fc_end=FC_END):
+def forecast(
+    base_start=BASE_START, base_end=BASE_END, fc_start=FC_START, fc_end=FC_END
+):
     """Project the model forward with add-factors held from the base window."""
-    s = build(anchored=True)   # residuals computed over 2024Q1+
+    s = build(anchored=True)  # residuals computed over 2024Q1+
     bt0, bt1 = s.period_idx(base_start), s.period_idx(base_end)
 
     held = {}
@@ -57,7 +68,7 @@ def forecast(base_start=BASE_START, base_end=BASE_END, fc_start=FC_START, fc_end
         for t in range(ft0, ft1 + 1):
             s.residuals[(var, t)] = af
 
-    s._shock_active = False    # apply the (now held) add-factors
+    s._shock_active = False  # apply the (now held) add-factors
     s.solve(fc_start, fc_end)
     return s, held
 
@@ -70,7 +81,9 @@ def main():
     skipped = {d["var"] for d in s.diagnose_period(t1)}
     t0 = s.period_idx(FC_START)
 
-    print(f"Held-add-factor forecast: fit {BASE_START}..{BASE_END}, project {FC_START}..{FC_END}\n")
+    print(
+        f"Held-add-factor forecast: fit {BASE_START}..{BASE_END}, project {FC_START}..{FC_END}\n"
+    )
     print(f"  add-factors held for {len(held)} behavioural equations\n")
     counts = {"OK": 0, "~": 0, "!": 0, "X": 0}
     computed = 0
@@ -93,8 +106,10 @@ def main():
 
     good = counts["OK"] + counts["~"]
     if computed:
-        print(f"\n   computed {computed}/{len(PANEL)} | within band: {good}/{computed} computed "
-              f"({100*good/computed:.0f}%)")
+        print(
+            f"\n   computed {computed}/{len(PANEL)} | within band: {good}/{computed} computed "
+            f"({100 * good / computed:.0f}%)"
+        )
         print(f"   ({BAND_LEGEND})")
     else:
         print("\n   none computed")

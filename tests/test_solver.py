@@ -1,7 +1,8 @@
 """Tests for the OBR model solver."""
 
 import pytest
-import numpy as np
+
+pytestmark = pytest.mark.slow  # needs OBR download + full solver build
 
 
 def test_data_loads():
@@ -52,7 +53,7 @@ def test_fiscal_shock():
         shock=1000,  # £1bn
         start="2025Q1",
         end="2025Q4",
-        periods=4
+        periods=4,
     )
 
     # Should have 4 quarters of results
@@ -74,7 +75,7 @@ def test_corp_tax_shock():
         start="2025Q1",
         end="2026Q4",
         periods=8,
-        investment_closure=True
+        investment_closure=True,
     )
 
     # Investment should decrease with higher corp tax

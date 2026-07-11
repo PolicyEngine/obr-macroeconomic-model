@@ -11,6 +11,7 @@ Scores, over the horizon vs the EFO baseline:
 
     uv run python -m obr_macro.calibration_score
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -24,29 +25,39 @@ START, END = "2025Q1", "2027Q4"
 # (code, label, kind) grouped by block. kind: "lvl" -> MAPE %, "pp" -> abs pp.
 PANEL = {
     "Demand (expenditure)": [
-        ("GDPM", "Real GDP", "lvl"), ("CONS", "Consumption", "lvl"),
-        ("IF", "Total investment", "lvl"), ("IBUS", "Business investment", "lvl"),
-        ("X", "Exports", "lvl"), ("M", "Imports", "lvl"),
+        ("GDPM", "Real GDP", "lvl"),
+        ("CONS", "Consumption", "lvl"),
+        ("IF", "Total investment", "lvl"),
+        ("IBUS", "Business investment", "lvl"),
+        ("X", "Exports", "lvl"),
+        ("M", "Imports", "lvl"),
     ],
     "Labour market": [
-        ("ETLFS", "Employment", "lvl"), ("EEES", "Employees", "lvl"),
-        ("LFSUR", "Unemployment rate", "pp"), ("AWEI", "Average earnings", "lvl"),
+        ("ETLFS", "Employment", "lvl"),
+        ("EEES", "Employees", "lvl"),
+        ("LFSUR", "Unemployment rate", "pp"),
+        ("AWEI", "Average earnings", "lvl"),
     ],
     "Prices & wages": [
-        ("CPI", "CPI index", "lvl"), ("RPI", "RPI index", "lvl"),
-        ("CPIGR", "CPI inflation", "pp"), ("PGDP", "GDP deflator", "lvl"),
+        ("CPI", "CPI index", "lvl"),
+        ("RPI", "RPI index", "lvl"),
+        ("CPIGR", "CPI inflation", "pp"),
+        ("PGDP", "GDP deflator", "lvl"),
         ("WFP", "Wages & salaries", "lvl"),
     ],
     "Incomes": [
-        ("HHDI", "Household income", "lvl"), ("COMP", "Compensation", "lvl"),
-        ("RHHDI", "Real household income", "lvl"), ("FYCPR", "Company profits", "lvl"),
+        ("HHDI", "Household income", "lvl"),
+        ("COMP", "Compensation", "lvl"),
+        ("RHHDI", "Real household income", "lvl"),
+        ("FYCPR", "Company profits", "lvl"),
     ],
     # Net balances are scored as % of GDP — the same convention forecast.py
     # uses. A % error against a tiny net balance (a difference of two ~£240bn
     # gross flows) is meaninglessly amplified; scoring both scorecards the same
     # way avoids applying the favourable metric only where it helps a headline.
     "External": [
-        ("CB", "Current account", "gdp"), ("TB", "Trade balance", "gdp"),
+        ("CB", "Current account", "gdp"),
+        ("TB", "Trade balance", "gdp"),
     ],
 }
 
@@ -80,7 +91,7 @@ def raw_solve():
 
 def main():
     efo = load_obr_data()
-    s, has_eq, skipped, t0, t1 = raw_solve()   # raw model: no add-factor residuals
+    s, has_eq, skipped, t0, t1 = raw_solve()  # raw model: no add-factor residuals
     raw = s.data
 
     def status(code):
@@ -100,7 +111,11 @@ def main():
             st = status(code)
             if st == "computed":
                 mark = band(kind, err)
-                word = WORDS[mark] if err is not None and np.isfinite(err) else "no data / dead"
+                word = (
+                    WORDS[mark]
+                    if err is not None and np.isfinite(err)
+                    else "no data / dead"
+                )
                 counts[mark] += 1
                 computed_scores.append((label, kind, err, mark))
                 tag = word
@@ -115,11 +130,15 @@ def main():
     nc = len(computed_scores)
     if nc:
         good = counts["OK"] + counts["~"]
-        print(f"   computed: {nc}/21 variables   (the other {21-nc} are passthrough,")
-        print(f"   i.e. held at the OBR's published value because their channel is dead/exogenous)")
-        print(f"   of the computed: good [OK] {counts['OK']}  fair [~] {counts['~']}  "
-              f"poor [!] {counts['!']}  off [X] {counts['X']}")
-        print(f"   within band: {good}/{nc} computed = {100*good/nc:.0f}%")
+        print(f"   computed: {nc}/21 variables   (the other {21 - nc} are passthrough,")
+        print(
+            "   i.e. held at the OBR's published value because their channel is dead/exogenous)"
+        )
+        print(
+            f"   of the computed: good [OK] {counts['OK']}  fair [~] {counts['~']}  "
+            f"poor [!] {counts['!']}  off [X] {counts['X']}"
+        )
+        print(f"   within band: {good}/{nc} computed = {100 * good / nc:.0f}%")
         print(f"   ({BAND_LEGEND})")
     else:
         print("   none computed.")
