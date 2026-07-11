@@ -59,7 +59,7 @@ def get_roots(df):
     present = {c for c in df.columns if df[c].notna().any()}
     missing = sorted(referenced - present)
 
-    mdp = Path(__file__).parent.parent / "dashboard/public/data/model_data.json"
+    mdp = Path(__file__).parent / "seeds/model_glossary.json"
     ons = {
         it["code"]: (it.get("ons") or "").strip()
         for it in json.load(open(mdp))["items"]

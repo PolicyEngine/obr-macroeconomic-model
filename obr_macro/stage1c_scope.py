@@ -55,7 +55,7 @@ def main():
 
     # ONS codes from the variables glossary
     ons = {}
-    mdp = DATA_DIR.parent / "dashboard/public/data/model_data.json"
+    mdp = DATA_DIR.parent / "obr_macro/seeds/model_glossary.json"
     if mdp.exists():
         for it in json.load(open(mdp))["items"]:
             ons[it["code"]] = (it.get("ons") or "").strip()

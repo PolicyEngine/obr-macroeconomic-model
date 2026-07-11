@@ -13,9 +13,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - name: Ruff lint
-        run: uvx ruff check obr_macro tests dashboard/*.py chat/*.py
+        run: uvx ruff check obr_macro tests
       - name: Ruff format check
-        run: uvx ruff format --check obr_macro tests dashboard/*.py chat/*.py
+        run: uvx ruff format --check obr_macro tests
 
   tests:
     name: Fast tests (hermetic)
@@ -28,25 +28,6 @@ jobs:
       # Slow full-solver tests are marked `slow` and skipped by default
       # (they need the Cloudflare-gated OBR download and ~7 min of solving;
       # run locally with `pytest --runslow`). The default run is hermetic
-      # and finishes in seconds: transpiler unit tests + sanity checks on
-      # the committed dashboard data.
+      # and finishes in seconds.
       - name: Fast tests
         run: uv run pytest -q
-
-  dashboard:
-    name: Dashboard build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dashboard
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: dashboard/package-lock.json
-      - name: Install
-        run: npm ci
-      - name: Build
-        run: npm run build

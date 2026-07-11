@@ -47,7 +47,7 @@ POC = {
 #   index : a price index, deflator, weight, rate or ratio — mean of months,
 #           annual value held flat.
 # Classified from the model variables glossary descriptions
-# (dashboard/public/data/model_data.json). Unknown CDIDs default to "flow",
+# (obr_macro/seeds/model_glossary.json). Unknown CDIDs default to "flow",
 # since the vast majority of pulled series are £m National-Accounts flows.
 SERIES_TYPE: dict[str, str] = {
     "AAZK": "flow",  # LABRO: LA market borrowing net CG/PC debt
