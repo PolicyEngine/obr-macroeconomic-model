@@ -16,7 +16,22 @@ OBR_URLS = {
     "aggregates": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-aggregates/",
 }
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+def _resolve_data_dir() -> Path:
+    """Locate the data directory.
+
+    In a git checkout, `data/` at the repo root is the historical location
+    (gitignored; populated by the ensure_* downloads) — prefer it so existing
+    workflows, tests, and the ons_cache keep working unchanged. In a pip
+    install there is no repo root, so fall back to `obr_macro/_data/`, which
+    ships the model code, model variables, and EFO workbooks as package data.
+    """
+    repo_data = Path(__file__).resolve().parent.parent / "data"
+    if repo_data.is_dir():
+        return repo_data
+    return Path(__file__).resolve().parent / "_data"
+
+
+DATA_DIR = _resolve_data_dir()
 
 # OBR macroeconomic model code/variables download URLs (15 October 2025 version)
 OBR_MODEL_URLS = {
