@@ -10,3 +10,8 @@ build/
 
 # secrets
 .env
+
+# package-data dir: only the committed model/EFO files belong here
+obr_macro/_data/ons_cache/
+obr_macro/_data/obr_model_variables.json
+obr_macro/_data/*.part

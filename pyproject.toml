@@ -18,6 +18,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["obr_macro*"]
 
+[tool.setuptools.package-data]
+obr_macro = ["_data/*.txt", "_data/*.xlsx", "seeds/*.json", "seeds/*.csv"]
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
