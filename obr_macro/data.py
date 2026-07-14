@@ -16,6 +16,7 @@ OBR_URLS = {
     "aggregates": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-aggregates/",
 }
 
+
 def _resolve_data_dir() -> Path:
     """Locate the data directory.
 
