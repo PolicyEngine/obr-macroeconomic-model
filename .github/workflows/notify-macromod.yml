@@ -1,0 +1,16 @@
+name: Notify MacroMod to redeploy MCP server
+on:
+  push:
+    branches: [main]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger MacroMod deploy workflow
+        run: |
+          curl -sf -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.MACROMOD_DISPATCH_TOKEN }}" \
+            https://api.github.com/repos/PolicyEngine/MacroMod/dispatches \
+            -d '{"event_type":"model-updated","client_payload":{"repo":"obr-macroeconomic-model","sha":"${{ github.sha }}"}}'
