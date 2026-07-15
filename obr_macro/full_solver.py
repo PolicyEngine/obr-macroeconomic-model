@@ -89,6 +89,9 @@ class FullOBRSolver:
         # investment closure populates it to anchor the dlog(IBUSX) baseline.
         self.add_factors = {}
 
+        # Gauss-Seidel iteration cap (see solve()). Overridden per-solver.
+        self.max_iter = 60
+
         # Store baseline
         self.baseline = self.data.copy()
 
@@ -692,6 +695,7 @@ class FullOBRSolver:
         # Own copy of the structural add-factors: a shocked clone must carry the
         # same held add-factors as its baseline so they cancel in the delta.
         new.add_factors = dict(getattr(self, "add_factors", {}))
+        new.max_iter = getattr(self, "max_iter", 60)
         new.equations = list(self.equations)  # own list; shared eq objects
         new.data = self.data.copy()  # own data
         new.baseline = self.baseline
@@ -950,9 +954,18 @@ class FullOBRSolver:
         exit_status = {}
         nonconverged = []
 
+        # Per-solver iteration cap. Default (60) is unchanged for the demand
+        # closure and the anchored baseline (which stall out at ~8 iterations
+        # anyway). The investment closure sets a lower cap: its slow-converging
+        # tail is a single rest-of-world national-accounts variable (NAOTAROW)
+        # that is off the corporation-tax -> investment chain, so grinding it to
+        # tol wastes ~50 iterations/period without moving the investment
+        # response (see reform_analysis._IC_MAX_ITER).
+        max_iter = getattr(self, "max_iter", 60)
+
         results = {}
         for t in range(t_start, t_end + 1):
-            iters = self.solve_period(t)
+            iters = self.solve_period(t, max_iter=max_iter)
             period = str(self.index[t])
             results[period] = iters
             status = getattr(self, "_last_period_exit", "unknown")
