@@ -52,19 +52,28 @@ def gdp_col(efo):
     return "GDPMPS" if "GDPMPS" in efo.columns else "GDPM"
 
 
-def var_error(model, efo, code, kind, t0, t1):
+def var_error(model, efo, code, kind, t0, t1, efo_code=None):
     """Mean absolute error for one variable over periods t0..t1 (inclusive).
 
     model/efo are DataFrames indexed the same way. Returns the mean error in
     the metric implied by ``kind`` (see module docstring), or None if no
     finite observation pairs exist.
+
+    ``efo_code`` overrides which EFO column the model's ``code`` is scored
+    against. It defaults to ``code`` (compare like-for-like), but some model
+    variables must be scored against a differently-named EFO series — e.g. the
+    model computes ``RPI`` as the year-on-year *inflation rate*
+    (``RPI = PR/PR(-4)*100-100``), which is the EFO ``RPIGR`` series, not the
+    EFO ``RPI`` price *index*. Comparing the rate to the index is a category
+    error; the override scores it against the matching series.
     """
-    if code not in model.columns or code not in efo.columns:
+    ecode = efo_code or code
+    if code not in model.columns or ecode not in efo.columns:
         return None
     gdp_code = gdp_col(efo)
     errs = []
     for t in range(t0, t1 + 1):
-        m, e = model.iloc[t][code], efo.iloc[t][code]
+        m, e = model.iloc[t][code], efo.iloc[t][ecode]
         if not (np.isfinite(m) and np.isfinite(e)):
             continue
         if kind == "pp":

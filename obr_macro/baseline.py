@@ -34,10 +34,34 @@ CHECK = [
 ]
 
 
+# Published EFO aggregates that are computed by *level* identities (not
+# dlog/d/ratio) and therefore receive no add-factor. The residual mechanism
+# (_compute_residuals) only anchors behavioural equations, so these run raw:
+# their own inputs are unpublished intermediates that drift, so the level
+# aggregate drifts too. HHDI (household disposable income) is the material case
+# — under the raw solve it lands ~18% below the EFO path and leaks into the
+# anchored consumption equation through its `dlog(RHHDI)` term (RHHDI = real
+# HHDI), pulling CONS — and hence the GDPM expenditure identity — ~2% off EFO.
+# Holding these published income series at their EFO values (the databank
+# already carries them) closes that leak, so the anchored baseline reproduces
+# the published aggregates *by construction*, which is what "anchored" means.
+# This is anchoring to ground truth, not snapshotting a model error.
+_PUBLISHED_LEVEL_ANCHORS = ("HHDI", "RHHDI")
+
+
 def build(anchored=True):
     s = FullOBRSolver(verbose=False)
     s.swap_closure("DINV", GDPM_EQ)
     s._shock_active = not anchored
+    if anchored:
+        # Hold the published income aggregates at their EFO values: removing
+        # their equations stops the solve overwriting the EFO series already in
+        # the databank. Only in the anchored baseline — the raw path
+        # (anchored=False) must let the model generate its own income so the
+        # "raw vs OBR" gap stays honest.
+        for var in _PUBLISHED_LEVEL_ANCHORS:
+            if var in s.eq_for_var:
+                s.make_exogenous(var)
     return s
 
 
