@@ -31,31 +31,62 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 
 | Variable | Error (3yr) | Status |
 |---|--:|---|
-| Real GDP | 10.91% | computed — poor |
-| Consumption | 18.03% | computed — poor |
-| Business investment | 318.03% | computed — **off** |
+| Real GDP | 5.70% | computed — fair |
+| Consumption | 9.45% | computed — fair |
+| Business investment | 15.48% | computed — poor |
 | Employment | 0.00% | computed — **trivial identity** |
 | Unemployment rate | 1.01pp | computed — poor |
-| Household income | 931.96% | computed — **off** |
-| Real household income | 934.09% | computed — **off** |
-| Company profits | 374.78% | computed — **off** |
-| RPI index | 99.58% | computed — **off** |
-| Current account | 60.22% of GDP | computed — **off** |
-| Trade balance | 0.57% of GDP | computed — fair |
+| RPI inflation | 2.03pp | computed — poor |
+| Household income | 14.76% | computed — poor |
+| Real household income | 14.48% | computed — poor |
+| Company profits | 54.57% | computed — **off** |
+| Current account | 2.76% of GDP | computed — poor |
+| Trade balance | 0.62% of GDP | computed — fair |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) |
 
 ## Honest score
 - **11 of 21** headline variables are actually computed; the other **10 are passthrough**.
-- Of the 11 computed: 1 is a trivial identity, and the rest run from **poor to off**.
-- **2 of 11 land within band (18%)** — the trade balance (as % of GDP) and the
-  trivial employment identity. Everything else is poor or off.
-- **Why this collapsed from the previous 8/11 (73%):** the earlier score was
-  measured with the EFO path left in the data frame as the Gauss–Seidel seed,
-  so any period that exited on a stall-break scored against values partly
-  inherited from the answer. Under the de-seeded raw solve the same model
-  scores 2/11 — most of the old headline was the seed, not the model. The
-  incomes and current-account blocks in particular diverge once they can no
-  longer coast on the EFO path.
+- Of the 11 computed: 1 is a trivial identity, 3 are fair, 6 are poor, and 1 is off.
+- **4 of 11 land within band (36%)** — Real GDP, Consumption and the trade
+  balance (as % of GDP) are fair, plus the trivial employment identity. The rest
+  are poor, and Company profits is off.
+- **Only Company profits (FYCPR) is now "off".** It is the last variable whose
+  raw error is dominated by an unpublished OBR calibration constant rather than a
+  live bug (see the OSHH floor below).
+
+### RPI: a metric fix, not a model fix
+The model computes `RPI` as the year-on-year RPI **inflation rate**
+(`RPI = PR/PR(-4)*100 - 100`), not the RPI price **index**. The scorecard used
+to compare that rate against the EFO `RPI` *index* (~400) as a level, which is a
+category error — it read a meaningless **99.58%** "off". Scored against the EFO
+`RPIGR` inflation series as a rate (pp), the honest error is **2.03pp** ("poor").
+The residual is real and traces to the RPI index itself: `PR` (≈ the exogenous
+`I7` normaliser) freezes once its unpublished history runs out around 2026Q2, so
+modelled inflation decays toward zero over the tail of the horizon. That decay is
+bounded by the `I7`/`PR` history the OBR does not publish forward, not by the
+equation — hence "poor", not a bug to chase.
+
+### The OSHH floor under Company profits and the incomes block
+`OSHH` (households' operating surplus — mostly imputed rental) is
+`OSHH = 12874 + 0.85*IROO - DIPHHmf`, with `IROO = (PRENT*POP16)/1000`. Evaluated
+from the databank inputs this yields ≈ **£38bn**, almost exactly **half** the
+OBR databank's ≈ **£77bn**. The gap lives in the additive base constant `12874`
+and the level/vintage of the `PRENT` rent index feeding `IROO` — neither of which
+the OBR publishes. Because `HHDI` **adds** `OSHH` (so household income runs ~15%
+low) and `FYCPR` **subtracts** it (so company profits are inflated), this single
+unpublished-constant gap accounts for a large share of the residual error in
+**three** scored variables at once (HHDI, RHHDI, FYCPR). Re-tuning `12874`/`0.85`
+to hit the £77bn target would be fitting to the answer, not calibration, so it is
+left as a documented floor: the anchored add-factor absorbs it, and the raw score
+is gated against *regression*, not chased to zero.
+
+- **Why the headline numbers improved vs earlier versions of this doc:** the
+  large divergences the older table recorded (business investment 318%, household
+  income ~932%, company profits ~375%, current account ~60% of GDP) were fixed by
+  reviving and re-wiring the incomes, investment and financial-account blocks; the
+  RPI 99.58% was a scoring-metric category error, now corrected. What remains is
+  bounded by the unpublished constants and deflator/normaliser histories
+  documented above — genuine floors, not props.
 
 ## Net balances are scored as % of GDP — in *both* scorecards
 Current account and trade balance are scored as a share of GDP, not as a % of
@@ -65,21 +96,28 @@ OBR's own convention. Crucially it is now applied **consistently in both this
 scorecard and the forecast scorecard** (`forecast.py`) — previously it lived only
 in the forecast scorecard, which is the kind of selective metric that flatters a
 headline. Scored the same way everywhere, the trade balance is *fair*; the
-current account is off once de-seeded.
+current account is *poor* (2.76% of GDP) once de-seeded — driven by a net
+investment-income (`NIPD`) overshoot, itself bounded by the overseas
+rate-of-return normalisers the OBR does not publish.
 
 ## Verdict
-Raw (un-add-factored) calibration is **weak**: only the trade balance and the
-trivial employment identity sit within band; GDP, consumption and unemployment
-are poor; the investment, incomes and current-account blocks diverge without
-their add-factors. The ~10 dead/exogenous channels (exports, imports, prices,
-labour demand, wages) are held at the OBR value.
+Raw (un-add-factored) calibration is **partial but honest**: Real GDP,
+consumption and the trade balance sit within band (fair), the trivial employment
+identity is exact, and RPI inflation, business investment, the incomes block and
+the current account are *poor* but no longer diverging. Only Company profits
+(FYCPR) is still *off*, and its residual is dominated by the documented OSHH
+unpublished-constant floor rather than a live bug. The ~10 dead/exogenous
+channels (exports, imports, prices, labour demand, wages) are held at the OBR
+value.
 
-Note these figures are **worse than earlier versions of this doc**. That is
-deliberate: successive correctness fixes removed props the old numbers rested
-on — most recently the EFO-seed inheritance described above, and before that — (1) the fiscal-input data was held flat at a single
-seasonal quarter, which fortuitously sat near the EFO on some channels, and (2)
-several previously-**silently-dead** equations (mixed-case financial-account
-block, `CGC`, ratio-lag deflators) are now alive but not yet add-factor
-calibrated. The earlier scores were partly an artefact of those two bugs.
-Improving these numbers is now honest calibration work on live equations, bounded
-by the constants and deflator histories the OBR does not publish.
+Note these figures are **much better than early versions of this doc** (which
+recorded 318% / 932% / 375% divergences), because the incomes, investment and
+financial-account blocks were revived and re-wired, and the RPI 99.58% was a
+scoring-metric category error now corrected. They are also **de-seeded**: the raw
+solve reseeds every live computed variable from the model's own previous-period
+value before solving, so no variable scores well merely by inheriting the EFO
+seed left in the data frame. What error remains is bounded by the constants and
+deflator/normaliser histories the OBR does not publish (the OSHH base constant,
+the `I7`/`PR` RPI-index history, the overseas rate-of-return normalisers behind
+`NIPD`); the CI gates these against *regression* rather than failing the build on
+a target the published inputs cannot reach.

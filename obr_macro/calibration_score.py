@@ -40,7 +40,15 @@ PANEL = {
     ],
     "Prices & wages": [
         ("CPI", "CPI index", "lvl"),
-        ("RPI", "RPI index", "lvl"),
+        # The model's RPI is the year-on-year RPI *inflation rate*
+        # (RPI = PR/PR(-4)*100-100), not the RPI price index. Score it against
+        # the EFO RPIGR inflation series (a rate, in pp) — comparing this rate
+        # to the EFO RPI *index* (~400) is a category error that read as a
+        # meaningless ~99.6% "level" gap. The residual pp error reflects the
+        # real weakness: the RPI index PR (≈ the exogenous I7 normaliser)
+        # freezes once its unpublished history runs out, so modelled inflation
+        # decays toward zero over the horizon (see docs/calibration_scorecard.md).
+        ("RPI", "RPI inflation", "pp", "RPIGR"),
         ("CPIGR", "CPI inflation", "pp"),
         ("PGDP", "GDP deflator", "lvl"),
         ("WFP", "Wages & salaries", "lvl"),
@@ -106,8 +114,11 @@ def main():
     computed_scores = []
     for block, items in PANEL.items():
         print(f"  {block}")
-        for code, label, kind in items:
-            err = var_error(raw, efo, code, kind, t0, t1)
+        for entry in items:
+            # entries are (code, label, kind) or (code, label, kind, efo_code)
+            code, label, kind = entry[0], entry[1], entry[2]
+            efo_code = entry[3] if len(entry) > 3 else None
+            err = var_error(raw, efo, code, kind, t0, t1, efo_code)
             st = status(code)
             if st == "computed":
                 mark = band(kind, err)

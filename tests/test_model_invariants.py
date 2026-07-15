@@ -121,3 +121,131 @@ def test_opposite_shocks_are_antisymmetric(spending_reforms):
     plus = spending_reforms["plus"]["delta_gdp_bn"].to_numpy()
     minus = spending_reforms["minus"]["delta_gdp_bn"].to_numpy()
     assert np.abs(plus + minus).max() < 0.05
+
+
+def test_reform_is_deterministic():
+    """Same input -> same output. A second identical solve must reproduce the
+    first bit-for-bit; any drift means hidden nondeterministic state."""
+    from obr_macro.reform_analysis import run_reform
+
+    a = run_reform("det", "CGG", 1250, end="2025Q4", periods=4)
+    b = run_reform("det", "CGG", 1250, end="2025Q4", periods=4)
+    assert np.array_equal(a["delta_gdp_m"].to_numpy(), b["delta_gdp_m"].to_numpy())
+    assert np.array_equal(a["delta_if_m"].to_numpy(), b["delta_if_m"].to_numpy())
+
+
+# --- Corporation-tax / investment-closure invariant ------------------------
+
+
+@pytest.fixture(scope="module")
+def corp_tax_reforms():
+    """A corporation-tax cut and rise under the investment closure, which
+    activates the cost-of-capital channel TCPRO -> ... -> IBUSX. Solved once."""
+    from obr_macro.reform_analysis import run_reform
+
+    return {
+        "cut": run_reform("cut", "TCPRO", -0.05, periods=8, investment_closure=True),
+        "rise": run_reform("rise", "TCPRO", 0.05, periods=8, investment_closure=True),
+    }
+
+
+def test_corp_tax_cut_raises_investment(corp_tax_reforms):
+    """A corporation-tax CUT must raise business investment (lower user cost of
+    capital -> higher desired capital -> more investment). This is the mandated
+    fiscal-sign invariant for the investment closure."""
+    final_if = corp_tax_reforms["cut"]["delta_if_m"].iloc[-1]
+    assert final_if > 0, f"tax cut should raise investment, got {final_if:+,.0f}"
+
+
+def test_corp_tax_rise_lowers_investment(corp_tax_reforms):
+    """The symmetric case: a tax RISE must lower investment."""
+    final_if = corp_tax_reforms["rise"]["delta_if_m"].iloc[-1]
+    assert final_if < 0, f"tax rise should lower investment, got {final_if:+,.0f}"
+
+
+def test_corp_tax_investment_response_is_bounded(corp_tax_reforms):
+    """The cost-of-capital channel must transmit but not explode: a 5pp tax
+    change should move investment by a non-trivial but plausible amount (not
+    zero — dead channel — and not a runaway)."""
+    cut = corp_tax_reforms["cut"]["delta_if_m"]
+    assert cut.abs().max() > 1.0, "investment channel appears dead (no response)"
+    # 5pp of corporation tax should not swing quarterly investment by >£50bn
+    assert cut.abs().max() < 50_000, "investment response implausibly large"
+
+
+# --- Anchored baseline: coherence, identities, no NaN/inf -------------------
+
+
+@pytest.fixture(scope="module")
+def anchored():
+    """The anchored baseline (add-factors on) solved over the scored horizon.
+    By construction it reproduces the EFO published aggregates; here we also
+    check it is finite everywhere and that the expenditure identity closes."""
+    from obr_macro.baseline import build
+
+    s = build(anchored=True)
+    s.solve("2025Q1", "2027Q4")
+    return s
+
+
+def test_anchored_reproduces_efo_published_aggregates(anchored):
+    """Add-factors absorb the model's tracking error, so the anchored baseline
+    must reproduce the OBR EFO path for the headline published aggregates to a
+    tight tolerance. This is the by-construction invariant."""
+    from obr_macro.data import load_obr_data
+
+    efo = load_obr_data()
+    t0 = anchored.period_idx("2025Q1")
+    t1 = anchored.period_idx("2027Q4")
+    for code in ("GDPM", "CONS"):
+        errs = []
+        for t in range(t0, t1 + 1):
+            m = anchored.data.iloc[t][code]
+            e = efo.iloc[t][code]
+            if np.isfinite(m) and np.isfinite(e) and abs(e) > 1e-9:
+                errs.append(abs(m - e) / abs(e))
+        mape = 100 * np.mean(errs)
+        assert mape < 1.0, f"anchored {code} MAPE {mape:.2f}% — not reproducing EFO"
+
+
+def test_anchored_baseline_has_no_nan_or_inf_in_key_aggregates(anchored):
+    """No published aggregate may be NaN/inf anywhere on the solved horizon —
+    a non-finite value is a broken transmission chain, not a forecast."""
+    t0 = anchored.period_idx("2025Q1")
+    t1 = anchored.period_idx("2027Q4")
+    key = ["GDPM", "GDPMPS", "CONS", "IF", "X", "M", "ETLFS", "CPI", "HHDI", "CB"]
+    hor = anchored.data.iloc[t0 : t1 + 1]
+    for code in key:
+        if code not in hor.columns:
+            continue
+        vals = hor[code].to_numpy(dtype=float)
+        assert np.isfinite(vals).all(), f"{code} has NaN/inf on the horizon"
+
+
+def test_gdp_expenditure_identity_closes(anchored):
+    """GDPM = CGG + CONS + IF + DINV + VAL + X - M + SDE must hold on the solved
+    baseline (it is the demand-closure identity). Checks the accounting closes
+    and every component is finite — within a small share of GDP."""
+    t0 = anchored.period_idx("2025Q1")
+    t1 = anchored.period_idx("2027Q4")
+    comps = ["CGG", "CONS", "IF", "DINV", "VAL", "X", "M", "SDE"]
+    for t in range(t0, t1 + 1):
+        row = anchored.data.iloc[t]
+        vals = {c: row[c] for c in comps + ["GDPM"]}
+        assert all(np.isfinite(v) for v in vals.values()), (
+            f"non-finite identity component at {anchored.index[t]}: {vals}"
+        )
+        rhs = (
+            vals["CGG"]
+            + vals["CONS"]
+            + vals["IF"]
+            + vals["DINV"]
+            + vals["VAL"]
+            + vals["X"]
+            - vals["M"]
+            + vals["SDE"]
+        )
+        # close to well within 0.5% of GDP
+        assert abs(rhs - vals["GDPM"]) < 0.005 * abs(vals["GDPM"]), (
+            f"expenditure identity fails to close at {anchored.index[t]}"
+        )
