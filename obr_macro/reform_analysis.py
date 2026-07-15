@@ -67,6 +67,12 @@ def _ensure_ibusx_inputs(solver):
         solver.data["CBIUD"] = 0.0
 
 
+# Gauss-Seidel iteration cap for investment-closure solves (see
+# _stabilise_investment_closure). 25 fully settles the corporation-tax ->
+# investment response while cutting the irrelevant slow-converging tail.
+_IC_MAX_ITER = 25
+
+
 def _stabilise_investment_closure(baseline, start: str, end: str):
     """Tame the investment-closure instability (Option 1 fix).
 
@@ -105,6 +111,16 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     when the market-sector block is populated, the frozen reference should be
     replaced by the genuine endogenous MSGVA.
     """
+    # Cap Gauss-Seidel iterations for every solve off this baseline (the
+    # tracking pass and, via clone(), the baseline and shocked runs). With the
+    # investment closure the only variable still moving after ~20 iterations is
+    # NAOTAROW (rest-of-world national accounts): it converges slowly but is off
+    # the corporation-tax -> investment chain, so grinding it to tol spends ~50
+    # extra iterations/period without moving the investment response (which is
+    # settled to within ~1% by iteration 25). This tail is the dominant cost of
+    # the closure; capping it cuts each solve from ~6.5s to ~2.7s locally.
+    baseline.max_iter = _IC_MAX_ITER
+
     t0, t1 = baseline.period_idx(start), baseline.period_idx(end)
     actual_ibusx = baseline.baseline["IBUSX"].copy()  # OBR published path
 
@@ -135,31 +151,27 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     baseline.add_factors = add_factors
 
 
-def run_reform(
-    name: str,
-    var: str,
-    shock: float,
-    start: str = "2025Q1",
-    end: str = "2027Q4",
-    periods: int = 12,
-    investment_closure: bool = False,
-):
-    """Run a reform scenario and return results DataFrame.
+# Cache of stabilised, unsolved reform templates keyed by structure
+# (var, start, end, investment_closure) — NOT the shock size. Building the
+# solver (~15s) and, for the investment closure, running the tracking pass
+# (~3s) depend only on that structure, so they are done once and every scenario
+# clones the pristine template. The template is never solved or shocked in
+# place, so clones stay deterministic and independent.
+_REFORM_TEMPLATE_CACHE = {}
 
-    Args:
-        name: Name of the reform for labeling
-        var: Variable to shock (must be exogenous - no equation computes it)
-        shock: Size of shock (units depend on variable)
-        start: Start quarter (e.g., "2025Q1")
-        end: End quarter for simulation
-        periods: Number of quarters to apply shock
-        investment_closure: If True, use investment closure (for corp tax shocks)
+
+def _build_reform_template(var, start, end, investment_closure):
+    """Build (and cache) the stabilised, unsolved baseline template.
+
+    The baseline and shocked runs must be structurally identical (same closures,
+    same exogenous instrument, same starting data, same stabilisation) so the
+    delta isolates the shock — hence a single shared template that both clone.
     """
-    # Build once; the baseline and shocked runs must be structurally identical
-    # (same closures, same exogenous instrument, same starting data) so the
-    # delta isolates the shock. If `var` is made exogenous only in the shocked
-    # run, the baseline re-solves it endogenously and drifts away from the
-    # databank — the drift can exceed the shock and flip the sign of Q1 deltas.
+    key = (var, start, end, investment_closure)
+    cached = _REFORM_TEMPLATE_CACHE.get(key)
+    if cached is not None:
+        return cached
+
     baseline = FullOBRSolver(verbose=False)
     baseline.swap_closure("DINV", GDPM_EQ)
     if investment_closure:
@@ -183,7 +195,36 @@ def run_reform(
         _stabilise_investment_closure(baseline, start, end)
     baseline._shock_active = True
 
-    shocked = baseline.clone()
+    _REFORM_TEMPLATE_CACHE[key] = baseline
+    return baseline
+
+
+def run_reform(
+    name: str,
+    var: str,
+    shock: float,
+    start: str = "2025Q1",
+    end: str = "2027Q4",
+    periods: int = 12,
+    investment_closure: bool = False,
+):
+    """Run a reform scenario and return results DataFrame.
+
+    Args:
+        name: Name of the reform for labeling
+        var: Variable to shock (must be exogenous - no equation computes it)
+        shock: Size of shock (units depend on variable)
+        start: Start quarter (e.g., "2025Q1")
+        end: End quarter for simulation
+        periods: Number of quarters to apply shock
+        investment_closure: If True, use investment closure (for corp tax shocks)
+    """
+    # Clone the shared (cached) template for both runs; the template is pristine
+    # and unsolved, so the baseline and shocked clones are structurally
+    # identical and the delta isolates the shock.
+    template = _build_reform_template(var, start, end, investment_closure)
+    baseline = template.clone()
+    shocked = template.clone()
     shocked.apply_shock(var, shock, start, periods=periods)
 
     baseline.solve(start, end)
