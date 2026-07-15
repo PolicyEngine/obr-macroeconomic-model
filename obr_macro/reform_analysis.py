@@ -67,6 +67,74 @@ def _ensure_ibusx_inputs(solver):
         solver.data["CBIUD"] = 0.0
 
 
+def _stabilise_investment_closure(baseline, start: str, end: str):
+    """Tame the investment-closure instability (Option 1 fix).
+
+    The reconstructed dlog(IBUSX) equation is faithful to the OBR source, but as
+    an active closure on this data-starved model it sits inside an explosive
+    accelerator loop and diverges even with no shock:
+
+        IBUSX -> IF -> GDPM -> MSGVA (= GDPM - BPA - GGVA) -> back into dlog(IBUSX)
+        via both 1.00573*dlog(MSGVA(-1)) and the KSTAR target (KSTAR ~ MSGVA).
+
+    Here the market-sector supply block that would discipline MSGVA is not
+    populated (see docs/stage1c_data_scope.md), so MSGVA is a ~1:1 mirror of
+    investment-driven demand and the closed loop's eigenvalue exceeds 1 (the raw
+    baseline runs IBUSX ~94,000 -> ~7,000,000 over 12 quarters). Two coupled
+    defects: (a) that spurious accelerator feedback, and (b) a mis-scaled KSTAR
+    level (desired capital ~=GBP 12.5tn vs a capital stock ~=GBP 2.5tn, because
+    MSGVA/COC/deflators are off the OBR's calibrated scale), which puts the
+    error-correction target ~=GBP 13tn instead of the published ~GBP 77.5bn.
+
+    Fix (confined to the investment closure):
+      1. Break the accelerator by decoupling MSGVA from the IBUSX feedback: hold
+         it at a reference path taken from a tracking solve in which IBUSX is
+         pinned to its OBR published values (so demand, and hence MSGVA, is not
+         driven by the diverging investment). With MSGVA frozen the equation is
+         dynamically stable, and the corporation-tax channel survives intact
+         because KSTAR still responds to COC (TCPRO -> TAF -> COC -> KSTAR).
+      2. Re-centre the level by anchoring dlog(IBUSX) to the OBR published path
+         with held add-factors (the same ground-truth device used for the
+         anchored baseline). Applied identically in the baseline and every
+         shocked clone, they cancel in the delta and only fix the shared level.
+
+    Mutates ``baseline`` in place (freezes MSGVA, sets ``add_factors``). The
+    reference MSGVA and add-factors are held constant across the base/shock pair,
+    so the reported delta isolates the cost-of-capital response. This is a
+    stop-gap for the missing supply-side calibration, not a substitute for it:
+    when the market-sector block is populated, the frozen reference should be
+    replaced by the genuine endogenous MSGVA.
+    """
+    t0, t1 = baseline.period_idx(start), baseline.period_idx(end)
+    actual_ibusx = baseline.baseline["IBUSX"].copy()  # OBR published path
+
+    # --- Tracking pass: pin IBUSX to the published path, solve the rest. ---
+    trk = baseline.clone()
+    trk.make_exogenous("IBUSX")
+    for t in range(t0, t1 + 1):
+        trk._set("IBUSX", t, actual_ibusx.iloc[t])
+    trk._shock_active = True
+    trk.solve(start, end)
+    msgva_ref = trk.data["MSGVA"].copy()
+
+    # Held level add-factors: actual - predicted, in the solver's convention
+    # (new_val = IBUSX(-1) * exp(pred_dlog) + add_factor).
+    add_factors = {}
+    for t in range(t0, t1 + 1):
+        pred_dlog = eval(trk._compiled(IBUSX_EQ.python_expr), trk._build_context(t))
+        prev = actual_ibusx.iloc[t - 1]
+        if np.isfinite(pred_dlog) and np.isfinite(prev):
+            pred_level = prev * np.exp(pred_dlog)
+            if np.isfinite(pred_level):
+                add_factors[("IBUSX", t)] = actual_ibusx.iloc[t] - pred_level
+
+    # --- Apply to the baseline: freeze MSGVA, hold the IBUSX add-factors. ---
+    baseline.make_exogenous("MSGVA")
+    for t in range(t0, t1 + 1):
+        baseline._set("MSGVA", t, msgva_ref.iloc[t])
+    baseline.add_factors = add_factors
+
+
 def run_reform(
     name: str,
     var: str,
@@ -108,6 +176,11 @@ def run_reform(
         )
         baseline.swap_closure("IF", IF_EQ)
     baseline.make_exogenous(var)
+    if investment_closure:
+        # Stabilise the reconstructed dlog(IBUSX) closure (breaks the spurious
+        # MSGVA accelerator and anchors the level to the OBR path) before the
+        # baseline/shock split, so both runs share the identical stabilisation.
+        _stabilise_investment_closure(baseline, start, end)
     baseline._shock_active = True
 
     shocked = baseline.clone()

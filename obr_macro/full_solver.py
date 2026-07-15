@@ -84,6 +84,11 @@ class FullOBRSolver:
         # Compute residuals for behavioral equations
         self._compute_residuals()
 
+        # Structural add-factors {(var, t): value}, applied in every solve
+        # regardless of shock mode (see solve_period). Empty by default; the
+        # investment closure populates it to anchor the dlog(IBUSX) baseline.
+        self.add_factors = {}
+
         # Store baseline
         self.baseline = self.data.copy()
 
@@ -684,6 +689,9 @@ class FullOBRSolver:
         new.index = self.index
         new.base_values = self.base_values
         new.residuals = self.residuals
+        # Own copy of the structural add-factors: a shocked clone must carry the
+        # same held add-factors as its baseline so they cancel in the delta.
+        new.add_factors = dict(getattr(self, "add_factors", {}))
         new.equations = list(self.equations)  # own list; shared eq objects
         new.data = self.data.copy()  # own data
         new.baseline = self.baseline
@@ -800,6 +808,18 @@ class FullOBRSolver:
                         if not hasattr(self, "_shock_active") or not self._shock_active:
                             residual = self.residuals.get((var, t), 0)
                             new_val += residual
+
+                        # Structural add-factors: unlike anchoring residuals
+                        # (above, disabled in shock mode), these are applied
+                        # ALWAYS — in the baseline and every shocked clone alike.
+                        # They therefore cancel in a base-vs-shock delta and
+                        # only re-centre the shared level. The investment closure
+                        # uses this to hold the reconstructed dlog(IBUSX) baseline
+                        # on the OBR published path (see reform_analysis) without
+                        # contaminating the corporation-tax response.
+                        af = getattr(self, "add_factors", None)
+                        if af:
+                            new_val += af.get((var, t), 0.0)
 
                         # Update both the DataFrame and the context dict
                         if var in col_idx:

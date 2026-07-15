@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 6 * * *" # nightly full-solve invariant gate
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -25,9 +28,64 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - name: Install
         run: uv sync
-      # Slow full-solver tests are marked `slow` and skipped by default
-      # (they need the Cloudflare-gated OBR download and ~7 min of solving;
-      # run locally with `pytest --runslow`). The default run is hermetic
-      # and finishes in seconds.
+      # Slow full-solver tests are marked `slow` and skipped by default; this
+      # run is hermetic and finishes in seconds, giving fast PR feedback.
       - name: Fast tests
         run: uv run pytest -q
+
+  invariants:
+    name: Structural invariants (full solver — HARD GATE)
+    # The full-solve structural invariants + stress tests take several minutes
+    # (they build and solve the 372-equation model many times), so they run on
+    # main, nightly and on demand rather than on every PR — PRs get the fast
+    # hermetic gate above. This job IS a hard gate: any violation of a sign,
+    # multiplier, NaN/inf, identity-closure, determinism or robustness invariant
+    # fails the build. The EFO workbooks ship as package data (obr_macro/_data),
+    # so no gated OBR download is needed.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install
+        run: uv sync
+      - name: Structural invariants + stress (slow, hard gate)
+        run: >-
+          uv run pytest --runslow -q
+          tests/test_model_invariants.py
+          tests/test_stress.py
+          tests/test_solver.py
+
+  calibration-report:
+    name: Calibration scorecard (report only — never gates)
+    # Publishes the raw-vs-EFO MAPE numbers as a report artifact and job summary.
+    # Calibration is known-weak and bounded by unpublished OBR constants
+    # (see docs/calibration_scorecard.md), so this step NEVER fails the build —
+    # regressions are caught by the invariant gate, not by these numbers.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install
+        run: uv sync
+      - name: Run calibration scorecard
+        run: uv run python -m obr_macro.calibration_score | tee calibration_scorecard.txt
+        continue-on-error: true
+      - name: Publish scorecard to job summary
+        if: always()
+        run: |
+          {
+            echo '### Raw calibration scorecard (report only — does not gate the build)'
+            echo '```'
+            cat calibration_scorecard.txt 2>/dev/null || echo '(scorecard produced no output)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload scorecard artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-scorecard
+          path: calibration_scorecard.txt
+          if-no-files-found: warn
