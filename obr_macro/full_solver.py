@@ -10,6 +10,7 @@ This solver:
 import re
 import warnings
 from collections import Counter
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -20,6 +21,40 @@ from obr_macro.transpiler import parse_model_file, ParsedEquation, IDENT, RESERV
 # Cache of parsed LHS forms, keyed by the raw LHS string (parsing is
 # deterministic, so the cache can be shared across solver instances/clones).
 _LHS_CACHE: dict = {}
+
+
+def is_scalar_shock(shock) -> bool:
+    """True for numeric scalars (Python or NumPy, including 0-d arrays).
+
+    Booleans are NOT scalars here — True/False as a shock is a caller bug and
+    both helpers reject it explicitly.
+    """
+    if isinstance(shock, bool):
+        return False
+    if isinstance(shock, (int, float, np.integer, np.floating)):
+        return True
+    return isinstance(shock, np.ndarray) and shock.ndim == 0
+
+
+def shock_path(shock, periods: int) -> "list[float]":
+    """Normalize a shock spec to a per-quarter list of floats.
+
+    A numeric scalar repeats for ``periods`` quarters; an iterable of numbers
+    is a per-quarter path whose length overrides ``periods``. Booleans,
+    strings, bytes, and mappings are rejected with TypeError; an empty path
+    raises ValueError.
+    """
+    if isinstance(shock, (bool, str, bytes, dict)):
+        raise TypeError(
+            "shock must be a number or a sequence of numbers, got "
+            f"{type(shock).__name__}"
+        )
+    if is_scalar_shock(shock):
+        return [float(shock)] * periods
+    values = [float(s) for s in shock]
+    if not values:
+        raise ValueError("shock sequence must be non-empty")
+    return values
 
 
 class FullOBRSolver:
@@ -732,24 +767,49 @@ class FullOBRSolver:
         if self.verbose:
             print(f"Made {var} exogenous (removed equation)")
 
-    def apply_shock(self, var: str, shock: float, start: str, periods: int = 4):
-        """Apply shock to a variable."""
+    def apply_shock(
+        self,
+        var: str,
+        shock: "float | Sequence[float]",
+        start: str,
+        periods: int = 4,
+    ):
+        """Apply an additive shock to a variable.
+
+        A numeric scalar ``shock`` (Python or NumPy, including 0-d arrays) is
+        applied for ``periods`` quarters from ``start``. A sequence of
+        per-quarter values is applied from ``start`` and its length overrides
+        ``periods`` (externally costed reforms — e.g. a microsimulation
+        revenue path — arrive as one value per quarter). Booleans, strings,
+        and mappings are rejected.
+        """
+        # Validate everything BEFORE mutating solver state (make_exogenous
+        # removes the equation and _shock_active disables residuals — neither
+        # should happen if the shock spec or start period is invalid).
+        scalar = is_scalar_shock(shock)
+        values = shock_path(shock, periods)
+        start_t = self.period_idx(start)
+
         self.make_exogenous(var)
 
         # Mark that we're in shock mode (disable residuals)
         self._shock_active = True
 
-        start_t = self.period_idx(start)
-        for p in range(periods):
+        for p, s in enumerate(values):
             t = start_t + p
             if t < len(self.data):
-                old_val = self._get(var, t)
-                self._set(var, t, old_val + shock)
+                self._set(var, t, self._get(var, t) + s)
 
         if self.verbose:
-            print(
-                f"Applied shock: {var} += {shock:+,.0f} for {periods} periods from {start}"
-            )
+            if scalar:
+                print(
+                    f"Applied shock: {var} += {float(shock):+,.0f} for {periods} periods from {start}"
+                )
+            else:
+                print(
+                    f"Applied shock path: {var} += [{values[0]:+,.0f} … "
+                    f"{values[-1]:+,.0f}] over {len(values)} periods from {start}"
+                )
 
     def period_idx(self, period: str) -> int:
         return self.index.get_loc(pd.Period(period, freq="Q"))
