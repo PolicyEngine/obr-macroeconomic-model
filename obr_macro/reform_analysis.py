@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from collections.abc import Sequence
+from collections.abc import Iterable
 from pathlib import Path
 
 from obr_macro.full_solver import FullOBRSolver, is_scalar_shock, shock_path
@@ -203,7 +203,7 @@ def _build_reform_template(var, start, end, investment_closure):
 def run_reform(
     name: str,
     var: str,
-    shock: "float | Sequence[float]",
+    shock: "float | Iterable[float]",
     start: str = "2025Q1",
     end: str = "2027Q4",
     periods: int = 12,
@@ -224,6 +224,10 @@ def run_reform(
         periods: Number of quarters to apply shock (ignored for a sequence)
         investment_closure: If True, use investment closure (for corp tax shocks)
     """
+    # Normalize/validate the shock spec BEFORE _build_reform_template: a bad
+    # spec must fail in milliseconds, not after an expensive template solve.
+    # (apply_shock re-normalizes; this early pass exists for fail-fast UX and
+    # is pinned by test_run_reform_validates_before_template_build.)
     if not is_scalar_shock(shock):
         shock = shock_path(shock, periods)
         periods = len(shock)
