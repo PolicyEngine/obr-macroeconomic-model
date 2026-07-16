@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from collections.abc import Sequence
 from pathlib import Path
 
 from obr_macro.full_solver import FullOBRSolver
@@ -202,7 +203,7 @@ def _build_reform_template(var, start, end, investment_closure):
 def run_reform(
     name: str,
     var: str,
-    shock: float,
+    shock: "float | Sequence[float]",
     start: str = "2025Q1",
     end: str = "2027Q4",
     periods: int = 12,
@@ -213,12 +214,19 @@ def run_reform(
     Args:
         name: Name of the reform for labeling
         var: Variable to shock (must be exogenous - no equation computes it)
-        shock: Size of shock (units depend on variable)
+        shock: Size of shock (units depend on variable). A scalar is applied
+            for ``periods`` quarters; a sequence of per-quarter values is
+            applied from ``start`` and its length overrides ``periods``
+            (externally costed reforms — e.g. a microsimulation revenue
+            path — arrive as one value per quarter).
         start: Start quarter (e.g., "2025Q1")
         end: End quarter for simulation
-        periods: Number of quarters to apply shock
+        periods: Number of quarters to apply shock (ignored for a sequence)
         investment_closure: If True, use investment closure (for corp tax shocks)
     """
+    if not isinstance(shock, (int, float)):
+        shock = [float(s) for s in shock]
+        periods = len(shock)
     # Clone the shared (cached) template for both runs; the template is pristine
     # and unsolved, so the baseline and shocked clones are structurally
     # identical and the delta isolates the shock.

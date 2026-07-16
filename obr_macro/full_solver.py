@@ -10,6 +10,7 @@ This solver:
 import re
 import warnings
 from collections import Counter
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -732,24 +733,48 @@ class FullOBRSolver:
         if self.verbose:
             print(f"Made {var} exogenous (removed equation)")
 
-    def apply_shock(self, var: str, shock: float, start: str, periods: int = 4):
-        """Apply shock to a variable."""
+    def apply_shock(
+        self,
+        var: str,
+        shock: "float | Sequence[float]",
+        start: str,
+        periods: int = 4,
+    ):
+        """Apply an additive shock to a variable.
+
+        A scalar ``shock`` is applied for ``periods`` quarters from ``start``.
+        A sequence of per-quarter values is applied from ``start`` and its
+        length overrides ``periods`` (externally costed reforms — e.g. a
+        microsimulation revenue path — arrive as one value per quarter).
+        """
         self.make_exogenous(var)
 
         # Mark that we're in shock mode (disable residuals)
         self._shock_active = True
 
+        if isinstance(shock, (int, float)):
+            values = [float(shock)] * periods
+        else:
+            values = [float(s) for s in shock]
+            if not values:
+                raise ValueError("shock sequence must be non-empty")
+
         start_t = self.period_idx(start)
-        for p in range(periods):
+        for p, s in enumerate(values):
             t = start_t + p
             if t < len(self.data):
-                old_val = self._get(var, t)
-                self._set(var, t, old_val + shock)
+                self._set(var, t, self._get(var, t) + s)
 
         if self.verbose:
-            print(
-                f"Applied shock: {var} += {shock:+,.0f} for {periods} periods from {start}"
-            )
+            if isinstance(shock, (int, float)):
+                print(
+                    f"Applied shock: {var} += {shock:+,.0f} for {periods} periods from {start}"
+                )
+            else:
+                print(
+                    f"Applied shock path: {var} += [{values[0]:+,.0f} … "
+                    f"{values[-1]:+,.0f}] over {len(values)} periods from {start}"
+                )
 
     def period_idx(self, period: str) -> int:
         return self.index.get_loc(pd.Period(period, freq="Q"))

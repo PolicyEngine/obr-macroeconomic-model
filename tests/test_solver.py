@@ -81,3 +81,15 @@ def test_corp_tax_shock():
     # Investment should decrease with higher corp tax
     final_if_change = results.iloc[-1]["delta_if_m"]
     assert final_if_change < 0
+
+
+def test_path_shock_matches_constant_scalar():
+    """A constant per-quarter path reproduces the scalar shock exactly."""
+    from obr_macro import run_reform
+
+    kwargs = dict(var="CGG", start="2025Q1", end="2025Q4")
+    scalar = run_reform(name="scalar", shock=1000, periods=4, **kwargs)
+    path = run_reform(name="path", shock=[1000.0] * 4, **kwargs)
+    assert len(path) == len(scalar)
+    for col in ("delta_gdp_m", "delta_gdp_bn", "pct_gdp", "delta_cons_m", "delta_if_m"):
+        assert list(scalar[col]) == list(path[col])
