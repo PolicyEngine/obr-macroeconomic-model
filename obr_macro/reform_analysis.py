@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from collections.abc import Sequence
 from pathlib import Path
 
-from obr_macro.full_solver import FullOBRSolver
+from obr_macro.full_solver import FullOBRSolver, is_scalar_shock, shock_path
 from obr_macro.transpiler import ParsedEquation, EViewsTranspiler
 
 
@@ -224,8 +224,8 @@ def run_reform(
         periods: Number of quarters to apply shock (ignored for a sequence)
         investment_closure: If True, use investment closure (for corp tax shocks)
     """
-    if not isinstance(shock, (int, float)):
-        shock = [float(s) for s in shock]
+    if not is_scalar_shock(shock):
+        shock = shock_path(shock, periods)
         periods = len(shock)
     # Clone the shared (cached) template for both runs; the template is pristine
     # and unsolved, so the baseline and shocked clones are structurally
