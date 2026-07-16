@@ -135,3 +135,52 @@ def test_run_reform_normalizes_paths_fast(monkeypatch):
     )
     assert list(df["delta_gdp_m"]) == [1.0, 2.0, 3.0, 0.0]
     assert list(df["reform"].unique()) == ["path"]
+
+
+def test_0d_arrays_of_bool_or_string_rejected():
+    import numpy as np
+
+    from obr_macro.full_solver import is_scalar_shock, shock_path
+
+    for bad in (np.array(True), np.array("1250")):
+        assert not is_scalar_shock(bad)
+        with pytest.raises(TypeError):
+            shock_path(bad, 4)
+
+
+def test_non_numeric_path_elements_rejected():
+    import numpy as np
+
+    from obr_macro.full_solver import shock_path
+
+    for bad in ([1.0, "2"], [True, 1.0], [1.0, None], np.array([True, False])):
+        with pytest.raises(TypeError):
+            shock_path(bad, 4)
+
+
+def test_numeric_key_mappings_rejected():
+    from collections import OrderedDict
+
+    from obr_macro.full_solver import shock_path
+
+    with pytest.raises(TypeError):
+        shock_path(OrderedDict({0: 1.0, 1: 2.0}), 4)
+
+
+def test_run_reform_validates_before_template_build(monkeypatch):
+    """The early-validation branch must fire BEFORE the expensive template
+    build — this test fails if that branch is removed (the sentinel raises)."""
+    from obr_macro import reform_analysis
+
+    def sentinel(*a, **k):
+        raise AssertionError("template built before shock validation")
+
+    monkeypatch.setattr(reform_analysis, "_build_reform_template", sentinel)
+    with pytest.raises(TypeError):
+        reform_analysis.run_reform(
+            name="bad", var="CGG", shock="1250", start="2025Q1", end="2025Q4"
+        )
+    with pytest.raises(ValueError):
+        reform_analysis.run_reform(
+            name="bad", var="CGG", shock=[], start="2025Q1", end="2025Q4"
+        )

@@ -10,7 +10,7 @@ This solver:
 import re
 import warnings
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -23,35 +23,54 @@ from obr_macro.transpiler import parse_model_file, ParsedEquation, IDENT, RESERV
 _LHS_CACHE: dict = {}
 
 
-def is_scalar_shock(shock) -> bool:
-    """True for numeric scalars (Python or NumPy, including 0-d arrays).
-
-    Booleans are NOT scalars here — True/False as a shock is a caller bug and
-    both helpers reject it explicitly.
-    """
-    if isinstance(shock, bool):
+def _is_numeric(value) -> bool:
+    """Python or NumPy number; booleans (including np.bool_) are not."""
+    if isinstance(value, bool) or isinstance(value, np.bool_):
         return False
-    if isinstance(shock, (int, float, np.integer, np.floating)):
+    return isinstance(value, (int, float, np.integer, np.floating))
+
+
+def is_scalar_shock(shock) -> bool:
+    """True for numeric scalars (Python or NumPy, including numeric 0-d
+    arrays). Booleans are NOT scalars here — True/False as a shock is a
+    caller bug and both helpers reject it explicitly; likewise a 0-d array
+    of bool or string dtype is not a scalar shock.
+    """
+    if _is_numeric(shock):
         return True
-    return isinstance(shock, np.ndarray) and shock.ndim == 0
+    return (
+        isinstance(shock, np.ndarray)
+        and shock.ndim == 0
+        and np.issubdtype(shock.dtype, np.number)
+        and not np.issubdtype(shock.dtype, np.bool_)
+    )
 
 
 def shock_path(shock, periods: int) -> "list[float]":
     """Normalize a shock spec to a per-quarter list of floats.
 
     A numeric scalar repeats for ``periods`` quarters; an iterable of numbers
-    is a per-quarter path whose length overrides ``periods``. Booleans,
-    strings, bytes, and mappings are rejected with TypeError; an empty path
-    raises ValueError.
+    (list/tuple, ndarray, Series) is a per-quarter path whose length overrides
+    ``periods``. Booleans, strings, bytes, and mappings — as the spec or as
+    path elements — are rejected with TypeError; an empty path raises
+    ValueError.
     """
-    if isinstance(shock, (bool, str, bytes, dict)):
+    from collections.abc import Mapping
+
+    if isinstance(shock, (bool, np.bool_, str, bytes)) or isinstance(shock, Mapping):
         raise TypeError(
             "shock must be a number or a sequence of numbers, got "
             f"{type(shock).__name__}"
         )
     if is_scalar_shock(shock):
         return [float(shock)] * periods
-    values = [float(s) for s in shock]
+    values = []
+    for s in shock:
+        if not _is_numeric(s):
+            raise TypeError(
+                f"shock path elements must be numbers, got {type(s).__name__}"
+            )
+        values.append(float(s))
     if not values:
         raise ValueError("shock sequence must be non-empty")
     return values
@@ -770,7 +789,7 @@ class FullOBRSolver:
     def apply_shock(
         self,
         var: str,
-        shock: "float | Sequence[float]",
+        shock: "float | Iterable[float]",
         start: str,
         periods: int = 4,
     ):
