@@ -7,9 +7,11 @@ This solver:
 4. Allows closure swaps for policy simulation
 """
 
+import numbers
 import re
 import warnings
 from collections import Counter
+from decimal import Decimal
 from collections.abc import Iterable
 
 import numpy as np
@@ -24,10 +26,12 @@ _LHS_CACHE: dict = {}
 
 
 def _is_numeric(value) -> bool:
-    """Python or NumPy number; booleans (including np.bool_) are not."""
-    if isinstance(value, bool) or isinstance(value, np.bool_):
+    """Real number of any stdlib/NumPy flavour (int, float, np.integer,
+    np.floating, Fraction, Decimal); booleans (including np.bool_) are not.
+    Decimal registers only as numbers.Number, hence the explicit union."""
+    if isinstance(value, (bool, np.bool_)):
         return False
-    return isinstance(value, (int, float, np.integer, np.floating))
+    return isinstance(value, (numbers.Real, Decimal))
 
 
 def is_scalar_shock(shock) -> bool:
