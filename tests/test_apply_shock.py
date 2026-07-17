@@ -153,18 +153,41 @@ def test_non_numeric_path_elements_rejected():
 
     from obr_macro.full_solver import shock_path
 
-    for bad in ([1.0, "2"], [True, 1.0], [1.0, None], np.array([True, False])):
+    for bad in (
+        [1.0, "2"],
+        [1.0, b"2"],
+        [True, 1.0],
+        [1.0, None],
+        np.array([True, False]),
+    ):
         with pytest.raises(TypeError):
             shock_path(bad, 4)
 
 
 def test_numeric_key_mappings_rejected():
-    from collections import OrderedDict
+    """Any Mapping is refused — pinned with a non-dict-subclass Mapping, so
+    narrowing the check back to concrete dict fails this test."""
+    from collections import OrderedDict, UserDict
 
     from obr_macro.full_solver import shock_path
 
-    with pytest.raises(TypeError):
-        shock_path(OrderedDict({0: 1.0, 1: 2.0}), 4)
+    for mapping in (OrderedDict({0: 1.0, 1: 2.0}), UserDict({0: 1.0})):
+        with pytest.raises(TypeError):
+            shock_path(mapping, 4)
+
+
+def test_fraction_and_decimal_are_numeric():
+    """Stdlib real numbers the parent code accepted via float() still work,
+    as scalars and as path elements (round-3 review)."""
+    from decimal import Decimal
+    from fractions import Fraction
+
+    from obr_macro.full_solver import is_scalar_shock, shock_path
+
+    for s in (Fraction(5, 2), Decimal("2.5")):
+        assert is_scalar_shock(s)
+        assert shock_path(s, 2) == [2.5, 2.5]
+    assert shock_path([Fraction(1, 2), Decimal("1.5")], 8) == [0.5, 1.5]
 
 
 def test_run_reform_validates_before_template_build(monkeypatch):
