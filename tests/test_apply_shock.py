@@ -5,6 +5,8 @@ scalar/path shock semantics are covered in milliseconds. The full-solve
 equivalence check lives in tests/test_solver.py (slow).
 """
 
+import warnings
+
 import pandas as pd
 import pytest
 
@@ -207,3 +209,56 @@ def test_run_reform_validates_before_template_build(monkeypatch):
         reform_analysis.run_reform(
             name="bad", var="CGG", shock=[], start="2025Q1", end="2025Q4"
         )
+
+
+def _eq(lhs: str):
+    """Minimal ParsedEquation with the given LHS."""
+    from obr_macro.transpiler import ParsedEquation
+
+    return ParsedEquation(
+        lhs=lhs,
+        rhs="0",
+        original=f"{lhs} = 0",
+        equation_type="identity",
+        python_expr="0.0",
+    )
+
+
+def test_unparsed_lhs_warns_once_per_process():
+    """A non-identifier LHS (e.g. 'log(HHTFA)') must warn ONCE, not on every
+    index rebuild — clone()/make_exogenous()/swap_closure() each rebuild the
+    index, which previously flooded stderr during a normal shock run."""
+    from obr_macro import full_solver
+
+    full_solver.reset_model_warnings()
+    s = _bare_solver()
+    s.equations = [_eq("log(HHTFA)")]
+
+    with pytest.warns(UserWarning, match="non-identifier"):
+        s._build_equation_index()
+
+    # Every subsequent rebuild must be silent.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        for _ in range(5):
+            s._build_equation_index()
+
+
+def test_unparsed_lhs_recorded_for_inspection():
+    """Silencing the repeat warnings must not lose the information: the
+    offending LHS stays discoverable on the solver after every rebuild."""
+    from obr_macro import full_solver
+
+    full_solver.reset_model_warnings()
+    s = _bare_solver()
+    s.equations = [_eq("log(HHTFA)"), _eq("log(NDIVHH)")]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        s._build_equation_index()
+        s._build_equation_index()  # rebuild: still recorded, just not re-warned
+
+    assert s.unparsed_lhs == {
+        "log(HHTFA)": "log(HHTFA)",
+        "log(NDIVHH)": "log(NDIVHH)",
+    }
