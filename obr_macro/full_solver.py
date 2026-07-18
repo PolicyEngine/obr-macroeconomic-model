@@ -24,6 +24,21 @@ from obr_macro.transpiler import parse_model_file, ParsedEquation, IDENT, RESERV
 # deterministic, so the cache can be shared across solver instances/clones).
 _LHS_CACHE: dict = {}
 
+# Warn-once registries for model-file defects. The equation index is rebuilt on
+# every clone()/make_exogenous()/swap_closure(), and the defects are properties
+# of the parsed model file rather than of any one solver, so warning per rebuild
+# emits the same message dozens of times in a single run. Keyed by LHS var.
+_WARNED_UNPARSED_LHS: set = set()
+_WARNED_DUPLICATE_LHS: set = set()
+
+
+def reset_model_warnings() -> None:
+    """Clear the warn-once registries so the model-file warnings are emitted
+    again. Intended for tests and for callers that deliberately re-parse a
+    different model file in the same process."""
+    _WARNED_UNPARSED_LHS.clear()
+    _WARNED_DUPLICATE_LHS.clear()
+
 
 def _is_numeric(value) -> bool:
     """Real number of any stdlib/NumPy flavour (int, float, np.integer,
@@ -199,22 +214,38 @@ class FullOBRSolver:
         """Build index of which variable each equation computes."""
         self.eq_for_var = {}  # var -> equation
         self.var_for_eq = {}  # equation index -> var
+        self.unparsed_lhs = {}  # non-identifier LHS key -> raw LHS string
 
         for i, eq in enumerate(self.equations):
             var = self._extract_lhs_var(eq.lhs)
             if not re.fullmatch(IDENT, var):
-                warnings.warn(
-                    f"Equation LHS parsed to non-identifier {var!r} "
-                    f"(from LHS {eq.lhs!r}) — possible corrupted/unsupported "
-                    "LHS form.",
-                    stacklevel=2,
-                )
+                # The index is rebuilt on every clone()/make_exogenous()/
+                # swap_closure(), so warning unconditionally floods stderr with
+                # the same handful of messages during a normal shock run. The
+                # condition is a property of the parsed model file, not of this
+                # solver instance, so report each distinct LHS once per process
+                # and record it on the instance for programmatic inspection.
+                self.unparsed_lhs[var] = eq.lhs
+                if var not in _WARNED_UNPARSED_LHS:
+                    _WARNED_UNPARSED_LHS.add(var)
+                    warnings.warn(
+                        f"Equation LHS parsed to non-identifier {var!r} "
+                        f"(from LHS {eq.lhs!r}) — possible corrupted/unsupported "
+                        "LHS form. This equation never fires, so the variable it "
+                        "should compute stays at its data/last-solved value. "
+                        "Warned once per process; see solver.unparsed_lhs for "
+                        "the full set.",
+                        stacklevel=2,
+                    )
             if var in self.eq_for_var:
-                warnings.warn(
-                    f"Duplicate equation for variable {var!r}; the later "
-                    "equation overwrites the earlier in the index.",
-                    stacklevel=2,
-                )
+                if var not in _WARNED_DUPLICATE_LHS:
+                    _WARNED_DUPLICATE_LHS.add(var)
+                    warnings.warn(
+                        f"Duplicate equation for variable {var!r}; the later "
+                        "equation overwrites the earlier in the index. "
+                        "Warned once per process.",
+                        stacklevel=2,
+                    )
             self.eq_for_var[var] = eq
             self.var_for_eq[i] = var
 
