@@ -66,6 +66,14 @@ uv sync
 3. **Closure swap**: For shocks, DINV (inventories) becomes residual, GDP becomes endogenous
 4. **Deviation mode**: Compare shocked vs baseline to isolate policy effects
 
+### Known inert equations
+
+`log(HHTFA)` and `log(NDIVHH)` now parse correctly (they previously had no LHS
+branch at all), but both remain frozen because their exogenous inputs `MAJGDP`
+and `CORP` are absent from the published databank. The corporate-profits →
+household-dividend-income channel (`FYCPR → NDIVHH → PIRHH → HHDI`) is therefore
+still inert. See `docs/forecasting_framework.md`.
+
 ## Key Variables
 
 - `CGG` - Government consumption (exogenous)
