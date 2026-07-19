@@ -44,6 +44,14 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 | Trade balance | 0.62% of GDP | computed — fair |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) |
 
+**`log(X)` LHS fix (issue #14): scorecard unchanged.** Adding the missing `log`
+branch to `_parse_lhs` makes `log(HHTFA)` and `log(NDIVHH)` index under their
+real column names, but both stay frozen because their inputs `MAJGDP` and `CORP`
+are all-NaN in the published databank. Every line above is bitwise identical
+before and after — including Household income (14.76%), Real household income
+(14.48%) and Company profits (54.57%), the lines that would move if the
+profits → dividends channel were live.
+
 ## Honest score
 - **11 of 21** headline variables are actually computed; the other **10 are passthrough**.
 - Of the 11 computed: 1 is a trivial identity, 3 are fair, 6 are poor, and 1 is off.

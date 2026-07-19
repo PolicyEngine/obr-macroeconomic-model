@@ -225,14 +225,14 @@ def _eq(lhs: str):
 
 
 def test_unparsed_lhs_warns_once_per_process():
-    """A non-identifier LHS (e.g. 'log(HHTFA)') must warn ONCE, not on every
+    """A non-identifier LHS (e.g. 'HHTFA+X') must warn ONCE, not on every
     index rebuild — clone()/make_exogenous()/swap_closure() each rebuild the
     index, which previously flooded stderr during a normal shock run."""
     from obr_macro import full_solver
 
     full_solver.reset_model_warnings()
     s = _bare_solver()
-    s.equations = [_eq("log(HHTFA)")]
+    s.equations = [_eq("HHTFA+X")]
 
     with pytest.warns(UserWarning, match="non-identifier"):
         s._build_equation_index()
@@ -251,7 +251,7 @@ def test_unparsed_lhs_recorded_for_inspection():
 
     full_solver.reset_model_warnings()
     s = _bare_solver()
-    s.equations = [_eq("log(HHTFA)"), _eq("log(NDIVHH)")]
+    s.equations = [_eq("HHTFA+X"), _eq("NDIVHH+Y")]
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -259,6 +259,23 @@ def test_unparsed_lhs_recorded_for_inspection():
         s._build_equation_index()  # rebuild: still recorded, just not re-warned
 
     assert s.unparsed_lhs == {
-        "log(HHTFA)": "log(HHTFA)",
-        "log(NDIVHH)": "log(NDIVHH)",
+        "HHTFA+X": "HHTFA+X",
+        "NDIVHH+Y": "NDIVHH+Y",
     }
+
+
+def test_log_lhs_no_longer_unparsed():
+    """The two published log(X) equations parse to real column names now, so
+    they must not be reported as unparsed (regression guard for #14)."""
+    from obr_macro import full_solver
+
+    full_solver.reset_model_warnings()
+    s = _bare_solver()
+    s.equations = [_eq("log(HHTFA)"), _eq("log(NDIVHH)")]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        s._build_equation_index()
+
+    assert s.unparsed_lhs == {}
+    assert set(s.eq_for_var) == {"HHTFA", "NDIVHH"}

@@ -635,6 +635,7 @@ class FullOBRSolver:
           'ratio':  X / X(-n) = rhs      ->  X = X(-n) * rhs
           'growth': d(X) / X(-n) = rhs   ->  X = X(-1) + rhs * X(-n)
           'dlog':   dlog(X) = rhs        ->  X = X(-1) * exp(rhs)
+          'log':    log(X) = rhs         ->  X = exp(rhs)
           'd':      d(X) = rhs           ->  X = X(-1) + rhs
           'level':  X = rhs              ->  X = rhs
         """
@@ -658,6 +659,8 @@ class FullOBRSolver:
                 parsed = (num, "ratio", lag)
         elif s.lower().startswith("dlog("):
             parsed = (s[5:-1].strip(), "dlog", 1)
+        elif s.lower().startswith("log(") and s.endswith(")"):
+            parsed = (s[4:-1].strip(), "log", 0)
         elif s.lower().startswith("d("):
             parsed = (s[2:-1].strip(), "d", 1)
         elif s.startswith("@IDENTITY"):
@@ -691,6 +694,8 @@ class FullOBRSolver:
         if kind == "dlog":
             lag_val = self._lag(var, lag, t)
             return lag_val * np.exp(rhs_val) if np.isfinite(lag_val) else np.nan
+        if kind == "log":
+            return np.exp(rhs_val)
         if kind == "d":
             lag_val = self._lag(var, lag, t)
             return lag_val + rhs_val if np.isfinite(lag_val) else np.nan
