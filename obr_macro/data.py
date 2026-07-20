@@ -8,12 +8,12 @@ import numpy as np
 import pandas as pd
 import openpyxl
 
-# OBR November 2025 EFO download URLs
+# OBR March 2026 EFO download URLs
 OBR_URLS = {
-    "economy": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-economy/",
-    "receipts": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-receipts/",
-    "expenditure": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-expenditure/",
-    "aggregates": "https://obr.uk/download/november-2025-economic-and-fiscal-outlook-detailed-forecast-tables-aggregates/",
+    "economy": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-economy/",
+    "receipts": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-receipts/",
+    "expenditure": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-expenditure/",
+    "aggregates": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-aggregates/",
 }
 
 
@@ -126,10 +126,10 @@ def ensure_downloaded() -> dict[str, Path]:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     files = {
-        "economy": DATA_DIR / "obr_efo_november_2025_economy.xlsx",
-        "receipts": DATA_DIR / "obr_efo_november_2025_receipts.xlsx",
-        "expenditure": DATA_DIR / "obr_efo_november_2025_expenditure.xlsx",
-        "aggregates": DATA_DIR / "obr_efo_november_2025_aggregates.xlsx",
+        "economy": DATA_DIR / "obr_efo_march_2026_economy.xlsx",
+        "receipts": DATA_DIR / "obr_efo_march_2026_receipts.xlsx",
+        "expenditure": DATA_DIR / "obr_efo_march_2026_expenditure.xlsx",
+        "aggregates": DATA_DIR / "obr_efo_march_2026_aggregates.xlsx",
     }
 
     for key, path in files.items():

@@ -51,7 +51,7 @@ This runs five policy scenarios and generates charts in `outputs/`:
 The `data/` directory contains:
 - `obr_model_code_october_2025.txt` - OBR EViews model equations (15 October 2025 version)
 - `obr_model_variables_october_2025.xlsx` - OBR model variable definitions (15 October 2025 version)
-- `obr_efo_november_2025_*.xlsx` - OBR forecast data
+- `obr_efo_march_2026_*.xlsx` - OBR forecast data (March 2026 EFO detailed forecast tables)
 
 ## Setup
 
