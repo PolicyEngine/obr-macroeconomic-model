@@ -14,6 +14,8 @@ Scores, over the horizon vs the EFO baseline:
 
 from __future__ import annotations
 
+import argparse
+import json
 import numpy as np
 
 from obr_macro.baseline import build
@@ -97,7 +99,13 @@ def raw_solve():
     return s, has_eq, skipped, t0, t1
 
 
-def main():
+def build_scorecard() -> dict:
+    """Return the calibration evidence as structured, machine-readable data.
+
+    Passthroughs are retained in the inventory but excluded from the computed
+    denominator. This makes it impossible for a caller to turn a frozen OBR
+    value into apparent forecast accuracy by averaging all rows together.
+    """
     efo = load_obr_data()
     s, has_eq, skipped, t0, t1 = raw_solve()  # raw model: no add-factor residuals
     raw = s.data
@@ -109,11 +117,11 @@ def main():
             return "passthrough (equation dead — held at OBR value)"
         return "computed"
 
-    print(f"Calibration scorecard — raw model vs OBR baseline, {START}..{END}\n")
     counts = {"OK": 0, "~": 0, "!": 0, "X": 0}
     computed_scores = []
+    blocks = []
     for block, items in PANEL.items():
-        print(f"  {block}")
+        rows = []
         for entry in items:
             # entries are (code, label, kind) or (code, label, kind, efo_code)
             code, label, kind = entry[0], entry[1], entry[2]
@@ -132,16 +140,73 @@ def main():
                 tag = word
             else:
                 mark, tag = "·", st
-            unit = {"pp": "pp", "gdp": "%GDP"}.get(kind, "%")
-            errstr = "    —" if err is None else f"{err:6.2f}{unit}"
-            print(f"     [{mark:2}] {label:24} {errstr:>9}   {tag}")
+            rows.append(
+                {
+                    "variable": code,
+                    "label": label,
+                    "metric": kind,
+                    "error": None
+                    if err is None or not np.isfinite(err)
+                    else float(err),
+                    "band": mark if st == "computed" else None,
+                    "status": st,
+                    "reading": tag,
+                }
+            )
+        blocks.append({"block": block, "rows": rows})
+
+    nc = len(computed_scores)
+    good = counts["OK"] + counts["~"]
+    return {
+        "model": "obr-macro",
+        "evaluation": "raw de-seeded model versus published OBR baseline",
+        "period": {"start": START, "end": END},
+        "blocks": blocks,
+        "summary": {
+            "headline_variables": sum(len(v) for v in PANEL.values()),
+            "computed_variables": nc,
+            "passthrough_variables": sum(len(v) for v in PANEL.values()) - nc,
+            "within_band": good,
+            "within_band_share": None if not nc else good / nc,
+            "band_counts": counts,
+        },
+        "limitations": [
+            "This is not a historical-vintage forecast backtest.",
+            "The comparison target is the OBR baseline, not first-release outturn data.",
+            "Anchored results are intentionally excluded because they are true by construction.",
+        ],
+    }
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--json", action="store_true", help="emit structured JSON")
+    args = parser.parse_args(argv)
+    report = build_scorecard()
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return
+
+    print(f"Calibration scorecard — raw model vs OBR baseline, {START}..{END}\n")
+    for block in report["blocks"]:
+        print(f"  {block['block']}")
+        for row in block["rows"]:
+            mark = row["band"] or "·"
+            unit = {"pp": "pp", "gdp": "%GDP"}.get(row["metric"], "%")
+            errstr = "    —" if row["error"] is None else f"{row['error']:6.2f}{unit}"
+            print(f"     [{mark:2}] {row['label']:24} {errstr:>9}   {row['reading']}")
         print()
 
     print("Honest score — only the variables the model actually COMPUTES count:")
-    nc = len(computed_scores)
+    summary = report["summary"]
+    nc = summary["computed_variables"]
     if nc:
-        good = counts["OK"] + counts["~"]
-        print(f"   computed: {nc}/21 variables   (the other {21 - nc} are passthrough,")
+        good = summary["within_band"]
+        total = summary["headline_variables"]
+        counts = summary["band_counts"]
+        print(
+            f"   computed: {nc}/{total} variables   (the other {total - nc} are passthrough,"
+        )
         print(
             "   i.e. held at the OBR's published value because their channel is dead/exogenous)"
         )
