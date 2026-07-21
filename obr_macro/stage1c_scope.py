@@ -26,15 +26,15 @@ from obr_macro.transpiler import parse_model_file
 
 
 def lhs_var(lhs):
-    m = re.search(r"[A-Z][A-Z0-9_]*", lhs.replace("@IDENTITY", ""))
+    m = re.search(r"[A-Z][A-Za-z0-9_]*", lhs.replace("@IDENTITY", ""))
     return m.group(0) if m else lhs
 
 
 def referenced_vars(eq):
     out = set()
-    for m in re.finditer(r"v\['([A-Z0-9_]+)'\]", eq.python_expr):
+    for m in re.finditer(r"v\['([A-Za-z0-9_]+)'\]", eq.python_expr):
         out.add(m.group(1))
-    for m in re.finditer(r"_lag\('([A-Z0-9_]+)'", eq.python_expr):
+    for m in re.finditer(r"_lag\('([A-Za-z0-9_]+)'", eq.python_expr):
         out.add(m.group(1))
     return out
 
