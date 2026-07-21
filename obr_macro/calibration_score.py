@@ -140,15 +140,19 @@ def build_scorecard() -> dict:
                 tag = word
             else:
                 mark, tag = "·", st
-            rows.append({
-                "variable": code,
-                "label": label,
-                "metric": kind,
-                "error": None if err is None or not np.isfinite(err) else float(err),
-                "band": mark if st == "computed" else None,
-                "status": st,
-                "reading": tag,
-            })
+            rows.append(
+                {
+                    "variable": code,
+                    "label": label,
+                    "metric": kind,
+                    "error": None
+                    if err is None or not np.isfinite(err)
+                    else float(err),
+                    "band": mark if st == "computed" else None,
+                    "status": st,
+                    "reading": tag,
+                }
+            )
         blocks.append({"block": block, "rows": rows})
 
     nc = len(computed_scores)
@@ -190,9 +194,7 @@ def main(argv=None):
             mark = row["band"] or "·"
             unit = {"pp": "pp", "gdp": "%GDP"}.get(row["metric"], "%")
             errstr = "    —" if row["error"] is None else f"{row['error']:6.2f}{unit}"
-            print(
-                f"     [{mark:2}] {row['label']:24} {errstr:>9}   {row['reading']}"
-            )
+            print(f"     [{mark:2}] {row['label']:24} {errstr:>9}   {row['reading']}")
         print()
 
     print("Honest score — only the variables the model actually COMPUTES count:")
@@ -202,7 +204,9 @@ def main(argv=None):
         good = summary["within_band"]
         total = summary["headline_variables"]
         counts = summary["band_counts"]
-        print(f"   computed: {nc}/{total} variables   (the other {total - nc} are passthrough,")
+        print(
+            f"   computed: {nc}/{total} variables   (the other {total - nc} are passthrough,"
+        )
         print(
             "   i.e. held at the OBR's published value because their channel is dead/exogenous)"
         )
