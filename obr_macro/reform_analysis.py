@@ -105,7 +105,8 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
          anchored baseline). Applied identically in the baseline and every
          shocked clone, they cancel in the delta and only fix the shared level.
 
-    Mutates ``baseline`` in place (freezes MSGVA, sets ``add_factors``). The
+    Mutates ``baseline`` in place (freezes MSGVA, PIF and PIRHH; sets
+    ``add_factors``). The
     reference MSGVA and add-factors are held constant across the base/shock pair,
     so the reported delta isolates the cost-of-capital response. This is a
     stop-gap for the missing supply-side calibration, not a substitute for it:
@@ -166,6 +167,13 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
         "PIRHH": trk.data["PIRHH"].copy(),
     }
     for var, ref in freeze_refs.items():
+        window = ref.iloc[t0 : t1 + 1]
+        if not np.isfinite(window).all():
+            raise RuntimeError(
+                f"tracking pass produced non-finite {var} over the solve "
+                "window; refusing to freeze the closure to a broken "
+                "reference (inspect the EFO ingestion)"
+            )
         baseline.make_exogenous(var)
         for t in range(t0, t1 + 1):
             baseline._set(var, t, ref.iloc[t])
