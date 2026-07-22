@@ -6,7 +6,16 @@ on:
     branches: [main]
   schedule:
     - cron: "0 6 * * *" # nightly full-solve invariant gate
+    - cron: "0 4 * * 1" # weekly extended validation (Mondays)
   workflow_dispatch:
+
+# Supersede in-flight runs of the same PR: the invariant job takes ~30 minutes,
+# so without this a burst of pushes queues several full solves of stale commits.
+# Runs on main and scheduled runs are never cancelled — those are the gate of
+# record and each one must complete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
@@ -32,6 +41,59 @@ jobs:
       # run is hermetic and finishes in seconds, giving fast PR feedback.
       - name: Fast tests
         run: uv run pytest -q
+
+  wheel:
+    name: Wheel builds and ships its data assets (HARD GATE)
+    # tests/test_packaging.py checks the package-data globs against the source
+    # tree; this job checks the thing that actually breaks — an installed wheel.
+    # Every other job runs the project in-tree (`uv sync` installs it in place),
+    # so a data asset missing from the wheel is invisible to all of them and
+    # surfaces only for whoever pip-installs the package. Installing outside the
+    # checkout is what makes the check real: from inside it, imports would
+    # resolve against the source tree and pass regardless.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Build wheel
+        run: uv build --wheel --out-dir dist
+      - name: Install the wheel into a clean env outside the source tree
+        run: |
+          set -euo pipefail
+          uv venv /tmp/wheel-env
+          VIRTUAL_ENV=/tmp/wheel-env uv pip install dist/*.whl
+      - name: Import from the installed wheel and resolve the data assets
+        working-directory: /tmp # never resolve against the checkout
+        run: |
+          set -euo pipefail
+          /tmp/wheel-env/bin/python - <<'PY'
+          from pathlib import Path
+
+          import obr_macro
+          from obr_macro import DATA_DIR, parse_model_file
+
+          pkg = Path(obr_macro.__file__).parent
+          assert "site-packages" in str(pkg), f"not importing the wheel: {pkg}"
+
+          required = [
+              "_data/obr_model_code_october_2025.txt",
+              "_data/obr_model_variables_october_2025.xlsx",
+              "_data/obr_efo_march_2026_aggregates.xlsx",
+              "_data/obr_efo_march_2026_economy.xlsx",
+              "_data/obr_efo_march_2026_expenditure.xlsx",
+              "_data/obr_efo_march_2026_receipts.xlsx",
+              "seeds/model_glossary.json",
+              "seeds/snapshot_manifest.json",
+              "seeds/ons_exogenous_snapshot.csv",
+          ]
+          missing = [r for r in required if not (pkg / r).is_file()]
+          assert not missing, f"assets missing from the built wheel: {missing}"
+
+          # The assets must be usable, not merely present.
+          eqs = parse_model_file(str(DATA_DIR / "obr_model_code_october_2025.txt"))
+          assert len(eqs) > 300, f"only {len(eqs)} equations parsed from the wheel"
+          print(f"wheel OK: {len(required)} assets, {len(eqs)} equations parsed")
+          PY
 
   invariants:
     name: Structural invariants (full solver — HARD GATE)
@@ -89,3 +151,29 @@ jobs:
           name: calibration-scorecard
           path: calibration_scorecard.txt
           if-no-files-found: warn
+
+  extended-validation:
+    name: Extended validation (weekly — Python matrix, full slow suite)
+    # The nightly gate proves the model holds on ONE Python. The package claims
+    # requires-python >=3.10, and nothing verified that claim: a 3.11+ syntax or
+    # a version-dependent numpy/pandas behaviour would ship broken to 3.10 users
+    # and pass every other job. Solving the 372-equation model on each supported
+    # interpreter is far too slow for the nightly gate, so it runs weekly.
+    #
+    # This IS a hard gate when it runs: a failure on any supported interpreter
+    # is a real defect, not noise. It does not gate PRs (it never runs on one).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.schedule == '0 4 * * 1'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # report every broken interpreter, not just the first
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install on Python ${{ matrix.python-version }}
+        run: uv sync --python ${{ matrix.python-version }}
+      - name: Full suite including slow full-solver tests
+        run: uv run --python ${{ matrix.python-version }} pytest --runslow -q

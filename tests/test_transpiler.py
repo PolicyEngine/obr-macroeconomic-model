@@ -33,6 +33,20 @@ def test_parse_lhs_growth_lag4():
     assert s._parse_lhs("PCE  / PCE(-4)") == ("PCE", "ratio", 4)
 
 
+def test_parse_lhs_log():
+    """log(X) = rhs  =>  X = exp(rhs); whitespace variants parse the same."""
+    s = make_bare_solver(pd.DataFrame())
+    assert s._parse_lhs("log(NDIVHH)") == ("NDIVHH", "log", 0)
+    assert s._parse_lhs("log (HHTFA)") == ("HHTFA", "log", 0)
+    # dlog must keep its own kind, not be swallowed by the log branch.
+    assert s._parse_lhs("dlog(X)") == ("X", "dlog", 1)
+
+
+def test_lhs_new_value_log_exponentiates():
+    s = make_bare_solver(pd.DataFrame())
+    assert s._lhs_new_value("X", "log", 0, np.log(500.0), 3) == pytest.approx(500.0)
+
+
 def test_lhs_new_value_growth_roundtrip_lag4():
     # d(X)/X(-4) = rhs  <=>  X = X(-1) + rhs * X(-4)
     idx = pd.period_range("2020Q1", periods=6, freq="Q")

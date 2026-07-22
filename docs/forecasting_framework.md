@@ -163,3 +163,41 @@ scorecard** (`calibration_score.py`), not only where it improves a headline.
 > and the silently-dead equations described above. With both fixed, the current
 > honest count is **6/10 within band** (see the result table at the top). The
 > %-of-GDP scoring of the net balances stands; the "10/10" headline does not.
+
+## Structural fix: the `log(X)` LHS parser gap (numbers unchanged — see below)
+
+`_parse_lhs` recognised `dlog(X)`, `d(X)`, `X/X(-n)`, `@IDENTITY` and plain level
+left-hand sides, but had no branch for a bare `log(X)` LHS. The two published
+equations of that form —
+
+- L479 `log(HHTFA) = log(HHTFA(-1) * MAJGDP / MAJGDP(-1))`
+- L643 `log(NDIVHH) = -8.605599 + 0.8092696*log(FYCPR(-4)) + 0.6597959*log(CORP)`
+
+— were indexed under the literal keys `log(HHTFA)` / `log(NDIVHH)`, which are not
+databank columns, so they wrote nowhere and both variables stayed frozen. A `log`
+kind (`log(X) = rhs` ⇒ `X = exp(rhs)`) now parses them to the real column names,
+and the warn-once unparsed-LHS registry is correspondingly empty.
+
+**The fix is necessary but not sufficient, and it moves no numbers.** Both
+equations depend on exogenous inputs the published databank never supplies:
+
+| Input | Used by | Status in data |
+|---|---|---|
+| `MAJGDP` (major-economies GDP) | `log(HHTFA)`, `EECOMPC/EECOMPC(-1)` | **all-NaN**, no equation computes it |
+| `CORP` | `log(NDIVHH)` | **all-NaN**, no equation computes it |
+
+With a NaN input the RHS evaluates to NaN, `_lhs_new_value` returns non-finite,
+and `solve_period` skips the update — so `HHTFA` and `NDIVHH` remain frozen for a
+second, independent reason. Every validation number is therefore **bitwise
+unchanged** by this fix: anchored GDPM MAPE 0.1756% / CONS 0.2888%, the full
+calibration scorecard, and the standard `CGG +£1.25bn × 4q` shock path.
+
+The `FYCPR → NDIVHH → PIRHH → HHDI` (corporate profits → household dividend
+income) channel consequently **still does not transmit**: a +5pp corporation-tax
+shock moves `FYCPR` by −£1,779.75m at 2027Q4 while `ΔNDIVHH = 0.0000` exactly,
+before and after. Reviving it requires supplying `CORP` (and `MAJGDP`), which is
+a calibration decision — the fitted constant `-8.605599` implies a specific
+`CORP` scale that the published material does not document, and an arbitrary
+seed (`CORP = 100`) drives `NDIVHH` to ~70 against an EFO path of ~19,944, i.e.
+three orders of magnitude off. That seeding is deliberately **out of scope** here
+and left for a follow-up with a documented source for `CORP`.

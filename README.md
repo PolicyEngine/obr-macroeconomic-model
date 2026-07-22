@@ -51,7 +51,7 @@ This runs five policy scenarios and generates charts in `outputs/`:
 The `data/` directory contains:
 - `obr_model_code_october_2025.txt` - OBR EViews model equations (15 October 2025 version)
 - `obr_model_variables_october_2025.xlsx` - OBR model variable definitions (15 October 2025 version)
-- `obr_efo_november_2025_*.xlsx` - OBR forecast data
+- `obr_efo_march_2026_*.xlsx` - OBR forecast data (March 2026 EFO detailed forecast tables)
 
 ## Setup
 
@@ -65,6 +65,14 @@ uv sync
 2. **Solver** (`full_solver.py`): Gauss-Seidel iteration over ~370 equations
 3. **Closure swap**: For shocks, DINV (inventories) becomes residual, GDP becomes endogenous
 4. **Deviation mode**: Compare shocked vs baseline to isolate policy effects
+
+### Known inert equations
+
+`log(HHTFA)` and `log(NDIVHH)` now parse correctly (they previously had no LHS
+branch at all), but both remain frozen because their exogenous inputs `MAJGDP`
+and `CORP` are absent from the published databank. The corporate-profits →
+household-dividend-income channel (`FYCPR → NDIVHH → PIRHH → HHDI`) is therefore
+still inert. See `docs/forecasting_framework.md`.
 
 ## Key Variables
 

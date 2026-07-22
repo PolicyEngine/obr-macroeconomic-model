@@ -27,9 +27,9 @@ PROBE = "2025Q1"
 
 def referenced_vars(eq):
     out = set()
-    for m in re.finditer(r"v\['([A-Z0-9_]+)'\]", eq.python_expr):
+    for m in re.finditer(r"v\['([A-Za-z0-9_]+)'\]", eq.python_expr):
         out.add(m.group(1))
-    for m in re.finditer(r"_lag\('([A-Z0-9_]+)'", eq.python_expr):
+    for m in re.finditer(r"_lag\('([A-Za-z0-9_]+)'", eq.python_expr):
         out.add(m.group(1))
     return out
 

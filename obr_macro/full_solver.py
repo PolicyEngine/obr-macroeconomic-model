@@ -7,9 +7,12 @@ This solver:
 4. Allows closure swaps for policy simulation
 """
 
+import numbers
 import re
 import warnings
 from collections import Counter
+from decimal import Decimal
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -20,6 +23,76 @@ from obr_macro.transpiler import parse_model_file, ParsedEquation, IDENT, RESERV
 # Cache of parsed LHS forms, keyed by the raw LHS string (parsing is
 # deterministic, so the cache can be shared across solver instances/clones).
 _LHS_CACHE: dict = {}
+
+# Warn-once registries for model-file defects. The equation index is rebuilt on
+# every clone()/make_exogenous()/swap_closure(), and the defects are properties
+# of the parsed model file rather than of any one solver, so warning per rebuild
+# emits the same message dozens of times in a single run. Keyed by LHS var.
+_WARNED_UNPARSED_LHS: set = set()
+_WARNED_DUPLICATE_LHS: set = set()
+
+
+def reset_model_warnings() -> None:
+    """Clear the warn-once registries so the model-file warnings are emitted
+    again. Intended for tests and for callers that deliberately re-parse a
+    different model file in the same process."""
+    _WARNED_UNPARSED_LHS.clear()
+    _WARNED_DUPLICATE_LHS.clear()
+
+
+def _is_numeric(value) -> bool:
+    """Real number of any stdlib/NumPy flavour (int, float, np.integer,
+    np.floating, Fraction, Decimal); booleans (including np.bool_) are not.
+    Decimal registers only as numbers.Number, hence the explicit union."""
+    if isinstance(value, (bool, np.bool_)):
+        return False
+    return isinstance(value, (numbers.Real, Decimal))
+
+
+def is_scalar_shock(shock) -> bool:
+    """True for numeric scalars (Python or NumPy, including numeric 0-d
+    arrays). Booleans are NOT scalars here — True/False as a shock is a
+    caller bug and both helpers reject it explicitly; likewise a 0-d array
+    of bool or string dtype is not a scalar shock.
+    """
+    if _is_numeric(shock):
+        return True
+    return (
+        isinstance(shock, np.ndarray)
+        and shock.ndim == 0
+        and np.issubdtype(shock.dtype, np.number)
+        and not np.issubdtype(shock.dtype, np.bool_)
+    )
+
+
+def shock_path(shock, periods: int) -> "list[float]":
+    """Normalize a shock spec to a per-quarter list of floats.
+
+    A numeric scalar repeats for ``periods`` quarters; an iterable of numbers
+    (list/tuple, ndarray, Series) is a per-quarter path whose length overrides
+    ``periods``. Booleans, strings, bytes, and mappings — as the spec or as
+    path elements — are rejected with TypeError; an empty path raises
+    ValueError.
+    """
+    from collections.abc import Mapping
+
+    if isinstance(shock, (bool, np.bool_, str, bytes)) or isinstance(shock, Mapping):
+        raise TypeError(
+            "shock must be a number or a sequence of numbers, got "
+            f"{type(shock).__name__}"
+        )
+    if is_scalar_shock(shock):
+        return [float(shock)] * periods
+    values = []
+    for s in shock:
+        if not _is_numeric(s):
+            raise TypeError(
+                f"shock path elements must be numbers, got {type(s).__name__}"
+            )
+        values.append(float(s))
+    if not values:
+        raise ValueError("shock sequence must be non-empty")
+    return values
 
 
 class FullOBRSolver:
@@ -141,22 +214,38 @@ class FullOBRSolver:
         """Build index of which variable each equation computes."""
         self.eq_for_var = {}  # var -> equation
         self.var_for_eq = {}  # equation index -> var
+        self.unparsed_lhs = {}  # non-identifier LHS key -> raw LHS string
 
         for i, eq in enumerate(self.equations):
             var = self._extract_lhs_var(eq.lhs)
             if not re.fullmatch(IDENT, var):
-                warnings.warn(
-                    f"Equation LHS parsed to non-identifier {var!r} "
-                    f"(from LHS {eq.lhs!r}) — possible corrupted/unsupported "
-                    "LHS form.",
-                    stacklevel=2,
-                )
+                # The index is rebuilt on every clone()/make_exogenous()/
+                # swap_closure(), so warning unconditionally floods stderr with
+                # the same handful of messages during a normal shock run. The
+                # condition is a property of the parsed model file, not of this
+                # solver instance, so report each distinct LHS once per process
+                # and record it on the instance for programmatic inspection.
+                self.unparsed_lhs[var] = eq.lhs
+                if var not in _WARNED_UNPARSED_LHS:
+                    _WARNED_UNPARSED_LHS.add(var)
+                    warnings.warn(
+                        f"Equation LHS parsed to non-identifier {var!r} "
+                        f"(from LHS {eq.lhs!r}) — possible corrupted/unsupported "
+                        "LHS form. This equation never fires, so the variable it "
+                        "should compute stays at its data/last-solved value. "
+                        "Warned once per process; see solver.unparsed_lhs for "
+                        "the full set.",
+                        stacklevel=2,
+                    )
             if var in self.eq_for_var:
-                warnings.warn(
-                    f"Duplicate equation for variable {var!r}; the later "
-                    "equation overwrites the earlier in the index.",
-                    stacklevel=2,
-                )
+                if var not in _WARNED_DUPLICATE_LHS:
+                    _WARNED_DUPLICATE_LHS.add(var)
+                    warnings.warn(
+                        f"Duplicate equation for variable {var!r}; the later "
+                        "equation overwrites the earlier in the index. "
+                        "Warned once per process.",
+                        stacklevel=2,
+                    )
             self.eq_for_var[var] = eq
             self.var_for_eq[i] = var
 
@@ -546,6 +635,7 @@ class FullOBRSolver:
           'ratio':  X / X(-n) = rhs      ->  X = X(-n) * rhs
           'growth': d(X) / X(-n) = rhs   ->  X = X(-1) + rhs * X(-n)
           'dlog':   dlog(X) = rhs        ->  X = X(-1) * exp(rhs)
+          'log':    log(X) = rhs         ->  X = exp(rhs)
           'd':      d(X) = rhs           ->  X = X(-1) + rhs
           'level':  X = rhs              ->  X = rhs
         """
@@ -569,6 +659,8 @@ class FullOBRSolver:
                 parsed = (num, "ratio", lag)
         elif s.lower().startswith("dlog("):
             parsed = (s[5:-1].strip(), "dlog", 1)
+        elif s.lower().startswith("log(") and s.endswith(")"):
+            parsed = (s[4:-1].strip(), "log", 0)
         elif s.lower().startswith("d("):
             parsed = (s[2:-1].strip(), "d", 1)
         elif s.startswith("@IDENTITY"):
@@ -602,6 +694,8 @@ class FullOBRSolver:
         if kind == "dlog":
             lag_val = self._lag(var, lag, t)
             return lag_val * np.exp(rhs_val) if np.isfinite(lag_val) else np.nan
+        if kind == "log":
+            return np.exp(rhs_val)
         if kind == "d":
             lag_val = self._lag(var, lag, t)
             return lag_val + rhs_val if np.isfinite(lag_val) else np.nan
@@ -732,24 +826,49 @@ class FullOBRSolver:
         if self.verbose:
             print(f"Made {var} exogenous (removed equation)")
 
-    def apply_shock(self, var: str, shock: float, start: str, periods: int = 4):
-        """Apply shock to a variable."""
+    def apply_shock(
+        self,
+        var: str,
+        shock: "float | Iterable[float]",
+        start: str,
+        periods: int = 4,
+    ):
+        """Apply an additive shock to a variable.
+
+        A numeric scalar ``shock`` (Python or NumPy, including 0-d arrays) is
+        applied for ``periods`` quarters from ``start``. A sequence of
+        per-quarter values is applied from ``start`` and its length overrides
+        ``periods`` (externally costed reforms — e.g. a microsimulation
+        revenue path — arrive as one value per quarter). Booleans, strings,
+        and mappings are rejected.
+        """
+        # Validate everything BEFORE mutating solver state (make_exogenous
+        # removes the equation and _shock_active disables residuals — neither
+        # should happen if the shock spec or start period is invalid).
+        scalar = is_scalar_shock(shock)
+        values = shock_path(shock, periods)
+        start_t = self.period_idx(start)
+
         self.make_exogenous(var)
 
         # Mark that we're in shock mode (disable residuals)
         self._shock_active = True
 
-        start_t = self.period_idx(start)
-        for p in range(periods):
+        for p, s in enumerate(values):
             t = start_t + p
             if t < len(self.data):
-                old_val = self._get(var, t)
-                self._set(var, t, old_val + shock)
+                self._set(var, t, self._get(var, t) + s)
 
         if self.verbose:
-            print(
-                f"Applied shock: {var} += {shock:+,.0f} for {periods} periods from {start}"
-            )
+            if scalar:
+                print(
+                    f"Applied shock: {var} += {float(shock):+,.0f} for {periods} periods from {start}"
+                )
+            else:
+                print(
+                    f"Applied shock path: {var} += [{values[0]:+,.0f} … "
+                    f"{values[-1]:+,.0f}] over {len(values)} periods from {start}"
+                )
 
     def period_idx(self, period: str) -> int:
         return self.index.get_loc(pd.Period(period, freq="Q"))
