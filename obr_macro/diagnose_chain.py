@@ -52,6 +52,12 @@ def build():
 
 def main():
     base = build()
+    # The baseline must share the shocked run's structure: apply_shock makes
+    # CGG exogenous on the shocked solver, so remove its equation here too —
+    # otherwise the live dlog(CGG) equation moves baseline CGG and the
+    # reported base-vs-shock delta mixes model drift into the shock response
+    # (same rationale as run_fiscal_shock's control run).
+    base.make_exogenous("CGG")
     base._shock_active = True
     base.solve(START, END)
     bdat = base.data.copy()
