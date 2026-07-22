@@ -158,9 +158,12 @@ class FullOBRSolver:
         self._compute_residuals()
 
         # Structural add-factors {(var, t): value}, applied in every solve
-        # regardless of shock mode (see solve_period). Empty by default; the
-        # investment closure populates it to anchor the dlog(IBUSX) baseline.
+        # regardless of shock mode (see solve_period). The investment closure
+        # merges further entries in to anchor the dlog(IBUSX) baseline.
         self.add_factors = {}
+
+        # Anchor the OSHH level to the published ONS series (see method doc).
+        self._anchor_oshh_to_ons()
 
         # Gauss-Seidel iteration cap (see solve()). Overridden per-solver.
         self.max_iter = 60
@@ -627,6 +630,66 @@ class FullOBRSolver:
                     f"evaluations across {len(self.residual_failures)} equations; "
                     "top: " + ", ".join(f"{v}({n})" for v, n in top) + ")"
                 )
+
+    def _anchor_oshh_to_ons(self):
+        """Wire the published ONS households' operating surplus into OSHH.
+
+        The model computes households' operating surplus from an OBR
+        calibration the databank does not supply:
+
+            OSHH = 12874 + 0.85 * IROO - DIPHHmf,   IROO = PRENT*POP16/1000
+
+        Evaluated on this repo's data (current-vintage ONS PRENT rather than
+        the OBR's unpublished vintage, plus the unpublished base constant
+        12874), the equation lands ~£33-37bn/qtr against the published level
+        of ~£78bn (ONS series CAEN, vendored in the exogenous snapshot), and
+        that ~£45bn error propagates straight into HHDI, RHHDI and FYCPR
+        (docs/calibration_scorecard.md, "The OSHH floor").
+
+        Because the ONS *publishes the target series itself*, the level is
+        pinned by data, not by tuning: over observed history (through the
+        snapshot's genuine data edge, data.ons_snapshot_edge — never the
+        extrapolated tail) the add-factor is the per-period observed residual
+        (published OSHH minus the equation's prediction), the standard
+        EViews/OBR estimation-sample add-factor; beyond the data edge the mean
+        of the last four observed residuals is held constant, the standard
+        forecast convention for carrying a level judgement. Add-factors apply in
+        baseline and shocked runs alike (solve_period), so they cancel in any
+        shock delta: this re-levels, it does not alter shock responses. The
+        equation's marginal channels (rents via PRENT, mortgage-rate flows
+        via DIPHHmf) stay live on top of the corrected level.
+
+        No-op (with the model left exactly as before) if the OSHH equation,
+        the snapshot series, or the equation inputs are unavailable.
+        """
+        if "OSHH" not in self.eq_for_var:
+            return
+        from obr_macro.data import ons_snapshot_edge
+
+        edge = ons_snapshot_edge("OSHH")
+        if edge is None or edge not in self.index:
+            return
+        t_edge = self.index.get_loc(edge)
+
+        eq = self.eq_for_var["OSHH"]
+        gaps = {}
+        for t in range(t_edge + 1):
+            actual = self._get("OSHH", t)
+            try:
+                pred = eval(self._compiled(eq.python_expr), self._build_context(t))
+            except Exception:
+                continue
+            if np.isfinite(actual) and np.isfinite(pred):
+                gaps[t] = actual - pred
+        if not gaps:
+            return
+        # History: per-period observed residual.
+        self.add_factors.update({("OSHH", t): g for t, g in gaps.items()})
+        # Forecast: hold the mean of the last four observed residuals.
+        recent = [gaps[t] for t in sorted(gaps) if t > t_edge - 4]
+        af = float(np.mean(recent))
+        for t in range(t_edge + 1, len(self.data)):
+            self.add_factors[("OSHH", t)] = af
 
     def _parse_lhs(self, lhs: str) -> tuple:
         """Parse an equation LHS into (var, kind, lag).

@@ -584,6 +584,29 @@ def _merge_ons_snapshot(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def ons_snapshot_edge(var: str):
+    """Last genuine observation period of a vendored ONS snapshot series.
+
+    The merged databank extrapolates every snapshot series beyond its last
+    observation (trailing 4-quarter mean, see _merge_ons_snapshot), so the
+    merged frame cannot distinguish data from held assumption. This reads the
+    raw snapshot to report where the *published* observations end — callers
+    that calibrate against observed data (e.g. the OSHH level anchor in
+    full_solver) must not calibrate on the extrapolated tail. Returns a
+    pd.Period, or None if the series is absent or the snapshot is missing.
+    """
+    snap_path = Path(__file__).parent / "seeds" / "ons_exogenous_snapshot.csv"
+    if not snap_path.exists():
+        return None
+    snap = pd.read_csv(snap_path, index_col=0)
+    if var not in snap.columns:
+        return None
+    valid = snap[var].dropna()
+    if valid.empty:
+        return None
+    return pd.Period(valid.index[-1], freq="Q")
+
+
 def _derive_variables(df: pd.DataFrame) -> pd.DataFrame:
     """Derive additional variables from identities."""
     # Real household disposable income

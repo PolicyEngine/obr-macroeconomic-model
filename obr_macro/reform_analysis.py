@@ -177,7 +177,9 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
         baseline.make_exogenous(var)
         for t in range(t0, t1 + 1):
             baseline._set(var, t, ref.iloc[t])
-    baseline.add_factors = add_factors
+    # Preserve structural add-factors already installed by FullOBRSolver,
+    # notably the OSHH level anchor added by this change.
+    baseline.add_factors.update(add_factors)
 
 
 # Cache of stabilised, unsolved reform templates keyed by structure
@@ -304,7 +306,42 @@ def run_reform(
             }
         )
 
-    return pd.DataFrame(results)
+    out = pd.DataFrame(results)
+
+    # Honest-labelling metadata (df.attrs travels with the frame). Under the
+    # demand closure a spending shock's GDP response is MECHANICAL PASSTHROUGH:
+    # the shock lands in the GDPM expenditure identity with a flat multiplier
+    # of ~1.0 and no decay, because every second-round behavioural channel is
+    # structurally absent from the published October-2025 model file as
+    # parsed/populated here:
+    #   - import leakage: M has NO behavioural equation in the published file
+    #     (MNOG is computed residually as M - MS - MOIL, so M is exogenous);
+    #     the live dlog(MS) equation is dead on this data (PMSREL/SPECX NaN);
+    #   - consumption: the dlog(CONS) equation is live, but its income input
+    #     RHHDI does not respond to demand because the labour-income chain
+    #     (GDP -> employment -> wages -> HHDI) is unpopulated
+    #     (docs/stage1c_data_scope.md);
+    #   - crowding out/decay: no monetary rule (R is exogenous) and no output
+    #     gap, so nothing closes the multiplier over the horizon.
+    # Activating any of these would mean inventing equations or data the OBR
+    # did not publish, so the passthrough is kept and labelled instead of
+    # being dressed up as a validated multiplier profile. The OBR's published
+    # fiscal multipliers (impact ~1.0 for government consumption, decaying as
+    # the output gap closes) are matched only on impact.
+    if not investment_closure:
+        out.attrs["mechanical_passthrough"] = True
+        out.attrs["multiplier_warning"] = (
+            "Demand-closure shock: GDP delta is mechanical passthrough via the "
+            "expenditure identity (flat multiplier ~1.0, no behavioural "
+            "second-round effects or decay). Import leakage, income-driven "
+            "consumption and crowding-out channels are structurally inert in "
+            "the published model file/data. Impact quarter matches the OBR's "
+            "~1.0 multiplier for government consumption; the decay profile "
+            "does not."
+        )
+    else:
+        out.attrs["mechanical_passthrough"] = False
+    return out
 
 
 def run_five_reforms():
