@@ -105,7 +105,8 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
          anchored baseline). Applied identically in the baseline and every
          shocked clone, they cancel in the delta and only fix the shared level.
 
-    Mutates ``baseline`` in place (freezes MSGVA, sets ``add_factors``). The
+    Mutates ``baseline`` in place (freezes MSGVA, PIF and PIRHH; sets
+    ``add_factors``). The
     reference MSGVA and add-factors are held constant across the base/shock pair,
     so the reported delta isolates the cost-of-capital response. This is a
     stop-gap for the missing supply-side calibration, not a substitute for it:
@@ -145,10 +146,37 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
             if np.isfinite(pred_level):
                 add_factors[("IBUSX", t)] = actual_ibusx.iloc[t] - pred_level
 
-    # --- Apply to the baseline: freeze MSGVA, hold the IBUSX add-factors. ---
-    baseline.make_exogenous("MSGVA")
-    for t in range(t0, t1 + 1):
-        baseline._set("MSGVA", t, msgva_ref.iloc[t])
+    # --- Apply to the baseline: freeze the leak paths, hold the IBUSX
+    # add-factors. MSGVA breaks the spurious accelerator (above). PIF and
+    # PIRHH close two demand-side leaks exposed by the March 2026 re-anchor
+    # (invariant test_corp_tax_rise_lowers_investment caught them): PIF's
+    # shock response compounds through GGIDEF/GGIDEF(-1) = PIF/PIF(-1), so a
+    # sub-percent investment-deflator dip snowballs into a double-digit
+    # GGIDEF collapse that inflates real GGI (= 100*GGIPS/GGIDEF, nominal
+    # GGIPS exogenous) by ~GBP 3.5bn/q; and PIRHH (household property
+    # income) carries an uncalibrated ~receipts-sized response straight
+    # into HHDI -> CONS. Neither is part of the cost-of-capital channel
+    # this closure exists to expose; both are held at the tracking-pass
+    # reference, identically in baseline and shocked clones, so they cancel
+    # in the delta. Same stop-gap status as the MSGVA freeze: replace when
+    # the market-sector supply and price blocks are calibrated
+    # (docs/stage1c_data_scope.md).
+    freeze_refs = {
+        "MSGVA": msgva_ref,
+        "PIF": trk.data["PIF"].copy(),
+        "PIRHH": trk.data["PIRHH"].copy(),
+    }
+    for var, ref in freeze_refs.items():
+        window = ref.iloc[t0 : t1 + 1]
+        if not np.isfinite(window).all():
+            raise RuntimeError(
+                f"tracking pass produced non-finite {var} over the solve "
+                "window; refusing to freeze the closure to a broken "
+                "reference (inspect the EFO ingestion)"
+            )
+        baseline.make_exogenous(var)
+        for t in range(t0, t1 + 1):
+            baseline._set(var, t, ref.iloc[t])
     baseline.add_factors = add_factors
 
 

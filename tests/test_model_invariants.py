@@ -249,3 +249,27 @@ def test_gdp_expenditure_identity_closes(anchored):
         assert abs(rhs - vals["GDPM"]) < 0.005 * abs(vals["GDPM"]), (
             f"expenditure identity fails to close at {anchored.index[t]}"
         )
+
+
+def test_closure_freezes_pif_and_pirhh(corp_tax_rise_results=None):
+    """Direct regression for the March-2026 demand-side leaks: under the
+    investment closure, PIF and PIRHH must be frozen (finite, equation-free,
+    zero base-vs-shock delta), or GGIDEF compounding and property-income
+    leakage can flip the IF sign again."""
+    import numpy as np
+
+    from obr_macro import reform_analysis as ra
+
+    ra._REFORM_TEMPLATE_CACHE.clear()
+    tmpl = ra._build_reform_template("TCPRO", "2025Q1", "2027Q4", True)
+    base, shock = tmpl.clone(), tmpl.clone()
+    shock.apply_shock("TCPRO", 0.05, "2025Q1", periods=12)
+    base.solve("2025Q1", "2027Q4")
+    shock.solve("2025Q1", "2027Q4")
+    t0, t1 = base.period_idx("2025Q1"), base.period_idx("2027Q4")
+    for var in ("PIF", "PIRHH", "MSGVA"):
+        assert var not in base.eq_for_var, f"{var} equation not removed"
+        b = base.data[var].iloc[t0 : t1 + 1]
+        s = shock.data[var].iloc[t0 : t1 + 1]
+        assert np.isfinite(b).all(), f"{var} non-finite in baseline"
+        assert np.allclose(b, s), f"{var} moved between base and shock"
