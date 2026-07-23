@@ -115,6 +115,16 @@ def test_demand_multiplier_is_in_plausible_band(spending_reforms):
     assert df["delta_gdp_bn"].abs().max() < 5 * shock_bn
 
 
+def test_demand_closure_results_carry_passthrough_warning(spending_reforms):
+    """Demand-closure reform output must be honestly labelled: the GDP delta
+    is mechanical passthrough (flat ~1.0 multiplier, no behavioural
+    second-round effects), and run_reform must say so in metadata rather than
+    presenting it as a validated multiplier profile."""
+    df = spending_reforms["plus"]
+    assert df.attrs.get("mechanical_passthrough") is True
+    assert "passthrough" in df.attrs.get("multiplier_warning", "")
+
+
 def test_opposite_shocks_are_antisymmetric(spending_reforms):
     """+shock and -shock must roughly mirror. Gross asymmetry means the result
     is dominated by solver drift, not the policy."""
@@ -140,7 +150,13 @@ def test_reform_is_deterministic():
 @pytest.fixture(scope="module")
 def corp_tax_reforms():
     """A corporation-tax cut and rise under the investment closure, which
-    activates the cost-of-capital channel TCPRO -> ... -> IBUSX. Solved once."""
+    activates the cost-of-capital channel TCPRO -> ... -> IBUSX. Solved once.
+
+    Deliberately NOT promoted to the PR-gating fast suite: even at the
+    shortest meaningful horizon (the investment response only starts in the
+    3rd shocked quarter) one run costs ~2 minutes, dominated by the
+    FullOBRSolver build (~100s) rather than the solve, so no horizon trim can
+    reach the fast suite's seconds-scale budget. It stays a --runslow gate."""
     from obr_macro.reform_analysis import run_reform
 
     return {
