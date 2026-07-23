@@ -108,7 +108,7 @@ class _FakeTemplate:
 
     def __init__(self):
         self._proto = _bare_solver()
-        for col in ("GDPM", "CONS", "IF"):
+        for col in ("GDPM", "CONS", "IF", "HHDI", "RHHDI"):
             self._proto.data[col] = 1000.0
 
     def clone(self):
@@ -137,6 +137,31 @@ def test_run_reform_normalizes_paths_fast(monkeypatch):
     )
     assert list(df["delta_gdp_m"]) == [1.0, 2.0, 3.0, 0.0]
     assert list(df["reform"].unique()) == ["path"]
+
+
+def test_household_costing_path_becomes_negative_hhdi_addfactors():
+    """Positive revenue costings reduce HHDI quarter by quarter."""
+    from obr_macro.reform_analysis import _apply_household_costing
+
+    s = _bare_solver()
+    s.data["HHDI"] = 500_000.0
+    s.add_factors = {("HHDI", 0): 7.0}
+    s.eq_for_var = {"HHDI": object()}
+
+    _apply_household_costing(s, [100.0, -25.0], "2025Q1", periods=12)
+
+    assert s.add_factors[("HHDI", 0)] == -93.0
+    assert s.add_factors[("HHDI", 1)] == 25.0
+    assert s._shock_active
+
+
+def test_household_costing_requires_live_hhdi_equation():
+    from obr_macro.reform_analysis import _apply_household_costing
+
+    s = _bare_solver()
+    s.add_factors = {}
+    with pytest.raises(RuntimeError, match="endogenous HHDI identity"):
+        _apply_household_costing(s, [100.0], "2025Q1", periods=1)
 
 
 def test_0d_arrays_of_bool_or_string_rejected():

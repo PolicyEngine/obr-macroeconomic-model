@@ -52,6 +52,33 @@ _IBUSX_SRC = (
 )
 IBUSX_EQ = EViewsTranspiler().parse_equation(_IBUSX_SRC)
 
+# Virtual reform instrument used by microsimulation consumers. It is not an
+# OBR databank variable: run_reform translates it into a held add-factor on the
+# household disposable-income identity.
+HOUSEHOLD_COSTING_VAR = "HHDI_ADDFACTOR"
+
+
+def _apply_household_costing(solver, shock, start: str, periods: int) -> None:
+    """Apply an externally costed household reform to disposable income.
+
+    ``shock`` is the static budgetary impact in £m per quarter using the fiscal
+    convention: positive means revenue raised. Revenue raised reduces household
+    disposable income, hence the minus sign on the HHDI level add-factor.
+    """
+    values = shock_path(shock, periods)
+    start_t = solver.period_idx(start)
+    if "HHDI" not in solver.eq_for_var:
+        raise RuntimeError(
+            "HHDI_ADDFACTOR requires the endogenous HHDI identity, but HHDI "
+            "has no live equation in this model closure"
+        )
+    for offset, costing in enumerate(values):
+        t = start_t + offset
+        if t < len(solver.data):
+            key = ("HHDI", t)
+            solver.add_factors[key] = solver.add_factors.get(key, 0.0) - costing
+    solver._shock_active = True
+
 
 def _ensure_ibusx_inputs(solver):
     """Ensure inputs to the reconstructed IBUSX equation exist on the solver.
@@ -218,7 +245,8 @@ def _build_reform_template(var, start, end, investment_closure):
             "two competing IF equations."
         )
         baseline.swap_closure("IF", IF_EQ)
-    baseline.make_exogenous(var)
+    if var != HOUSEHOLD_COSTING_VAR:
+        baseline.make_exogenous(var)
     if investment_closure:
         # Stabilise the reconstructed dlog(IBUSX) closure (breaks the spurious
         # MSGVA accelerator and anchors the level to the OBR path) before the
@@ -243,12 +271,15 @@ def run_reform(
 
     Args:
         name: Name of the reform for labeling
-        var: Variable to shock (must be exogenous - no equation computes it)
+        var: Variable to shock (must be exogenous - no equation computes it),
+            or ``"HHDI_ADDFACTOR"`` for an externally costed household reform.
         shock: Size of shock (units depend on variable). A scalar is applied
             for ``periods`` quarters; a sequence of per-quarter values is
             applied from ``start`` and its length overrides ``periods``
             (externally costed reforms — e.g. a microsimulation revenue
-            path — arrive as one value per quarter).
+            path — arrive as one value per quarter). For
+            ``HHDI_ADDFACTOR``, values are quarterly £m using the fiscal
+            convention: positive = revenue raised = disposable income falls.
         start: Start quarter (e.g., "2025Q1")
         end: End quarter for simulation
         periods: Number of quarters to apply shock (ignored for a sequence)
@@ -267,7 +298,10 @@ def run_reform(
     template = _build_reform_template(var, start, end, investment_closure)
     baseline = template.clone()
     shocked = template.clone()
-    shocked.apply_shock(var, shock, start, periods=periods)
+    if var == HOUSEHOLD_COSTING_VAR:
+        _apply_household_costing(shocked, shock, start, periods)
+    else:
+        shocked.apply_shock(var, shock, start, periods=periods)
 
     baseline.solve(start, end)
     baseline_data = baseline.data.copy()
@@ -293,7 +327,6 @@ def run_reform(
         if_base = baseline_data.iloc[t]["IF"]
         if_shock = shocked_data.iloc[t]["IF"]
         delta_if = if_shock - if_base
-
         results.append(
             {
                 "period": period,
@@ -341,6 +374,18 @@ def run_reform(
         )
     else:
         out.attrs["mechanical_passthrough"] = False
+    if var == HOUSEHOLD_COSTING_VAR:
+        out.attrs["costing_sign_convention"] = (
+            "Quarterly £m; positive = revenue raised = household disposable "
+            "income falls."
+        )
+        window = slice(t_start, t_end + 1)
+        out.attrs["delta_hhdi_m"] = (
+            shocked_data.iloc[window]["HHDI"] - baseline_data.iloc[window]["HHDI"]
+        ).tolist()
+        out.attrs["delta_rhhdi_m"] = (
+            shocked_data.iloc[window]["RHHDI"] - baseline_data.iloc[window]["RHHDI"]
+        ).tolist()
     return out
 
 
