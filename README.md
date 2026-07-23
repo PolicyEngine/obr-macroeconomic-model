@@ -23,6 +23,18 @@ results = run_reform(
 )
 print(results[["period", "delta_gdp_bn", "pct_gdp"]])
 
+# Apply an externally costed household reform. Values are quarterly £m:
+# positive = revenue raised = household disposable income falls.
+results = run_reform(
+    name="Household tax reform",
+    var="HHDI_ADDFACTOR",
+    shock=[250, 500, 750, 1000],
+    start="2025Q1",
+    end="2025Q4",
+)
+print(results[["period", "delta_cons_m", "delta_gdp_m"]])
+print(results.attrs["delta_hhdi_m"])
+
 # Run a corporation tax cut (-5pp)
 results = run_reform(
     name="Corp Tax Cut",
@@ -32,6 +44,11 @@ results = run_reform(
     investment_closure=True
 )
 ```
+
+Quarterly household-costing paths are near-linear for ordinary policy sizes,
+but not mathematically additive: the OBR consumption equation contains log
+differences and an error-correction term. Tests bound the departure from the
+sum of isolated quarterly impulses to 0.05% for £100m–£400m quarterly shocks.
 
 ## Run All Reforms with Visualisations
 
@@ -78,6 +95,8 @@ still inert. See `docs/forecasting_framework.md`.
 
 - `CGG` - Government consumption (exogenous)
 - `TCPRO` - Corporation tax rate (exogenous)
+- `HHDI_ADDFACTOR` - Virtual household-reform instrument; quarterly £m of
+  static revenue raised (positive values reduce disposable income)
 - `CGIPS` - Central government investment, nominal (exogenous)
 - `GDPM` - GDP at market prices (endogenous)
 - `CONS` - Private consumption (endogenous)

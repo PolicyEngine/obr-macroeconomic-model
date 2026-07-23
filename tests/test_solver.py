@@ -93,3 +93,54 @@ def test_path_shock_matches_constant_scalar():
     assert len(path) == len(scalar)
     for col in ("delta_gdp_m", "delta_gdp_bn", "pct_gdp", "delta_cons_m", "delta_if_m"):
         assert list(scalar[col]) == list(path[col])
+
+
+def test_household_costing_addfactor_solves_with_documented_sign():
+    """A positive static costing lowers HHDI and returns the standard frame."""
+    from obr_macro import run_reform
+
+    results = run_reform(
+        name="Household tax rise",
+        var="HHDI_ADDFACTOR",
+        shock=[250.0, 500.0, 750.0, 1000.0],
+        start="2025Q1",
+        end="2025Q4",
+    )
+
+    assert len(results) == 4
+    assert {
+        "delta_gdp_m",
+        "delta_cons_m",
+        "delta_if_m",
+    } <= set(results)
+    assert all(delta < 0 for delta in results.attrs["delta_hhdi_m"])
+    assert results.attrs["costing_sign_convention"].startswith("Quarterly £m")
+
+
+def test_household_costing_path_is_linear_superposition():
+    """A path is near the sum of isolated impulses in the small-shock region.
+
+    Exact equality is not expected: the OBR consumption equation uses log
+    differences and an error-correction term, so HHDI shocks propagate
+    nonlinearly through consumption and GDP. The tolerance bounds that
+    nonlinearity to 0.05% for these £100m--£400m quarterly costings.
+    """
+    import numpy as np
+
+    from obr_macro import run_reform
+
+    path = [100.0, 200.0, 300.0, 400.0]
+    kwargs = dict(var="HHDI_ADDFACTOR", start="2025Q1", end="2025Q4")
+    combined = run_reform(name="combined", shock=path, **kwargs)
+    impulses = []
+    for quarter, value in enumerate(path):
+        impulse = [0.0] * len(path)
+        impulse[quarter] = value
+        impulses.append(run_reform(name=f"q{quarter + 1}", shock=impulse, **kwargs))
+
+    for col in ("delta_gdp_m", "delta_cons_m"):
+        summed = np.sum([result[col].to_numpy() for result in impulses], axis=0)
+        assert np.allclose(combined[col], summed, rtol=5e-4, atol=0.05)
+    for attr in ("delta_hhdi_m", "delta_rhhdi_m"):
+        summed = np.sum([result.attrs[attr] for result in impulses], axis=0)
+        assert np.allclose(combined.attrs[attr], summed, rtol=5e-4, atol=0.05)
