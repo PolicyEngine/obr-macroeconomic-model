@@ -17,6 +17,7 @@ that resolve them.
 import fnmatch
 import sys
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -26,7 +27,7 @@ else:  # pragma: no cover - py310 fallback
     tomllib = pytest.importorskip("tomli")
 
 import obr_macro
-from obr_macro.data import DATA_DIR
+from obr_macro.data import DATA_DIR, _resolve_data_dir
 
 PACKAGE_ROOT = Path(obr_macro.__file__).parent
 PROJECT_ROOT = PACKAGE_ROOT.parent
@@ -109,11 +110,36 @@ def test_package_data_globs_all_match_something():
 
 
 def test_data_dir_resolves_inside_the_installed_package():
-    """DATA_DIR must be package-relative, not a path into a developer's
-    checkout or a download cache — that is what makes the wheel self-contained."""
+    """The wheel must be self-contained: with no repo checkout to fall back on,
+    DATA_DIR has to land inside the package, not in a developer's tree or a
+    download cache.
+
+    ``_resolve_data_dir`` deliberately prefers the repo-root ``data/`` when one
+    exists, so asserting on the live DATA_DIR only exercises the wheel path on
+    machines that happen to lack that directory — in a checkout it fails on
+    intended behaviour. Re-resolve with the repo root hidden instead, so the
+    guarantee is checked everywhere."""
+    packaged = PACKAGE_ROOT / "_data"
+    assert packaged.is_dir(), "packaged _data/ is missing from the source tree"
+    assert (packaged / "obr_model_code_october_2025.txt").is_file()
+
+    # The live value must be one of the two documented locations.
     assert DATA_DIR.is_dir()
-    assert DATA_DIR.resolve().is_relative_to(PACKAGE_ROOT.resolve())
-    assert (DATA_DIR / "obr_model_code_october_2025.txt").is_file()
+    assert DATA_DIR.resolve() in (
+        packaged.resolve(),
+        (PROJECT_ROOT / "data").resolve(),
+    )
+
+    # The wheel branch must be package-relative. Simulate "no repo data/".
+    real_is_dir = Path.is_dir
+    repo_data = (PROJECT_ROOT / "data").resolve()
+
+    def _hide_repo_data(self):
+        return False if self.resolve() == repo_data else real_is_dir(self)
+
+    with mock.patch.object(Path, "is_dir", _hide_repo_data):
+        resolved = _resolve_data_dir()
+    assert resolved.resolve().is_relative_to(PACKAGE_ROOT.resolve())
 
 
 def test_model_source_is_substantive():
