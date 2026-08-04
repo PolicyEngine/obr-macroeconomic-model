@@ -213,7 +213,10 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
     efo = load_obr_data()
     t0 = anchored.period_idx("2025Q1")
     t1 = anchored.period_idx("2027Q4")
-    for code in ("GDPM", "CONS"):
+    # HHDI joins GDPM/CONS: the anchored solve reproduces the EFO household
+    # income path exactly (MAPE 0.00% as of the March-2026 vintage), so it is
+    # held to the same by-construction tolerance.
+    for code in ("GDPM", "CONS", "HHDI"):
         errs = []
         for t in range(t0, t1 + 1):
             m = anchored.data.iloc[t][code]
@@ -222,6 +225,37 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
                 errs.append(abs(m - e) / abs(e))
         mape = 100 * np.mean(errs)
         assert mape < 1.0, f"anchored {code} MAPE {mape:.2f}% — not reproducing EFO"
+
+
+def test_anchored_unemployment_divergence_is_bounded(anchored):
+    """EXPECTED DIVERGENCE, explicitly documented: unlike GDPM/CONS/HHDI, the
+    anchored unemployment rate does NOT reproduce the EFO path — LFSUR drifts
+    from the published values once its unpublished labour-market inputs run
+    out (max abs gap 1.23pp on the March-2026 vintage; the EFO peaks near
+    5.3%, the model overshoots then undershoots). This test does not bless
+    the drift as correct; it pins its current size so it cannot silently
+    worsen. If it starts failing, the labour block regressed; if the drift is
+    ever fixed, promote LFSUR into
+    test_anchored_reproduces_efo_published_aggregates and delete this."""
+    from obr_macro.data import load_obr_data
+
+    efo = load_obr_data()
+    t0 = anchored.period_idx("2025Q1")
+    t1 = anchored.period_idx("2027Q4")
+    m = anchored.data["LFSUR"].iloc[t0 : t1 + 1].to_numpy(dtype=float)
+    e = efo["LFSUR"].iloc[t0 : t1 + 1].to_numpy(dtype=float)
+    ok = np.isfinite(m) & np.isfinite(e)
+    assert ok.any(), "no finite LFSUR pairs to score"
+    gap = np.abs(m[ok] - e[ok])
+    assert gap.max() < 1.5, (
+        f"anchored LFSUR drift grew to {gap.max():.2f}pp (was 1.23pp) — the "
+        "documented divergence got worse"
+    )
+    # And the rate itself must stay economically sane on the horizon (the
+    # failure mode on record is a decay toward zero, vs the EFO's ~4-5%).
+    assert (m[ok] > 2.0).all() and (m[ok] < 8.0).all(), (
+        "anchored unemployment rate left the plausible band"
+    )
 
 
 def test_anchored_baseline_has_no_nan_or_inf_in_key_aggregates(anchored):
@@ -265,6 +299,148 @@ def test_gdp_expenditure_identity_closes(anchored):
         assert abs(rhs - vals["GDPM"]) < 0.005 * abs(vals["GDPM"]), (
             f"expenditure identity fails to close at {anchored.index[t]}"
         )
+
+
+# --- External validation gates ----------------------------------------------
+#
+# The paper (papers/obr-macro) benchmarks the worked 1p basic-rate reform
+# against HMRC's ready reckoner. Until now that comparison lived only in the
+# paper's prose — nothing in CI failed if the pipeline drifted away from the
+# official number. These tests gate it.
+#
+# Scope: the £6.46bn static costing is produced by the PolicyEngine
+# microsimulation, which lives in another repository and is not runnable
+# here. What THIS repo computes is the costing *path*: an externally costed
+# annual yield arrives as a quarterly £m HHDI_ADDFACTOR shock, and
+# run_reform must (a) inject exactly minus the costing as an HHDI add-factor
+# and (b) deliver a household-income fall of the right sign and magnitude
+# class. The microsim number itself is frozen here as a constant and gated
+# against the HMRC reckoner; regenerating it is out of scope for this repo's
+# CI (it is validated in the policyengine-macro integration suite).
+
+# PolicyEngine static costing of basic rate 20p->21p from April 2026, first
+# full year (2026-27), £bn — the paper's Table "reform" / fig_reform.py value.
+PE_BASIC_RATE_1PP_YIELD_2026_27_BN = 6.46
+# HMRC "Direct effects of illustrative tax changes" (the ready reckoner),
+# June 2025 edition: 1p change in the basic rate, 2026-27, £bn.
+HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN = 6.9
+
+
+def test_basic_rate_costing_is_within_15pct_of_hmrc_reckoner():
+    """The frozen first-year basic-rate +1pp costing must sit within +/-15% of
+    HMRC's ready-reckoner value. This fails if either side is updated
+    inconsistently (a new microsim costing or a new reckoner vintage that
+    breaks the paper's headline external-validation claim)."""
+    rel = (
+        abs(
+            PE_BASIC_RATE_1PP_YIELD_2026_27_BN - HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN
+        )
+        / HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN
+    )
+    assert rel <= 0.15, (
+        f"basic-rate +1pp costing £{PE_BASIC_RATE_1PP_YIELD_2026_27_BN}bn is "
+        f"{100 * rel:.1f}% away from HMRC's £"
+        f"{HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN}bn (limit 15%)"
+    )
+
+
+def test_household_costing_injects_exact_hhdi_add_factors(solver):
+    """This repo's half of the costing path is deterministic arithmetic: a
+    quarterly £m costing must land as exactly minus that value on the HHDI
+    add-factor for each shocked quarter (positive = revenue raised =
+    disposable income falls)."""
+    from obr_macro.reform_analysis import _apply_household_costing
+
+    s = solver.clone()
+    quarterly = PE_BASIC_RATE_1PP_YIELD_2026_27_BN * 1000 / 4  # £m/qtr
+    _apply_household_costing(s, [quarterly] * 4, "2026Q2", 4)
+    t0 = s.period_idx("2026Q2")
+    for offset in range(4):
+        assert s.add_factors[("HHDI", t0 + offset)] == pytest.approx(-quarterly)
+
+
+def test_basic_rate_costing_path_moves_hhdi_by_the_static_yield():
+    """Running the paper's first-year costing through run_reform must reduce
+    household disposable income by the static yield, up to bounded
+    second-round amplification. The reported delta_hhdi_m includes the
+    model's endogenous income feedback (consumption falls -> incomes fall),
+    so the fall exceeds the pure static injection — but it must have the
+    right sign and stay in the same magnitude class. A dead HHDI channel
+    (delta ~0) or a runaway (>1.6x static) both fail."""
+    from obr_macro.reform_analysis import run_reform
+
+    quarterly = PE_BASIC_RATE_1PP_YIELD_2026_27_BN * 1000 / 4  # £1,615m/qtr
+    df = run_reform(
+        "basic rate +1pp (2026-27 static costing)",
+        "HHDI_ADDFACTOR",
+        [quarterly] * 4,
+        start="2025Q1",
+        end="2025Q4",
+    )
+    dh = df.attrs["delta_hhdi_m"]
+    assert len(dh) == 4
+    static = quarterly
+    for q, d in enumerate(dh):
+        assert d < 0, f"quarter {q}: revenue raised must LOWER HHDI, got {d:+,.0f}"
+        assert static * 0.9 <= -d <= static * 1.6, (
+            f"quarter {q}: HHDI fall £{-d:,.0f}m vs static £{static:,.0f}m — "
+            "outside the pass-through-plus-bounded-feedback band"
+        )
+    # Second-round GDP effect: negative (a tax rise is contractionary under
+    # the demand closure) and small relative to the ~£6.5bn/yr costing.
+    assert (df["delta_gdp_bn"] < 0).all()
+    assert df["delta_gdp_bn"].abs().max() < 2.0
+
+
+# --- Calibration scorecard regression gate -----------------------------------
+
+
+def test_raw_calibration_scorecard_does_not_regress():
+    """docs/calibration_scorecard.md promises the raw MAPEs are 'gated against
+    regression'; this is that gate. The reference values below are the
+    scorecard as of the March-2026 EFO vintage (August 2026 run of
+    `obr_macro.calibration_score`). Each computed variable may not worsen by
+    more than 20% relative (plus a small absolute slack for near-zero
+    values). Improvements are always allowed — tighten the reference when
+    they land.
+
+    ETLFS is excluded: it scores ~0 as a trivial identity (see the
+    scorecard's 'headline trap' note), so a relative bound is meaningless.
+    """
+    from obr_macro.calibration_score import build_scorecard
+
+    reference = {
+        # code: (kind, reference error)
+        "GDPM": ("lvl", 4.49),  # % MAPE
+        "CONS": ("lvl", 7.49),
+        "IBUS": ("lvl", 15.73),
+        "LFSUR": ("pp", 1.01),  # mean abs pp
+        "RPI": ("pp", 1.71),
+        "HHDI": ("lvl", 6.27),
+        "RHHDI": ("lvl", 6.04),
+        "FYCPR": ("lvl", 63.30),
+        "CB": ("gdp", 3.61),  # % of GDP
+        "TB": ("gdp", 0.69),
+    }
+    report = build_scorecard()
+    scored = {
+        row["variable"]: row for block in report["blocks"] for row in block["rows"]
+    }
+    failures = []
+    for code, (kind, ref) in reference.items():
+        row = scored.get(code)
+        assert row is not None, f"{code} vanished from the scorecard panel"
+        assert row["status"] == "computed", (
+            f"{code} is no longer computed ({row['status']}) — a live channel "
+            "went dead, which the scorecard would silently record as 0.00%"
+        )
+        assert row["metric"] == kind, f"{code} metric changed {kind}->{row['metric']}"
+        err = row["error"]
+        assert err is not None and np.isfinite(err), f"{code} scored no data"
+        limit = ref * 1.20 + 0.05
+        if err > limit:
+            failures.append(f"{code}: {err:.2f} > limit {limit:.2f} (ref {ref})")
+    assert not failures, "raw calibration regressed:\n  " + "\n  ".join(failures)
 
 
 def test_closure_freezes_pif_and_pirhh(corp_tax_rise_results=None):
