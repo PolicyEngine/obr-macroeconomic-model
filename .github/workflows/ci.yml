@@ -102,7 +102,8 @@ jobs:
     # main, nightly and on demand rather than on every PR — PRs get the fast
     # hermetic gate above. This job IS a hard gate: any violation of a sign,
     # multiplier, NaN/inf, identity-closure, determinism or robustness invariant
-    # fails the build. The EFO workbooks ship as package data (obr_macro/_data),
+    # fails the build — as does the HMRC ready-reckoner gate on the basic-rate
+    # costing and the calibration-scorecard regression gate. The EFO workbooks ship as package data (obr_macro/_data),
     # so no gated OBR download is needed.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -122,8 +123,10 @@ jobs:
     name: Calibration scorecard (report only — never gates)
     # Publishes the raw-vs-EFO MAPE numbers as a report artifact and job summary.
     # Calibration is known-weak and bounded by unpublished OBR constants
-    # (see docs/calibration_scorecard.md), so this step NEVER fails the build —
-    # regressions are caught by the invariant gate, not by these numbers.
+    # (see docs/calibration_scorecard.md), so this step NEVER fails the build.
+    # The gating lives in the invariants job:
+    # test_raw_calibration_scorecard_does_not_regress recomputes the scorecard
+    # and hard-fails if any computed MAPE worsens >20% vs pinned references.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     continue-on-error: true

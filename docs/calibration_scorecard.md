@@ -92,7 +92,10 @@ unpublished-constant gap accounts for a large share of the residual error in
 **three** scored variables at once (HHDI, RHHDI, FYCPR). Re-tuning `12874`/`0.85`
 to hit the £77bn target would be fitting to the answer, not calibration, so it is
 left as a documented floor: the anchored add-factor absorbs it, and the raw score
-is gated against *regression*, not chased to zero.
+is gated against *regression*, not chased to zero (the gate is
+`test_raw_calibration_scorecard_does_not_regress` in
+`tests/test_model_invariants.py`, run in the hard-gating invariants CI job; the
+`calibration-report` CI job remains report-only).
 
 - **Why the headline numbers improved vs earlier versions of this doc:** the
   large divergences the older table recorded (business investment 318%, household
@@ -135,4 +138,10 @@ seed left in the data frame. What error remains is bounded by the constants and
 deflator/normaliser histories the OBR does not publish (the OSHH base constant,
 the `I7`/`PR` RPI-index history, the overseas rate-of-return normalisers behind
 `NIPD`); the CI gates these against *regression* rather than failing the build on
-a target the published inputs cannot reach.
+a target the published inputs cannot reach. Concretely:
+`test_raw_calibration_scorecard_does_not_regress`
+(`tests/test_model_invariants.py`) recomputes the scorecard and fails the
+invariants job if any computed variable worsens by more than 20% relative to
+the pinned reference values. The table above is a documentation snapshot; the
+reference values of record live in that test and are tightened as
+improvements land.
