@@ -59,7 +59,19 @@ LEVERS = [
         hi=10.0,
         step=0.5,
         to_internal=lambda v: v * 1000.0 / 4.0,
-        desc="Day-to-day government spending — a direct part of GDP. Higher spending lifts demand; the multiplier builds over time.",
+        # The old wording ("the multiplier builds over time") described a model
+        # this is not. Measured on this closure the GDP multiplier is 1.00 on
+        # impact and 0.9995 twelve quarters later, and consumption moves by
+        # under 0.05% of the shock in either direction: the GDP change IS the
+        # spending change. Say that.
+        desc=(
+            "Day-to-day government spending — a direct part of GDP. In this "
+            "model the GDP change is the spending change (multiplier 1.0, flat): "
+            "the second-round channels that would amplify or damp it — import "
+            "leakage, income-driven consumption, a monetary response — are "
+            "inert in the published equations as populated here. The OBR's own "
+            "impact multiplier for current spending is 0.6, decaying after."
+        ),
     ),
     dict(
         id="X",

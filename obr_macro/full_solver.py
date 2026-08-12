@@ -32,6 +32,35 @@ _WARNED_UNPARSED_LHS: set = set()
 _WARNED_DUPLICATE_LHS: set = set()
 
 
+# Constants the OBR PUBLISHES as level equations in the model file. They are
+# seeded here only so that periods which are initialised but never solved carry
+# the published value rather than an invention; the published equation still
+# fires in every solve. Keeping them in one dict makes it a one-line test that
+# the seeds agree with the model file (test_calibration_constants.py).
+PUBLISHED_MODEL_CONSTANTS = {
+    "WB": 0.31,  # model file line 44
+    "WP": 0.54,  # line 46
+    "WV": 0.14,  # line 48
+    "RDELTA": 0.022,  # line 66
+}
+
+# Constants this repository INVENTS. Each has a published OBR equation, but the
+# equation's inputs (DISCO, IIB, SIB, FP, SP, SV, DELTA, RWACC) have no
+# equation and no data in any published OBR artefact, so the equation always
+# evaluates to NaN and solve_period drops it. These seeds are therefore not
+# starting values that get refined — they are the operative values for the
+# entire run, and they set the magnitude of the corporation-tax -> investment
+# response through TAF. They are documented, not fitted: no attempt is made to
+# tune them so that a costing matches a target.
+UNPUBLISHED_COST_OF_CAPITAL_SEEDS = {
+    "DB": 0.18,  # PV of plant & machinery allowances
+    "DP": 0.06,  # PV of structures & buildings allowances
+    "DV": 0.25,  # PV of vehicle allowances
+    "COCU": 0.12,  # pre-tax user cost of capital (level only — cancels in the
+    # corporation-tax response, see _initialize_historical)
+}
+
+
 def reset_model_warnings() -> None:
     """Clear the warn-once registries so the model-file warnings are emitted
     again. Intended for tests and for callers that deliberately re-parse a
@@ -424,26 +453,48 @@ class FullOBRSolver:
             if "TCPRO" in col_idx and np.isnan(self._get("TCPRO", t)):
                 self.data.iloc[t, col_idx["TCPRO"]] = 0.25
 
-            # DB, DP, DV = capital allowance rates (depreciation deductions)
-            # Typical values: DB=0.18 (plant), DP=0.06 (buildings), DV=0.25 (vehicles)
+            # DB, DP, DV = present value of capital allowances (plant,
+            # buildings, vehicles). NOT from the OBR: the published equations
+            # (model file lines 38-42) need DISCO/IIB/SIB/FP/SP/SV, which have
+            # no equation and no data anywhere in the published material, so
+            # they evaluate to NaN and solve_period silently skips them —
+            # these seeds are what the model actually runs on, forever.
+            # See UNPUBLISHED_COST_OF_CAPITAL_SEEDS below; they set the SIZE of
+            # the whole corporation-tax -> investment response via
+            # TAF = WB*(1-TCPRO*DB)/(1-TCPRO) + ... .
             if "DB" in col_idx and np.isnan(self._get("DB", t)):
-                self.data.iloc[t, col_idx["DB"]] = 0.18
+                self.data.iloc[t, col_idx["DB"]] = UNPUBLISHED_COST_OF_CAPITAL_SEEDS[
+                    "DB"
+                ]
             if "DP" in col_idx and np.isnan(self._get("DP", t)):
-                self.data.iloc[t, col_idx["DP"]] = 0.06
+                self.data.iloc[t, col_idx["DP"]] = UNPUBLISHED_COST_OF_CAPITAL_SEEDS[
+                    "DP"
+                ]
             if "DV" in col_idx and np.isnan(self._get("DV", t)):
-                self.data.iloc[t, col_idx["DV"]] = 0.25
+                self.data.iloc[t, col_idx["DV"]] = UNPUBLISHED_COST_OF_CAPITAL_SEEDS[
+                    "DV"
+                ]
 
-            # WB, WP, WV = weights for capital types (sum to 1)
-            if "WB" in col_idx and np.isnan(self._get("WB", t)):
-                self.data.iloc[t, col_idx["WB"]] = 0.6
-            if "WP" in col_idx and np.isnan(self._get("WP", t)):
-                self.data.iloc[t, col_idx["WP"]] = 0.2
-            if "WV" in col_idx and np.isnan(self._get("WV", t)):
-                self.data.iloc[t, col_idx["WV"]] = 0.2
+            # WB, WP, WV = weights for capital types (sum to 1). The OBR
+            # PUBLISHES these as level equations (WB=0.31, WP=0.54, WV=0.14);
+            # seed at the published values. A seed is only skipped where it is
+            # NaN, so an invented seed here masks the published equation for
+            # every period that is initialised but never solved (all of
+            # history, and the residual window). Previously 0.6/0.2/0.2, which
+            # matched nothing in the published model.
+            for _w in ("WB", "WP", "WV"):
+                if _w in col_idx and np.isnan(self._get(_w, t)):
+                    self.data.iloc[t, col_idx[_w]] = PUBLISHED_MODEL_CONSTANTS[_w]
 
-            # COCU = user cost of capital (pre-tax), typically ~0.1-0.15
+            # COCU = user cost of capital (pre-tax). The published equation
+            # (line 68) needs DELTA and RWACC, both unavailable; see DB/DP/DV.
+            # NB the LEVEL of COCU does not affect the corporation-tax
+            # response: KSTAR ~ COC^-0.4 with COC = TAF*COCU, so dlog(COC) =
+            # dlog(TAF) and COCU cancels. It sets the KSTAR level only.
             if "COCU" in col_idx and np.isnan(self._get("COCU", t)):
-                self.data.iloc[t, col_idx["COCU"]] = 0.12
+                self.data.iloc[t, col_idx["COCU"]] = UNPUBLISHED_COST_OF_CAPITAL_SEEDS[
+                    "COCU"
+                ]
 
             # CBIUD = CBI uncertainty index (exogenous, normalize to 0)
             if "CBIUD" in col_idx and np.isnan(self._get("CBIUD", t)):
@@ -458,9 +509,13 @@ class FullOBRSolver:
             if "IPRL" in col_idx and np.isnan(self._get("IPRL", t)):
                 self.data.iloc[t, col_idx["IPRL"]] = 0
 
-            # RDELTA = depreciation rate, typically ~0.025 (10% annual)
+            # RDELTA = capital depreciation rate. The OBR PUBLISHES this
+            # (RDELTA = 0.022, model file line 66); seed at the published
+            # value rather than the 0.025 guess that was here before.
             if "RDELTA" in col_idx and np.isnan(self._get("RDELTA", t)):
-                self.data.iloc[t, col_idx["RDELTA"]] = 0.025
+                self.data.iloc[t, col_idx["RDELTA"]] = PUBLISHED_MODEL_CONSTANTS[
+                    "RDELTA"
+                ]
 
             # Initialize business investment components if we have IF
             if_val = self._get("IF", t)
@@ -904,6 +959,14 @@ class FullOBRSolver:
         ``periods`` (externally costed reforms — e.g. a microsimulation
         revenue path — arrive as one value per quarter). Booleans, strings,
         and mappings are rejected.
+
+        ``var`` must exist in the databank and be finite over the shocked
+        window. A shock is applied as ``var += s``, so a missing column or a
+        NaN level makes the whole path NaN: the run then completes normally
+        and reports a delta of exactly zero for every variable. That failure
+        mode is indistinguishable from "this policy has no effect", so it is
+        raised rather than warned — a mistyped or never-populated instrument
+        must not be reportable as a costed result.
         """
         # Validate everything BEFORE mutating solver state (make_exogenous
         # removes the equation and _shock_active disables residuals — neither
@@ -911,6 +974,30 @@ class FullOBRSolver:
         scalar = is_scalar_shock(shock)
         values = shock_path(shock, periods)
         start_t = self.period_idx(start)
+
+        if var not in self.data.columns:
+            raise KeyError(
+                f"cannot shock {var!r}: no such variable in the databank. "
+                "Shocking it would create an all-NaN column and the run would "
+                "silently report a zero effect."
+            )
+        window = [
+            self._get(var, start_t + p)
+            for p in range(len(values))
+            if start_t + p < len(self.data)
+        ]
+        bad = [
+            str(self.index[start_t + p])
+            for p, v in enumerate(window)
+            if not np.isfinite(v)
+        ]
+        if bad:
+            raise ValueError(
+                f"cannot shock {var!r}: its level is non-finite at "
+                f"{', '.join(bad[:6])}{' ...' if len(bad) > 6 else ''}. "
+                "Adding a shock to NaN yields NaN, and the run would silently "
+                "report a zero effect for every variable."
+            )
 
         self.make_exogenous(var)
 

@@ -123,6 +123,73 @@ def test_demand_closure_results_carry_passthrough_warning(spending_reforms):
     df = spending_reforms["plus"]
     assert df.attrs.get("mechanical_passthrough") is True
     assert "passthrough" in df.attrs.get("multiplier_warning", "")
+    # The warning must name the published benchmark it FAILS, not a benchmark
+    # it happens to match. (It previously claimed the impact quarter matched
+    # "the OBR's ~1.0 multiplier for government consumption"; 1.0 is the OBR's
+    # CAPITAL-spending multiplier — its current-spending one is 0.6.)
+    assert df.attrs["obr_published_impact_multiplier"]["current_spending"] == 0.6
+    assert "0.6" in df.attrs["multiplier_warning"]
+
+
+def test_government_consumption_multiplier_gap_vs_obr_is_pinned(spending_reforms):
+    """THE model's most important weakness, measured rather than described.
+
+    The OBR's published impact multiplier for CURRENT spending is 0.6, decaying
+    to zero as the output gap closes. This model returns a flat accounting
+    passthrough. Both facts are pinned here so neither can drift unnoticed: if
+    a genuine behavioural channel is ever activated the multiplier will leave
+    the passthrough band and this test will fail, which is the signal to
+    re-measure against the OBR range rather than to widen the band.
+    """
+    df = spending_reforms["plus"]
+    shock_bn = 1.25
+    mult = (df["delta_gdp_bn"] / shock_bn).to_numpy()
+
+    # 1. It is passthrough: 1.0 on impact, to well within a tenth of a percent.
+    assert abs(mult[0] - 1.0) < 1e-3, f"impact multiplier {mult[0]:.4f} is not 1.0"
+    # 2. It is FLAT: no decay anywhere on a 12-quarter horizon (the OBR's
+    #    would be materially below its impact value by the end).
+    assert abs(mult[-1] - mult[0]) < 0.01, (
+        f"multiplier moved from {mult[0]:.4f} to {mult[-1]:.4f} — if a decay "
+        "channel is now live, re-benchmark against the OBR profile"
+    )
+    # 3. Consumption does not respond: the income->consumption chain is inert,
+    #    so the "multiplier" contains no behaviour at all.
+    assert df["delta_cons_m"].abs().max() < 0.001 * 1250, (
+        "consumption now responds to a spending shock — the multiplier is no "
+        "longer pure passthrough and must be re-benchmarked"
+    )
+    # 4. The gap against the published OBR figure, stated as a number.
+    obr_current_spending = df.attrs["obr_published_impact_multiplier"][
+        "current_spending"
+    ]
+    overstatement = mult[0] / obr_current_spending
+    assert 1.6 < overstatement < 1.75, (
+        f"impact multiplier is {overstatement:.2f}x the OBR's published "
+        f"current-spending multiplier of {obr_current_spending}"
+    )
+
+
+def test_government_investment_channel_is_dead_and_says_so():
+    """CGIPS has no path to GDP under the demand closure (IF has no live
+    equation), so a GBP 12bn/year public investment programme moves total
+    investment by EXACTLY zero and GDP by a wrong-signed deflator residue.
+    That is a defect this repo cannot fix without inventing an equation the
+    OBR did not publish — so it must be announced, not silently returned as a
+    public-investment multiplier."""
+    from obr_macro.reform_analysis import run_reform
+
+    with pytest.warns(UserWarning, match="NO transmission path"):
+        df = run_reform("cgips", "CGIPS", 3000.0, periods=12)
+    assert df.attrs["dead_channel"] is True
+    # Exactly zero, not approximately: nothing connects the chain.
+    assert (df["delta_if_m"] == 0.0).all(), (
+        "CGIPS now reaches total investment — the channel is alive; delete "
+        "this test and benchmark it against the OBR's 1.0 capital multiplier"
+    )
+    # And the GDP residue is negligible next to the shock, so nobody can read
+    # it as a multiplier of either sign.
+    assert df["delta_gdp_bn"].abs().max() < 0.1 * 3.0
 
 
 def test_opposite_shocks_are_antisymmetric(spending_reforms):
@@ -189,6 +256,163 @@ def test_corp_tax_investment_response_is_bounded(corp_tax_reforms):
     assert cut.abs().max() < 50_000, "investment response implausibly large"
 
 
+def test_corp_tax_rate_cannot_leave_its_usable_domain():
+    """The cost-of-capital block has a pole at TCPRO = 1: above it, TAF and COC
+    go negative, log(COC) in KSTAR is undefined, solve_period silently drops
+    the equation, and the run returns a FINITE, WRONG-SIGNED answer. Measured
+    before the guard: shocking TCPRO 0.25 -> 1.05 reported delta_IF = +£3.2bn,
+    i.e. a 105% corporation tax raising business investment, with no error and
+    no warning. Both ends of the domain must now be refused up front.
+
+    (Uses the same start/end as the other corporation-tax tests so it reuses the
+    cached reform template rather than paying for another solver build.)"""
+    from obr_macro.reform_analysis import run_reform
+
+    for shock, why in ((0.80, "TCPRO -> 1.05"), (-0.30, "TCPRO -> -0.05")):
+        with pytest.raises(ValueError, match="usable domain"):
+            run_reform(
+                why,
+                "TCPRO",
+                shock,
+                start="2025Q1",
+                end="2027Q4",
+                periods=12,
+                investment_closure=True,
+            )
+    # A rate at the edges of the domain is fine: 0% corporation tax is a
+    # policy, 100% is a pole.
+    from obr_macro.reform_analysis import _check_instrument_domain
+    from obr_macro import reform_analysis as ra
+
+    tmpl = ra._build_reform_template("TCPRO", "2025Q1", "2027Q4", True)
+    _check_instrument_domain(tmpl, "TCPRO", [-0.25] * 4, "2025Q1")  # -> 0.0, ok
+    with pytest.raises(ValueError, match="usable domain"):
+        _check_instrument_domain(tmpl, "TCPRO", [0.75] * 4, "2025Q1")  # -> 1.0
+
+
+def test_corp_tax_deviation_never_settles_and_says_so():
+    """THE investment closure's defect, measured rather than described.
+
+    The held add-factors anchor the LEVEL of business investment. Nothing
+    anchors the base-vs-shock DEVIATION, and it compounds at 1.21x-1.27x per
+    quarter for all 25 quarters measured, with no sign of converging:
+    |delta_IF| for a sustained +5pp rise is £0.10bn at q3, £1.03bn at q8,
+    £2.88bn at q12, £15.7bn at q20 and £43.4bn at q25 (~36% of quarterly
+    investment). An error-correction model should settle once the capital
+    stock reaches its new desired level; this one cannot, because the MSGVA
+    freeze that tames the level instability also removes the feedback that
+    would close the capital gap.
+
+    So the divergence flag fires on EVERY investment-closure run, including
+    the 12-quarter horizon every published corporation-tax result in this repo
+    uses. That is deliberate. 12 quarters is not where this converges — it is
+    where the magnitude still happens to look plausible. This test pins both
+    the compounding and the fact that run_reform announces it.
+    """
+    from obr_macro.reform_analysis import run_reform
+
+    with pytest.warns(UserWarning, match="does not converge"):
+        short = run_reform(
+            "12q",
+            "TCPRO",
+            0.05,
+            start="2025Q1",
+            end="2027Q4",
+            periods=12,
+            investment_closure=True,
+        )
+    assert short.attrs["investment_closure_diverging"] is True
+    growth = short.attrs["investment_closure_tail_qoq_growth"]
+    assert 1.15 < growth < 1.40, (
+        f"tail growth {growth:.3f} left the measured 1.21-1.27 band — if the "
+        "deviation now converges (growth <= 1.0) that is a real improvement: "
+        "retire the flag and re-benchmark against the OBR's 0.2 corporation-tax "
+        "multiplier"
+    )
+    # Compounding is not a tail artefact: it holds across the whole path.
+    d = short["delta_if_m"].abs().to_numpy()
+    live = d[d > 1e-9]
+    assert (np.diff(live) > 0).all(), "response is no longer monotonically growing"
+
+    with pytest.warns(UserWarning, match="does not converge"):
+        long = run_reform(
+            "25q",
+            "TCPRO",
+            0.05,
+            start="2025Q1",
+            end="2031Q1",
+            periods=25,
+            investment_closure=True,
+        )
+    assert long.attrs["investment_closure_diverging"] is True
+    assert "25 quarters" in long.attrs["investment_closure_warning"]
+    # Doubling the horizon multiplies the response by ~15x, not by ~2x.
+    ratio = abs(long["delta_if_m"].iloc[-1]) / abs(short["delta_if_m"].iloc[-1])
+    assert ratio > 5, f"the deviation stopped compounding (ratio {ratio:.1f})"
+
+
+def test_corp_tax_response_is_dominated_by_drift_not_by_the_tax_rate():
+    """A second, independent symptom of the same defect: truncating the shock
+    from 12 quarters to 8 barely changes the quarter-11 and quarter-12
+    response (measured |delta_IF| 2,170/2,662 vs 2,268/2,876 £m). A genuine
+    cost-of-capital response would fall back once the tax rate returned to
+    baseline; this one is carried by accumulated drift, so removing a third of
+    the shock moves it by only a few percent."""
+    from obr_macro.reform_analysis import run_reform
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        full = run_reform(
+            "12q", "TCPRO", 0.05, end="2027Q4", periods=12, investment_closure=True
+        )
+        trunc = run_reform(
+            "8q", "TCPRO", 0.05, end="2027Q4", periods=8, investment_closure=True
+        )
+    # Same reporting window, four fewer shocked quarters.
+    assert len(full) == len(trunc) == 12
+    tail_ratio = abs(trunc["delta_if_m"].iloc[-1]) / abs(full["delta_if_m"].iloc[-1])
+    assert tail_ratio > 0.80, (
+        f"dropping a third of the shock changed the final response by "
+        f"{100 * (1 - tail_ratio):.0f}% — if the response now tracks the tax "
+        "rate rather than accumulated drift, that is a real fix"
+    )
+
+
+def test_corp_tax_response_is_convex_but_not_divergent_over_shock_size():
+    """Sanity on the shock-size dimension (as opposed to the horizon). The
+    per-pp investment response is convex in the rate — TAF = (1-T*D)/(1-T)
+    steepens as T rises — so a rise bites harder per pp than a cut helps.
+    Measured at 12 quarters: -541 £m/pp for a 5pp cut vs -575 £m/pp for a 5pp
+    rise, widening to -435 vs -859 at 50pp. That asymmetry is the arithmetic
+    of the user-cost formula and is expected; what must NOT happen is the
+    response ceasing to scale monotonically or blowing past the shock's own
+    scale."""
+    from obr_macro.reform_analysis import run_reform
+
+    per_pp = {}
+    for pp in (-0.05, 0.05, 0.25):
+        df = run_reform(
+            f"{pp}",
+            "TCPRO",
+            pp,
+            start="2025Q1",
+            end="2027Q4",
+            periods=12,
+            investment_closure=True,
+        )
+        assert np.isfinite(df["delta_if_m"]).all(), f"{pp}: non-finite response"
+        per_pp[pp] = df["delta_if_m"].iloc[-1] / (pp * 100)
+    # every size gives the same sign of response per pp (a rise lowers, a cut
+    # raises investment) ...
+    assert all(v < 0 for v in per_pp.values()), f"sign flip across sizes: {per_pp}"
+    # ... convex, so a bigger rise costs more per pp than a cut gains ...
+    assert abs(per_pp[0.25]) > abs(per_pp[0.05]) > abs(per_pp[-0.05])
+    # ... but bounded: no size may run away by an order of magnitude per pp.
+    assert max(abs(v) for v in per_pp.values()) < 10 * min(
+        abs(v) for v in per_pp.values()
+    )
+
+
 # --- Anchored baseline: coherence, identities, no NaN/inf -------------------
 
 
@@ -204,27 +428,118 @@ def anchored():
     return s
 
 
+def _mape(model, efo, code, t0, t1):
+    errs = []
+    for t in range(t0, t1 + 1):
+        m, e = model.iloc[t][code], efo.iloc[t][code]
+        if np.isfinite(m) and np.isfinite(e) and abs(e) > 1e-9:
+            errs.append(abs(m - e) / abs(e))
+    assert errs, f"no finite {code} pairs to score"
+    return 100 * float(np.mean(errs))
+
+
 def test_anchored_reproduces_efo_published_aggregates(anchored):
     """Add-factors absorb the model's tracking error, so the anchored baseline
     must reproduce the OBR EFO path for the headline published aggregates to a
-    tight tolerance. This is the by-construction invariant."""
+    tight tolerance.
+
+    WHAT THIS DOES AND DOES NOT PROVE. It is a by-construction invariant, not a
+    forecast test: the residuals are computed as (EFO - model prediction) and
+    added back, so a small MAPE means the add-factor machinery works, not that
+    the model forecasts anything. Two further caveats, both measurable:
+
+    - Consumption is effectively the only source of GDP error here. Under the
+      demand closure GDPM = CGG + CONS + IF + DINV + VAL + X - M + SDE; IF, X,
+      M, VAL and SDE have no equation at all, DINV's is removed by the closure
+      swap, and CGG's dlog equation is driven by exogenous EFO nominal
+      spending and pinned by its own residual. So the GDP fit is the
+      consumption fit scaled by the consumption share, and it is measurably
+      exactly that: GDPM 0.1567%, CONS 0.2573%, ratio 0.6088 against a
+      consumption share of GDP of 0.6092.
+    - HHDI is not scored here at all. baseline.build(anchored=True) makes HHDI
+      and RHHDI EXOGENOUS (_PUBLISHED_LEVEL_ANCHORS), so their "MAPE 0.00%" was
+      the tautology "a series held at its EFO value equals its EFO value" — an
+      assertion that could never fail. It is replaced below by the assertion
+      that actually has content: that they are held, and why.
+    """
     from obr_macro.data import load_obr_data
 
     efo = load_obr_data()
     t0 = anchored.period_idx("2025Q1")
     t1 = anchored.period_idx("2027Q4")
-    # HHDI joins GDPM/CONS: the anchored solve reproduces the EFO household
-    # income path exactly (MAPE 0.00% as of the March-2026 vintage), so it is
-    # held to the same by-construction tolerance.
-    for code in ("GDPM", "CONS", "HHDI"):
-        errs = []
-        for t in range(t0, t1 + 1):
-            m = anchored.data.iloc[t][code]
-            e = efo.iloc[t][code]
-            if np.isfinite(m) and np.isfinite(e) and abs(e) > 1e-9:
-                errs.append(abs(m - e) / abs(e))
-        mape = 100 * np.mean(errs)
+
+    mapes = {c: _mape(anchored.data, efo, c, t0, t1) for c in ("GDPM", "CONS")}
+    for code, mape in mapes.items():
         assert mape < 1.0, f"anchored {code} MAPE {mape:.2f}% — not reproducing EFO"
+
+    # The GDP fit is not independent evidence: it is the consumption fit
+    # diluted by the exogenous expenditure components. Pin that so the headline
+    # "GDP reproduces the EFO to 0.16%" cannot be read as a second success.
+    for code in ("IF", "X", "M", "DINV", "VAL", "SDE"):
+        assert code not in anchored.eq_for_var, (
+            f"{code} became endogenous — the anchored GDP fit is no longer just "
+            "the consumption fit and this test's reasoning needs revisiting"
+        )
+    cons_share = float(
+        np.mean(
+            [
+                efo.iloc[t]["CONS"] / efo.iloc[t]["GDPM"]
+                for t in range(t0, t1 + 1)
+                if np.isfinite(efo.iloc[t]["GDPM"])
+            ]
+        )
+    )
+    assert mapes["GDPM"] / mapes["CONS"] == pytest.approx(cons_share, abs=0.05), (
+        f"GDP MAPE / CONS MAPE = {mapes['GDPM'] / mapes['CONS']:.4f} vs a "
+        f"consumption share of {cons_share:.4f}. They match because the GDP "
+        "fit IS the consumption fit; if they stop matching, another "
+        "expenditure component has become live and the headline needs "
+        "re-explaining."
+    )
+
+
+def test_anchored_household_income_is_held_not_reproduced(anchored):
+    """HHDI/RHHDI are pinned to the EFO by removing their equations, not by
+    being solved to it. Assert the MECHANISM, since asserting the outcome is
+    vacuous: `build(anchored=True)` strips the HHDI identity so the databank's
+    published series survives the solve untouched.
+
+    This matters for the honesty of the anchored headline. It is legitimate
+    anchoring — the EFO publishes HHDI, so this is anchoring to ground truth —
+    but it means the anchored baseline demonstrates nothing whatsoever about
+    the model's household-income block, whose raw error is 6.27% MAPE.
+    """
+    from obr_macro.baseline import _PUBLISHED_LEVEL_ANCHORS
+    from obr_macro.data import load_obr_data
+
+    efo = load_obr_data()
+    t0 = anchored.period_idx("2025Q1")
+    t1 = anchored.period_idx("2027Q4")
+
+    assert set(_PUBLISHED_LEVEL_ANCHORS) == {"HHDI", "RHHDI"}
+    for code in _PUBLISHED_LEVEL_ANCHORS:
+        assert code not in anchored.eq_for_var, (
+            f"{code} has a live equation again — its anchored fit is no longer "
+            "tautological and it can rejoin the by-construction test"
+        )
+        # Held exactly, not approximately: any deviation would mean something
+        # is writing to it after all.
+        assert _mape(anchored.data, efo, code, t0, t1) == pytest.approx(0.0, abs=1e-9)
+
+    # The raw (un-anchored) model does NOT reproduce it — that is the number
+    # the anchored fit hides. Kept as a lower bound so the two cannot be
+    # confused: if this ever drops near zero the anchoring stopped mattering.
+    from obr_macro.calibration_score import build_scorecard
+
+    scored = {
+        row["variable"]: row
+        for block in build_scorecard()["blocks"]
+        for row in block["rows"]
+    }
+    assert scored["HHDI"]["error"] > 1.0, (
+        "raw HHDI error is now under 1% — the anchored 0.00% is no longer "
+        "hiding anything and this test can be simplified"
+    )
 
 
 def test_anchored_unemployment_divergence_is_bounded(anchored):
@@ -321,9 +636,12 @@ def test_gdp_expenditure_identity_closes(anchored):
 # PolicyEngine static costing of basic rate 20p->21p from April 2026, first
 # full year (2026-27), £bn — the paper's Table "reform" / fig_reform.py value.
 PE_BASIC_RATE_1PP_YIELD_2026_27_BN = 6.46
+# Same costing at the end of the paper's horizon (2030), £bn.
+PE_BASIC_RATE_1PP_YIELD_2030_BN = 7.38
 # HMRC "Direct effects of illustrative tax changes" (the ready reckoner),
-# June 2025 edition: 1p change in the basic rate, 2026-27, £bn.
+# June 2025 edition: 1p change in the basic rate, 2026-27 and 2028-29, £bn.
 HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN = 6.9
+HMRC_RECKONER_BASIC_RATE_1PP_2028_29_BN = 8.2
 
 
 def test_basic_rate_costing_is_within_15pct_of_hmrc_reckoner():
@@ -341,6 +659,62 @@ def test_basic_rate_costing_is_within_15pct_of_hmrc_reckoner():
         f"basic-rate +1pp costing £{PE_BASIC_RATE_1PP_YIELD_2026_27_BN}bn is "
         f"{100 * rel:.1f}% away from HMRC's £"
         f"{HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN}bn (limit 15%)"
+    )
+
+
+def test_basic_rate_costing_out_year_gap_is_wider_and_recorded():
+    """The 15% gate above covers the year where the agreement is BEST. The
+    out-year is worse and had no gate at all.
+
+    HMRC's reckoner grows the 1p yield 18.8% from 2026-27 (£6.9bn) to 2028-29
+    (£8.2bn). The frozen costing grows 14.2% from £6.46bn (2026) to £7.38bn
+    (2030) — over a horizon two years LONGER, so per year it grows about a
+    third as fast. Comparing like years (the paper interpolates £6.92bn for
+    2028) the gap widens from 6.4% to 15.6%, i.e. past the band the first-year
+    test enforces.
+
+    That is a real limitation of the external validation, not a bug in this
+    repo: only one point of a five-year path is genuinely benchmarked, and the
+    2028 figure is an interpolation rather than a computed costing. Pinned here
+    so the widening cannot be quietly lost, with a deliberately loose 20% bound
+    — tightening it would mean fitting the costing to HMRC, which is exactly
+    what must not happen.
+    """
+    first_year_gap = (
+        abs(
+            PE_BASIC_RATE_1PP_YIELD_2026_27_BN - HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN
+        )
+        / HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN
+    )
+    # The paper's own linear interpolation of the costing path to 2028.
+    span = 2030 - 2026
+    interpolated_2028 = PE_BASIC_RATE_1PP_YIELD_2026_27_BN + (
+        PE_BASIC_RATE_1PP_YIELD_2030_BN - PE_BASIC_RATE_1PP_YIELD_2026_27_BN
+    ) * ((2028 - 2026) / span)
+    out_year_gap = (
+        abs(interpolated_2028 - HMRC_RECKONER_BASIC_RATE_1PP_2028_29_BN)
+        / HMRC_RECKONER_BASIC_RATE_1PP_2028_29_BN
+    )
+    assert out_year_gap > first_year_gap, (
+        "the out-year gap is no longer the wider one — re-check which year the "
+        "headline external-validation claim is quoting"
+    )
+    assert out_year_gap <= 0.20, (
+        f"interpolated 2028 costing £{interpolated_2028:.2f}bn is "
+        f"{100 * out_year_gap:.1f}% away from HMRC's £"
+        f"{HMRC_RECKONER_BASIC_RATE_1PP_2028_29_BN}bn (limit 20%)"
+    )
+    # And the shape difference: HMRC's yield grows materially faster.
+    pe_growth = PE_BASIC_RATE_1PP_YIELD_2030_BN / PE_BASIC_RATE_1PP_YIELD_2026_27_BN - 1
+    hmrc_growth = (
+        HMRC_RECKONER_BASIC_RATE_1PP_2028_29_BN
+        / HMRC_RECKONER_BASIC_RATE_1PP_2026_27_BN
+        - 1
+    )
+    assert pe_growth < hmrc_growth, (
+        f"costing path grows {100 * pe_growth:.1f}% over four years against "
+        f"HMRC's {100 * hmrc_growth:.1f}% over two — if this flips, the "
+        "divergence direction changed and the paper's framing needs revisiting"
     )
 
 

@@ -27,6 +27,7 @@ from obr_macro.reform_analysis import (
     IF_EQ,
     IBUSX_EQ,
     _ensure_ibusx_inputs,
+    _stabilise_investment_closure,
 )
 
 START, END = "2025Q1", "2026Q2"  # 6-quarter horizon keeps the audit tractable
@@ -74,14 +75,36 @@ PP_THRESH = 0.005  # percentage points
 MARGINAL_FRAC = 0.20
 
 
-def _build(closure):
+def _build(closure, var):
+    """Unsolved template for one shock: same construction reform_analysis uses.
+
+    ``var`` is made exogenous HERE, on the template both runs clone, because
+    apply_shock makes it exogenous on the shocked run only. Leaving the control
+    with its live equation (CGG, R and PBRENT all have one) meant the control's
+    instrument drifted while the shocked run's was pinned, and the reported
+    "response" was that drift: it is what put a NEGATIVE GDP response to a
+    government-spending INCREASE into the committed audit table. Same rationale
+    as run_fiscal_shock's control run and reform_analysis's shared template.
+    """
     s = FullOBRSolver(verbose=False)
     s.swap_closure("DINV", GDPM_EQ)
     if closure == "investment":
         _ensure_ibusx_inputs(s)
         s.swap_closure("IBUSX", IBUSX_EQ)
         s.swap_closure("IBUS", IBUS_EQ)
-        s.swap_closure("IF_PLACEHOLDER", IF_EQ)
+        # IF has no live equation in the published model, so this is an
+        # addition; assert that rather than relying on a sentinel name that
+        # never matches (the previous "IF_PLACEHOLDER" removal was a no-op).
+        assert "IF" not in s.eq_for_var, "model already has a live IF equation"
+        s.swap_closure("IF", IF_EQ)
+    s.make_exogenous(var)
+    if closure == "investment":
+        # Without this the reconstructed dlog(IBUSX) closure sits in the
+        # explosive MSGVA accelerator documented in
+        # _stabilise_investment_closure and the corporation-tax row is
+        # meaningless (the committed table read +54% on GDP for a 1pp rise).
+        _stabilise_investment_closure(s, START, END)
+    s._shock_active = True
     return s
 
 
@@ -107,26 +130,32 @@ def _marginal(kind, v):
     return (1 - MARGINAL_FRAC) * thr <= abs(v) < (1 + MARGINAL_FRAC) * thr
 
 
-def build_baseline(closure):
-    base = _build(closure)
-    base._shock_active = True
-    base.solve(START, END)
-    return base
+def build_template(closure, var):
+    """Unsolved template both the control and the shocked run clone."""
+    return _build(closure, var)
 
 
-def run_one(shock, base):
-    """Run one shock against an already-solved baseline (cloned, not rebuilt)."""
-    bdat = base.data
+def run_one(shock, template):
+    """Run one shock against a control cloned from the SAME unsolved template.
 
-    sh = base.clone()
+    Both runs are solved from identical starting data, so the delta is the
+    policy. Cloning an already-solved baseline instead let the shocked run
+    start from the control's converged values while the control started from
+    the raw seeds — a second source of the drift that dominated the old table.
+    """
+    base = template.clone()
+    sh = template.clone()
+
     t0 = sh.period_idx(START)
     size = shock["size"]
     if shock.get("rel"):
         base_val = sh._get(shock["var"], t0)
         size = size * base_val if np.isfinite(base_val) else 0.0
     sh.apply_shock(shock["var"], size, START, periods=PERIODS)
+
+    base.solve(START, END)
     sh.solve(START, END)
-    sdat = sh.data
+    bdat, sdat = base.data, sh.data
 
     tN = base.period_idx(END)
     row = {}
@@ -175,13 +204,17 @@ def _fmt(kind, v):
 
 
 def main():
-    baselines = {}  # one solved baseline per closure, reused across shocks
+    # One unsolved template per (closure, instrument): the instrument must be
+    # exogenous on the template, so templates cannot be shared across shocks
+    # that use different instruments.
+    templates = {}
     results = []
     for sh in SHOCKS:
         print(f"[audit] {sh['label']} ...", flush=True)
-        if sh["closure"] not in baselines:
-            baselines[sh["closure"]] = build_baseline(sh["closure"])
-        row = run_one(sh, baselines[sh["closure"]])
+        key = (sh["closure"], sh["var"])
+        if key not in templates:
+            templates[key] = build_template(*key)
+        row = run_one(sh, templates[key])
         verdict, beh = classify(row)
         results.append((sh, row, verdict, beh))
         print(
@@ -215,6 +248,17 @@ def main():
     lines.append(
         "- **dead** — nothing moves; the shock does not propagate. These are the "
         "first channels to fix in Stage 1b."
+    )
+    lines.append("")
+    lines.append(
+        "> **A 'transmitting' verdict is about wiring, not about the answer being "
+        "right.** Two rows to read with care. *Gov investment* registers as "
+        "transmitting only through business investment: `IF` has no live "
+        "equation, so the CGIPS chain never reaches the GDP identity and the "
+        "GDP column is deflator residue of indeterminate sign, not a public "
+        "investment multiplier. *Gov consumption* is correctly identity-only — "
+        "GDP moves by exactly the shock and nothing behavioural responds, which "
+        "is what a flat multiplier of 1.0 looks like."
     )
     lines.append("")
     lines.append(
