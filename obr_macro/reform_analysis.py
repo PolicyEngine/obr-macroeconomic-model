@@ -1,5 +1,7 @@
 """Analyse policy reforms using OBR model and generate visualisations."""
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -56,6 +58,97 @@ IBUSX_EQ = EViewsTranspiler().parse_equation(_IBUSX_SRC)
 # OBR databank variable: run_reform translates it into a held add-factor on the
 # household disposable-income identity.
 HOUSEHOLD_COSTING_VAR = "HHDI_ADDFACTOR"
+
+
+# Instruments whose post-shock LEVEL must stay inside a domain for the
+# equations that consume them to mean anything. Checked before any solve.
+#
+# TCPRO: the tax-adjustment factor is TAF = sum_i W_i * (1 - TCPRO*D_i) /
+# (1 - TCPRO). At TCPRO = 1 it is a pole; above 1 the denominator turns
+# negative, TAF and hence COC = TAF*COCU turn negative, and log(COC) in KSTAR
+# is undefined — solve_period then silently drops the KSTAR equation and the
+# run completes with a WRONG-SIGNED investment response. Measured: shocking
+# TCPRO from 0.25 to 1.05 returned delta_IF = +GBP 3.2bn, i.e. "a 105%
+# corporation tax raises business investment", finite and unflagged. Below 0
+# there is no such arithmetic failure, but a negative corporation-tax rate is
+# not a policy this model was estimated on. Both are refused.
+_INSTRUMENT_DOMAINS = {
+    "TCPRO": (0.0, 1.0, "corporation tax rate"),
+}
+
+
+def _check_instrument_domain(template, var, values, start: str) -> None:
+    """Refuse a shock that drives a rate instrument outside its usable domain."""
+    domain = _INSTRUMENT_DOMAINS.get(var)
+    if domain is None:
+        return
+    lo, hi, label = domain
+    start_t = template.period_idx(start)
+    for offset, s in enumerate(values):
+        t = start_t + offset
+        if t >= len(template.data):
+            break
+        level = template._get(var, t) + s
+        if not (lo <= level < hi):
+            raise ValueError(
+                f"{var} ({label}) would become {level:.4g} at "
+                f"{template.index[t]}, outside its usable domain "
+                f"[{lo}, {hi}). The cost-of-capital block has a pole at "
+                f"{var}=1 and sign-flips beyond it, so the model would return "
+                "a finite but wrong-signed result rather than fail."
+            )
+
+
+# Instruments with NO transmission path to GDP under the demand closure.
+# `IF` has no live equation in the published model (both IF identities are
+# commented out), so it stays at its EFO value and the government-investment
+# chain CGIPS -> GGIPS -> GGI -> IF never reaches the GDP identity. Measured on
+# a sustained +GBP 3bn/quarter CGIPS shock over 12 quarters: delta_IF is
+# EXACTLY 0.0 in every quarter and delta_GDP is +GBP 0.03bn on impact then
+# NEGATIVE (to -GBP 0.14bn) — i.e. a GBP 12bn/year public investment programme
+# reads as a small GDP *contraction*. That residue is deflator noise, not a
+# crowding-out result, and it is the wrong sign to report either way.
+# tests/test_stress.py already excludes CGIPS from its instrument list for this
+# reason; the warning makes the same fact visible to anyone calling
+# run_reform directly (including run_five_reforms' "GBP 10bn Gov Investment").
+_DEAD_UNDER_DEMAND_CLOSURE = {
+    "CGIPS": "central government investment (nominal)",
+    "LAIPS": "local authority investment (nominal)",
+    "GGIPS": "general government investment (nominal)",
+}
+
+
+# THE INVESTMENT CLOSURE'S SHOCK DEVIATION DOES NOT CONVERGE — AT ANY HORIZON.
+#
+# _stabilise_investment_closure anchors the LEVEL of business investment with
+# held add-factors. Nothing anchors the base-vs-shock DEVIATION, and measured
+# on a sustained +5pp TCPRO rise it compounds at 1.21x-1.27x per quarter for
+# every one of 25 quarters, with no sign of settling:
+#
+#   |delta_IF|, GBP m:  q3 97, q4 216, q6 546, q8 1,032, q12 2,876,
+#                       q16 6,885, q20 15,664, q25 43,387 (~36% of quarterly
+#                       investment for a 5pp tax change)
+#   q-on-q growth:      2.22, 1.63, 1.55, 1.39, 1.36, 1.32, 1.31, 1.27, 1.27,
+#                       1.25, 1.24, 1.25, 1.23, 1.23, 1.24, 1.22, 1.23, 1.22,
+#                       1.24, 1.22, 1.21, 1.24
+#
+# An error-correction model should converge to a new steady state as the
+# capital stock reaches the new desired level. This one cannot: the MSGVA
+# freeze that tames the level instability also removes the feedback that would
+# close the capital gap, so KGAP's correction never catches up. A second
+# symptom: truncating the shock to 8 quarters instead of 12 leaves the q11/q12
+# response almost unchanged (2,170/2,662 vs 2,268/2,876), i.e. the number is
+# dominated by accumulated drift rather than by the current tax rate.
+#
+# 12 quarters is not a horizon at which this has settled; it is the horizon at
+# which the magnitude still happens to look plausible. Every published result
+# in this repo uses it. The flag below therefore fires on EVERY
+# investment-closure run, which is correct: the caller should know.
+_INVESTMENT_CLOSURE_CREDIBLE_QUARTERS = 12
+# Quarter-on-quarter growth of |delta_IF| above which the tail is compounding
+# rather than settling. A converging error-correction response would approach
+# 1.0 from above and then fall below it once the capital stock adjusts.
+_INVESTMENT_CLOSURE_COMPOUNDING_QOQ = 1.05
 
 
 def _apply_household_costing(solver, shock, start: str, periods: int) -> None:
@@ -258,6 +351,57 @@ def _build_reform_template(var, start, end, investment_closure):
     return baseline
 
 
+def _label_investment_closure_divergence(out: pd.DataFrame) -> None:
+    """Flag an investment-closure result whose deviation has not settled.
+
+    ``_stabilise_investment_closure`` anchors the LEVEL of business investment;
+    nothing anchors the base-vs-shock DEVIATION, which compounds instead of
+    converging (see ``_INVESTMENT_CLOSURE_COMPOUNDING_QOQ`` for the measured
+    path). On the current model this fires for every run, including the
+    12-quarter horizon all this repo's published corporation-tax results use —
+    which is the point. It is not a bug that the flag is always on; it is the
+    honest reading of a closure that has no steady state.
+    """
+    d = out["delta_if_m"].abs().to_numpy(dtype=float)
+    tail_growth = None
+    if len(d) >= 2 and np.isfinite(d[-1]) and np.isfinite(d[-2]) and d[-2] > 1e-9:
+        tail_growth = float(d[-1] / d[-2])
+    out.attrs["investment_closure_quarters"] = len(out)
+    out.attrs["investment_closure_reference_quarters"] = (
+        _INVESTMENT_CLOSURE_CREDIBLE_QUARTERS
+    )
+    out.attrs["investment_closure_tail_qoq_growth"] = tail_growth
+
+    reasons = []
+    if tail_growth is not None and tail_growth > _INVESTMENT_CLOSURE_COMPOUNDING_QOQ:
+        reasons.append(
+            f"|delta_IF| is still growing {tail_growth:.2f}x per quarter in the "
+            "final quarter, i.e. compounding rather than settling to a new "
+            "steady state"
+        )
+    if len(out) > _INVESTMENT_CLOSURE_CREDIBLE_QUARTERS:
+        reasons.append(
+            f"the horizon is {len(out)} quarters against the "
+            f"{_INVESTMENT_CLOSURE_CREDIBLE_QUARTERS} used for every published "
+            "result here, so the compounding has had longer to dominate "
+            "(|delta_IF| for a 5pp rise: GBP 2.9bn at 12 quarters, GBP 43.4bn "
+            "at 25)"
+        )
+    out.attrs["investment_closure_diverging"] = bool(reasons)
+    if reasons:
+        msg = (
+            "Investment-closure result does not converge: "
+            + "; ".join(reasons)
+            + ". The closure's held add-factors anchor the investment LEVEL but "
+            "not the base-vs-shock deviation; the MSGVA freeze that tames the "
+            "level instability also removes the feedback that would close the "
+            "capital gap. Read the sign and the direction, not the magnitude, "
+            "and do not extrapolate the path."
+        )
+        out.attrs["investment_closure_warning"] = msg
+        warnings.warn(msg, stacklevel=3)
+
+
 def run_reform(
     name: str,
     var: str,
@@ -296,6 +440,8 @@ def run_reform(
     # and unsolved, so the baseline and shocked clones are structurally
     # identical and the delta isolates the shock.
     template = _build_reform_template(var, start, end, investment_closure)
+    if var != HOUSEHOLD_COSTING_VAR:
+        _check_instrument_domain(template, var, shock_path(shock, periods), start)
     baseline = template.clone()
     shocked = template.clone()
     if var == HOUSEHOLD_COSTING_VAR:
@@ -358,22 +504,56 @@ def run_reform(
     #     gap, so nothing closes the multiplier over the horizon.
     # Activating any of these would mean inventing equations or data the OBR
     # did not publish, so the passthrough is kept and labelled instead of
-    # being dressed up as a validated multiplier profile. The OBR's published
-    # fiscal multipliers (impact ~1.0 for government consumption, decaying as
-    # the output gap closes) are matched only on impact.
+    # being dressed up as a validated multiplier profile.
+    #
+    # AGAINST THE PUBLISHED RANGE. The OBR's own impact multipliers are 1.0 for
+    # CAPITAL spending, 0.6 for CURRENT spending, 0.6 for welfare, 0.3 for
+    # personal tax and NICs and 0.2 for corporation tax, and all of them decay
+    # to zero as the output gap closes. This model returns 1.00 flat for a
+    # government-CONSUMPTION shock — measured impact 1.0000, quarter 12 0.9995,
+    # linear in shock size from GBP 0.1bn to GBP 10bn. So it overstates the
+    # OBR's current-spending multiplier by ~67% on impact and by more at every
+    # subsequent quarter, because nothing here decays. An earlier version of
+    # this comment claimed the impact quarter "matches the OBR's ~1.0
+    # multiplier for government consumption": 1.0 is the OBR's CAPITAL
+    # multiplier, not its current-spending one, and the claim was wrong.
     if not investment_closure:
         out.attrs["mechanical_passthrough"] = True
+        out.attrs["obr_published_impact_multiplier"] = {
+            "current_spending": 0.6,
+            "capital_spending": 1.0,
+            "personal_tax_and_nics": 0.3,
+            "corporation_tax": 0.2,
+        }
         out.attrs["multiplier_warning"] = (
             "Demand-closure shock: GDP delta is mechanical passthrough via the "
-            "expenditure identity (flat multiplier ~1.0, no behavioural "
-            "second-round effects or decay). Import leakage, income-driven "
+            "expenditure identity (flat multiplier 1.0, no behavioural "
+            "second-round effects and no decay). Import leakage, income-driven "
             "consumption and crowding-out channels are structurally inert in "
-            "the published model file/data. Impact quarter matches the OBR's "
-            "~1.0 multiplier for government consumption; the decay profile "
-            "does not."
+            "the published model file/data. This does NOT match the OBR's "
+            "published impact multiplier for current spending (0.6, decaying "
+            "to zero as the output gap closes) — it is ~67% too large on "
+            "impact and stays flat where the OBR's decays. Do not read the "
+            "path as a multiplier profile."
         )
+        if var in _DEAD_UNDER_DEMAND_CLOSURE:
+            msg = (
+                f"{var} ({_DEAD_UNDER_DEMAND_CLOSURE[var]}) has NO transmission "
+                "path to GDP under the demand closure: IF has no live equation "
+                "in the published model, so the CGIPS -> GGIPS -> GGI -> IF "
+                "chain never reaches the GDP identity. delta_IF is exactly "
+                "zero and the small GDP residue is deflator noise of "
+                "indeterminate sign. This result is not a public-investment "
+                "multiplier and must not be reported as one."
+            )
+            out.attrs["dead_channel"] = True
+            out.attrs["dead_channel_warning"] = msg
+            warnings.warn(msg, stacklevel=2)
+        else:
+            out.attrs["dead_channel"] = False
     else:
         out.attrs["mechanical_passthrough"] = False
+        _label_investment_closure_divergence(out)
     if var == HOUSEHOLD_COSTING_VAR:
         out.attrs["costing_sign_convention"] = (
             "Quarterly £m; positive = revenue raised = household disposable "
@@ -430,9 +610,16 @@ def run_five_reforms():
     # 4. Government investment boost: £10bn/year
     # Chain: CGIPS (exog) → GGIPS = CGIPS + LAIPS → GGI = 100 * GGIPS / GGIDEF
     # GGIDEF ≈ 119, so to get £2.5bn real GGI, need ~£3bn nominal CGIPS
-    print("Running Reform 4: £10bn government investment...")
+    #
+    # KNOWN DEAD: the chain stops at GGI. IF has no live equation under the
+    # demand closure, so GGI never reaches the GDP identity — delta_IF is
+    # exactly zero and delta_GDP is +£0.03bn on impact then negative to
+    # -£0.14bn. run_reform emits a dead_channel warning for it. Kept in the
+    # demo so the defect is visible rather than quietly dropped; do not quote
+    # this row as a public-investment multiplier.
+    print("Running Reform 4: £10bn government investment (DEAD CHANNEL — see note)...")
     df = run_reform(
-        name="£10bn Gov Investment",
+        name="£10bn Gov Investment (dead channel)",
         var="CGIPS",
         shock=3000,  # £3bn nominal per quarter ≈ £2.5bn real
         periods=12,

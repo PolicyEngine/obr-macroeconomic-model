@@ -4,12 +4,12 @@ Horizon 2025Q1–2026Q2 (6 quarters), final-period response vs an unchanged base
 
 | Shock | Verdict | GDP | Consumption | Investment | Bus. invest. | Exports | Imports | Employment | Unemp. rate | CPI | House prices | Gilt yield |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Gov consumption +£1.25bn/q | **transmitting** | -0.78% | -1.62% | +0.00% | -29.89% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Gov investment +£3bn/q | **transmitting** | -4.30% | -7.28% | +0.00% | -28.53% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Corp tax +1pp | **transmitting** | +53.99% | +76.02% | -100.00% | +386.65% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Bank Rate +1pp | **transmitting** | -1.02% | -1.73% | +0.00% | -30.18% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Sterling -10% (ERI) | **transmitting** | +0.68% | +1.14% | +0.00% | -36.96% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Oil price +$10/bbl | **transmitting** | -0.98% | -1.66% | +0.00% | -30.27% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Gov consumption +£1.25bn/q | **identity-only** | +0.18% | -0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Gov investment +£3bn/q | **transmitting** | -0.02% | -0.03% | +0.00% | -1.70% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Corp tax +1pp | **transmitting** | -0.02% | -0.00% | -0.07% | -0.14% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Bank Rate +1pp | **transmitting** | -0.07% | -0.12% | +0.00% | +0.27% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Sterling -10% (ERI) | **transmitting** | -0.12% | -0.20% | +0.00% | +7.87% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Oil price +$10/bbl | **transmitting** | -0.01% | -0.02% | +0.00% | +0.26% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
 
 ## Reading this
 
@@ -17,6 +17,8 @@ Horizon 2025Q1–2026Q2 (6 quarters), final-period response vs an unchanged base
 - **identity-only** — GDP moves but no behavioural channel does; the multiplier is missing and the result is just the mechanical add to demand.
 - **dead** — nothing moves; the shock does not propagate. These are the first channels to fix in Stage 1b.
 
+> **A 'transmitting' verdict is about wiring, not about the answer being right.** Two rows to read with care. *Gov investment* registers as transmitting only through business investment: `IF` has no live equation, so the CGIPS chain never reaches the GDP identity and the GDP column is deflator residue of indeterminate sign, not a public investment multiplier. *Gov consumption* is correctly identity-only — GDP moves by exactly the shock and nothing behavioural responds, which is what a flat multiplier of 1.0 looks like.
+
 Materiality thresholds: a level response counts as a move at |Δ| ≥ 0.02% and a rate response at |Δ| ≥ 0.005pp. Responses within ±20% of the threshold are borderline: a verdict resting only on such channels is flagged **(marginal)** rather than treated as categorical.
 
-**Summary:** 6 transmitting.
+**Summary:** 1 identity-only, 5 transmitting.

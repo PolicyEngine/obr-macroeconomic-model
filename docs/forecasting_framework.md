@@ -24,21 +24,30 @@ Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
 > some historical tables below) shorthand this as "within 10%", which is
 > accurate only for the level variables.
 
+Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
+
 | Variable | Error (held-AF forecast) | band |
 |---|--:|---|
-| Real GDP | 2.22% | within |
-| Consumption | 3.55% | within |
+| Real GDP | 0.37% | within |
+| Consumption | 0.33% | within |
 | Employment | 0.00% | **trivial identity** |
-| Unemployment rate | 0.75pp | within |
-| Real household income | 12.00% | over |
-| Household income | 11.57% | over |
-| Business investment | 17.85% | **over** |
-| Company profits | 47.42% | **over** |
-| Trade balance | 0.11% of GDP | within |
-| Current account | 0.88% of GDP | within |
+| Unemployment rate | 0.69pp | within |
+| Real household income | — | **held at EFO (not forecast)** |
+| Household income | — | **held at EFO (not forecast)** |
+| Business investment | 15.11% | **over** |
+| Company profits | 12.40% | **over** |
+| Trade balance | 0.25% of GDP | within |
+| Current account | 1.36% of GDP | within |
 
-**10 of 16 headline variables computed; 6 of those within band (net balances as
+**8 of 16 headline variables computed; 6 of those within band (net balances as
 % of GDP).** No explosions — the financial blocks are bounded by their real data.
+
+> **Superseded numbers.** Earlier revisions of this table read Real GDP 2.22%,
+> Consumption 3.55%, Business investment 17.85%, Company profits 47.42%,
+> Household income 11.57% and Real household income 12.00%, and counted 10 of
+> 16 computed. Those predate both the `OSHH` ONS level anchor and
+> `baseline._PUBLISHED_LEVEL_ANCHORS`, which moved HHDI/RHHDI out of the
+> computed set entirely. Read caveat 4 below before reading the GDP line.
 
 ## Honesty caveats on this headline
 
@@ -57,7 +66,21 @@ Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
    the OBR's own forecast. Residuals over those quarters are therefore fit
    against the OBR's judgement, not against data — the held add-factors partly
    encode "agree with the OBR" rather than "match the outturn".
-4. **ONS vintage mismatch.** The ~348 unpublished-input series pulled from the
+4. **The GDP line is close to circular, and this is the caveat that matters
+   most.** `forecast()` builds on `baseline.build(anchored=True)`, which makes
+   `HHDI` and `RHHDI` exogenous (`_PUBLISHED_LEVEL_ANCHORS`) so they keep their
+   published EFO values for the whole projection. `RHHDI` is the income driver
+   of the one live behavioural aggregate, `dlog(CONS)`; and under the demand
+   closure every other term in `GDPM = CGG + CONS + IF + DINV + VAL + X − M +
+   SDE` is exogenous and likewise held at EFO. So "Real GDP forecasts to 0.37%"
+   decomposes as: the model is given household income, uses it to project
+   consumption, and adds seven EFO series. It is a statement about the
+   consumption equation's short-run dynamics, not about the model forecasting
+   GDP. The un-anchored version of the same question is the raw calibration
+   scorecard (GDP 4.48%, consumption 7.49%, household income 6.27%) — that is
+   the number to quote for forecast skill.
+
+5. **ONS vintage mismatch.** The ~348 unpublished-input series pulled from the
    ONS API are current-vintage data, merged into an autumn-2025 EFO baseline
    (October-2025 model code, November-2025 EFO tables). Where the ONS has since
    revised history, the national-accounts identities no longer close exactly
@@ -67,11 +90,18 @@ Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
 
 ## Honest status
 
-- The macro core (GDP, consumption, unemployment) forecasts within band (levels
-  under 10% MAPE, unemployment under 1pp) over a two-year projection. This is a
-  working forecasting framework for those channels.
-- **Over band: business investment (~18%), company profits (~47%), household
-  income (~12%).** These are finite and in the right ballpark but not usable yet.
+- The machinery works: add-factors are fit, held and projected, nothing
+  explodes, and the financial blocks stay bounded by their real data.
+- The macro core (GDP, consumption, unemployment) lands within band over a
+  two-year projection — **but see caveat 4**. GDP and consumption are within
+  band largely because household income is handed to the model rather than
+  forecast by it, so this is not evidence of forecast skill. Unemployment
+  (0.69pp) is the one line here that is both computed and not downstream of a
+  held income series.
+- **Over band: business investment (~15%), company profits (~12%).** Finite and
+  in the right ballpark, not usable.
+- **Not forecast at all: household income and real household income** — held at
+  their EFO values by `_PUBLISHED_LEVEL_ANCHORS`.
 - A few remain passthrough (exports, imports, CPI) — exogenous in this setup,
   held at the OBR value.
 
@@ -189,7 +219,9 @@ equations depend on exogenous inputs the published databank never supplies:
 With a NaN input the RHS evaluates to NaN, `_lhs_new_value` returns non-finite,
 and `solve_period` skips the update — so `HHTFA` and `NDIVHH` remain frozen for a
 second, independent reason. Every validation number is therefore **bitwise
-unchanged** by this fix: anchored GDPM MAPE 0.1756% / CONS 0.2888%, the full
+unchanged** by this fix: anchored GDPM MAPE 0.1756% / CONS 0.2888% on the
+November-2025 vintage current when that check was run (0.1567% / 0.2573% on the
+March-2026 vintage), the full
 calibration scorecard, and the standard `CGG +£1.25bn × 4q` shock path.
 
 The `FYCPR → NDIVHH → PIRHH → HHDI` (corporate profits → household dividend

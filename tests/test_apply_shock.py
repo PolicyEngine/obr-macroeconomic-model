@@ -88,6 +88,51 @@ def test_bool_str_and_mapping_shocks_rejected():
             shock_path(bad, 4)
 
 
+def test_shocking_an_unknown_variable_raises():
+    """A mistyped or never-populated instrument used to create an all-NaN
+    column: the run then completed and reported a delta of exactly zero for
+    every variable, which is indistinguishable from 'this policy does
+    nothing'. It must fail loudly instead."""
+    s = _bare_solver()
+    with pytest.raises(KeyError, match="no such variable"):
+        s.apply_shock("TYPOVAR", 1250, "2025Q1", periods=4)
+    assert "TYPOVAR" not in s.data.columns, "failed shock left a column behind"
+
+
+def test_shocking_a_nan_variable_raises():
+    """Same failure mode via a different route: the column exists but the
+    model never populated it, so level + shock is still NaN."""
+    import numpy as np
+
+    s = _bare_solver()
+    s.data["EMPTY"] = np.nan
+    with pytest.raises(ValueError, match="non-finite"):
+        s.apply_shock("EMPTY", 1250, "2025Q1", periods=4)
+
+
+def test_shock_guard_reports_only_the_shocked_window():
+    """A variable that is NaN outside the shocked quarters is still shockable —
+    the guard must not over-reject."""
+    import numpy as np
+
+    s = _bare_solver()
+    s.data["PARTIAL"] = [np.nan, np.nan, 100.0, 100.0, np.nan, np.nan, np.nan, np.nan]
+    s.apply_shock("PARTIAL", 10.0, "2025Q3", periods=2)
+    assert list(s.data["PARTIAL"])[2:4] == [110.0, 110.0]
+
+
+def test_shock_guard_runs_before_state_mutation():
+    """The guard must join the other pre-mutation validations, not fire after
+    make_exogenous has already stripped an equation."""
+    s = _bare_solver()
+    s.equations = ["SENTINEL-EQUATION"]
+    s._shock_active = False
+    with pytest.raises(KeyError):
+        s.apply_shock("TYPOVAR", 1.0, "2025Q1")
+    assert s.equations == ["SENTINEL-EQUATION"]
+    assert s._shock_active is False
+
+
 def test_invalid_shock_does_not_mutate_solver_state():
     """Validation happens before make_exogenous/_shock_active (review #10.2)."""
     s = _bare_solver()

@@ -33,18 +33,29 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 
 | Variable | Error (3yr) | Status |
 |---|--:|---|
-| Real GDP | 5.75% | computed — fair |
-| Consumption | 9.56% | computed — fair |
-| Business investment | 16.12% | computed — poor |
+| Real GDP | 4.48% | computed — fair |
+| Consumption | 7.49% | computed — fair |
+| Business investment | 15.73% | computed — poor |
 | Employment | 0.00% | computed — **trivial identity** |
 | Unemployment rate | 1.01pp | computed — poor |
 | RPI inflation | 1.71pp | computed — poor |
-| Household income | 14.15% | computed — poor |
-| Real household income | 13.86% | computed — poor |
-| Company profits | 79.80% | computed — **off** |
-| Current account | 4.17% of GDP | computed — **off** |
-| Trade balance | 0.70% of GDP | computed — fair |
+| Household income | 6.27% | computed — fair |
+| Real household income | 6.03% | computed — fair |
+| Company profits | 63.29% | computed — **off** |
+| Current account | 3.60% of GDP | computed — **off** |
+| Trade balance | 0.69% of GDP | computed — fair |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) |
+
+> **This table had gone stale and overstated the model's error.** It previously
+> recorded Real GDP 5.75%, Consumption 9.56%, Household income 14.15%, Real
+> household income 13.86%, Company profits 79.80% and the current account 4.17%
+> of GDP. Those figures predate the `OSHH` ONS level anchor (which fixed the
+> incomes block) and were never refreshed. The reference values of record are
+> the ones in `test_raw_calibration_scorecard_does_not_regress`; the table above
+> now agrees with them and with a fresh
+> `python -m obr_macro.calibration_score` run on the March-2026 vintage.
+> Downstream consumers that quote 5.75% / 9.56% (including the
+> `policyengine-macro` capability registry) are quoting the stale figures.
 
 **`log(X)` LHS fix (issue #14): scorecard unchanged.** Adding the missing `log`
 branch to `_parse_lhs` makes `log(HHTFA)` and `log(NDIVHH)` index under their
@@ -56,15 +67,16 @@ profits → dividends channel were live.
 
 ## Honest score
 - **11 of 21** headline variables are actually computed; the other **10 are passthrough**.
-- Of the 11 computed: 1 is a trivial identity, 3 are fair, 5 are poor, and 2 are off.
-- **4 of 11 land within band (36%)** — Real GDP, Consumption and the trade
-  balance (as % of GDP) are fair, plus the trivial employment identity. The rest
-  are poor, and Company profits is off.
+- Of the 11 computed: 1 is a trivial identity, 5 are fair, 3 are poor, and 2 are off.
+- **6 of 11 land within band (55%)** — Real GDP, Consumption, Household income,
+  Real household income and the trade balance (as % of GDP) are fair, plus the
+  trivial employment identity. Business investment, the unemployment rate and
+  RPI inflation are poor; Company profits and the current account are off.
 - **Company profits (FYCPR) and, on the March-2026 vintage, the current
   account (CB) score "off".** FYCPR's raw error is dominated by an unpublished
   OBR calibration constant rather than a live bug (see the OSHH floor below);
   CB crossed from "poor" (2.76% of GDP on the November-2025 vintage) to "off"
-  (4.17%) because the March EFO revised the current-account path while the
+  (3.60%) because the March EFO revised the current-account path while the
   `NIPD` overseas rate-of-return normalisers stay at their old unpublished
   levels.
 
