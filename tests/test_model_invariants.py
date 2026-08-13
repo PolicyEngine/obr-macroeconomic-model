@@ -631,7 +631,18 @@ def test_gdp_expenditure_identity_closes(anchored):
 # and (b) deliver a household-income fall of the right sign and magnitude
 # class. The microsim number itself is frozen here as a constant and gated
 # against the HMRC reckoner; regenerating it is out of scope for this repo's
-# CI (it is validated in the policyengine-macro integration suite).
+# CI.
+#
+# Be precise about what that deferral buys, because it was overstated. The
+# recomputation lives in policyengine-macro's
+# test_population_impact_uk_real_basic_rate, which is marked slow AND skipped
+# without HUGGING_FACE_TOKEN, so it does not run in ordinary CI either -- and
+# until 2026-08 it asserted only 4.0 < x < 9.0 GBP bn, a band admitting both
+# HMRC figures, so it could not have distinguished our costing from the
+# benchmark it is compared against. It now pins +/-5% of the published 6.46.
+# The gate below therefore compares four constants to each other: it detects
+# an inconsistent edit, not a modelling regression. That is worth having and
+# it is not evidence.
 
 # PolicyEngine static costing of basic rate 20p->21p from April 2026, first
 # full year (2026-27), £bn — the paper's Table "reform" / fig_reform.py value.
