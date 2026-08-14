@@ -168,6 +168,4 @@ def target_gdp_delta(channel: str, real_shock_path: "Iterable[float]") -> "list[
     ``real_shock_path`` must already be in real £m per quarter (deflate nominal
     instruments first — see ``InstrumentConvention.deflator``).
     """
-    return [
-        multiplier_at(channel, q) * float(s) for q, s in enumerate(real_shock_path)
-    ]
+    return [multiplier_at(channel, q) * float(s) for q, s in enumerate(real_shock_path)]

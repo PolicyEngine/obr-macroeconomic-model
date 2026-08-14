@@ -478,9 +478,7 @@ def _impose_published_convention(
         key = ("GDPM", t)
         # += so the structural add-factors already on the template (e.g. the
         # OSHH anchor) are preserved, not clobbered.
-        conv.add_factors[key] = conv.add_factors.get(key, 0.0) + (
-            target[q] - raw_delta
-        )
+        conv.add_factors[key] = conv.add_factors.get(key, 0.0) + (target[q] - raw_delta)
     conv.solve(start, end)
 
     entry = PUBLISHED_MULTIPLIERS[convention.channel]
