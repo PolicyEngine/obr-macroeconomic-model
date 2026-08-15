@@ -49,6 +49,7 @@ EXPECTED_RUN_REFORM_KWARGS = [
     "end",
     "periods",
     "investment_closure",
+    "published_conventions",
 ]
 
 
@@ -83,6 +84,9 @@ def test_run_reform_defaults_are_stable():
     assert sig.parameters["end"].default == "2027Q4"
     assert sig.parameters["periods"].default == 12
     assert sig.parameters["investment_closure"].default is False
+    # The honest default is the raw model; the OBR-conventions override is
+    # strictly opt-in.
+    assert sig.parameters["published_conventions"].default is False
 
 
 # --- Fake template: a solvable stand-in with a plausible shock response ------

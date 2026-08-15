@@ -9,6 +9,12 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from obr_macro.full_solver import FullOBRSolver, is_scalar_shock, shock_path
+from obr_macro.published_conventions import (
+    INSTRUMENT_CONVENTIONS,
+    PUBLISHED_MULTIPLIERS,
+    TAPER_QUARTERS,
+    target_gdp_delta,
+)
 from obr_macro.transpiler import ParsedEquation, EViewsTranspiler
 
 
@@ -402,6 +408,99 @@ def _label_investment_closure_divergence(out: pd.DataFrame) -> None:
         warnings.warn(msg, stacklevel=3)
 
 
+def _impose_published_convention(
+    template,
+    baseline_data,
+    raw_shocked_data,
+    convention,
+    var,
+    shock,
+    start: str,
+    end: str,
+    periods: int,
+    t_start: int,
+    t_end: int,
+):
+    """Impose the OBR's published multiplier convention as a GDPM add-factor path.
+
+    Returns ``(shocked_data, detail)`` where ``shocked_data`` is the solved
+    data of a third run — the shock plus add-factors on the GDPM identity that
+    move the reported GDP delta onto the convention's path — and ``detail`` is
+    the metadata run_reform records in ``df.attrs``.
+
+    WHAT THIS PROVES AND CANNOT PROVE. The resulting delta_gdp path proves
+    only that ``published multiplier x shock`` was imposed successfully; it is
+    the OBR's judgement re-applied, not a model response, and it carries no
+    information about this model's dynamics (the raw solve already measured
+    those: 1.0-flat identity passthrough for CGG, exactly zero for
+    CGIPS/LAIPS/GGIPS).
+
+    Mechanics, and why add-factors rather than post-hoc arithmetic: add-factors
+    are the OBR's own device for imposing judgement on a model solve, and this
+    repo already uses them (solver.add_factors). Everywhere else they are
+    applied to the baseline AND every shocked clone alike so they cancel in the
+    delta; here they are applied to the shocked run ONLY, deliberately, so they
+    do NOT cancel — the non-cancelling difference IS the convention. The
+    add-factor for each quarter is (convention target - measured raw delta), so
+    the imposed run lands on the target exactly, including the removal of the
+    raw run's deflator noise (the wrong-signed residue a dead CGIPS shock
+    leaves in GDP is part of what is being overridden).
+
+    Units: the OBR multipliers map real spending to real GDP. Nominal
+    instruments (CGIPS/LAIPS/GGIPS, £m current prices) are converted to real
+    £m with the baseline path of the deflator named in the convention entry
+    before the multiplier is applied; CGG is already real.
+    """
+    values = shock_path(shock, periods)
+    horizon = t_end - t_start + 1
+    real_shock = []
+    for q in range(horizon):
+        s = values[q] if q < len(values) else 0.0
+        if convention.deflator is not None and s != 0.0:
+            defl = float(baseline_data.iloc[t_start + q][convention.deflator])
+            if not np.isfinite(defl) or defl <= 0:
+                raise RuntimeError(
+                    f"baseline {convention.deflator} is {defl} at offset {q}; "
+                    "cannot deflate the nominal shock to real terms, so the "
+                    "published-convention path cannot be computed"
+                )
+            s = 100.0 * s / defl
+        real_shock.append(float(s))
+    target = target_gdp_delta(convention.channel, real_shock)
+
+    conv = template.clone()
+    conv.apply_shock(var, shock, start, periods=periods)
+    for q in range(horizon):
+        t = t_start + q
+        raw_delta = float(
+            raw_shocked_data.iloc[t]["GDPM"] - baseline_data.iloc[t]["GDPM"]
+        )
+        key = ("GDPM", t)
+        # += so the structural add-factors already on the template (e.g. the
+        # OSHH anchor) are preserved, not clobbered.
+        conv.add_factors[key] = conv.add_factors.get(key, 0.0) + (target[q] - raw_delta)
+    conv.solve(start, end)
+
+    entry = PUBLISHED_MULTIPLIERS[convention.channel]
+    detail = {
+        "instrument": var,
+        "channel": convention.channel,
+        "channel_label": entry.label,
+        "impact_multiplier": entry.impact,
+        "taper_quarters": TAPER_QUARTERS,
+        "taper_shape": (
+            "linear fade to zero from the shock start (the SHAPE is this "
+            "repo's choice — the OBR publishes the impact value and the "
+            "zero-at-five-years endpoint, not a quarterly path)"
+        ),
+        "source": entry.source,
+        "deflator": convention.deflator,
+        "real_shock_m": real_shock,
+        "target_delta_gdp_m": target,
+    }
+    return conv.data.copy(), detail
+
+
 def run_reform(
     name: str,
     var: str,
@@ -410,6 +509,7 @@ def run_reform(
     end: str = "2027Q4",
     periods: int = 12,
     investment_closure: bool = False,
+    published_conventions: bool = False,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -428,7 +528,28 @@ def run_reform(
         end: End quarter for simulation
         periods: Number of quarters to apply shock (ignored for a sequence)
         investment_closure: If True, use investment closure (for corp tax shocks)
+        published_conventions: If True, and ``var`` is an instrument whose
+            model channel is an accounting identity or dead (CGG,
+            CGIPS/LAIPS/GGIPS), impose the OBR's PUBLISHED multiplier
+            convention (obr_macro.published_conventions) as a GDPM add-factor
+            path on the shocked run, so ``delta_gdp`` follows the convention
+            instead of the raw mechanics. The result is labelled in
+            ``df.attrs`` as the OBR's published multiplier convention, not
+            model dynamics. Instruments with live behaviour (the household-tax
+            channel; the investment closure) are NEVER overridden: the
+            household channel is left alone with an attrs note, and combining
+            the flag with ``investment_closure=True`` raises. Default False —
+            the honest default is the raw model.
     """
+    if published_conventions and investment_closure:
+        raise ValueError(
+            "published_conventions covers only instruments whose model channel "
+            "is an accounting identity or dead (CGG, CGIPS/LAIPS/GGIPS). The "
+            "investment closure has a live cost-of-capital channel; imposing "
+            "the OBR's published corporation-tax convention on top of it would "
+            "mix imposed and modelled dynamics in a single number. Run one or "
+            "the other."
+        )
     # Normalize/validate the shock spec BEFORE _build_reform_template: a bad
     # spec must fail in milliseconds, not after an expensive template solve.
     # (apply_shock re-normalizes; this early pass exists for fail-fast UX and
@@ -457,6 +578,26 @@ def run_reform(
     # Build results
     t_start = baseline.period_idx(start)
     t_end = baseline.period_idx(end)
+
+    # Published-conventions override: only for instruments whose model channel
+    # is an identity or dead. The raw solve above is kept as the measurement of
+    # what the model does; a third solve imposes the convention on top of it.
+    convention = INSTRUMENT_CONVENTIONS.get(var) if published_conventions else None
+    convention_detail = None
+    if convention is not None:
+        shocked_data, convention_detail = _impose_published_convention(
+            template,
+            baseline_data,
+            shocked_data,
+            convention,
+            var,
+            shock,
+            start,
+            end,
+            periods,
+            t_start,
+            t_end,
+        )
 
     results = []
     for t in range(t_start, t_end + 1):
@@ -517,7 +658,39 @@ def run_reform(
     # this comment claimed the impact quarter "matches the OBR's ~1.0
     # multiplier for government consumption": 1.0 is the OBR's CAPITAL
     # multiplier, not its current-spending one, and the claim was wrong.
-    if not investment_closure:
+    if convention_detail is not None:
+        # The reported delta_gdp is IMPOSED, so the raw-mechanics labels
+        # (mechanical_passthrough / multiplier_warning / dead-channel warning)
+        # would describe a number this frame no longer contains. They are
+        # replaced by the convention labels; the dead-channel FACT is still
+        # recorded because the underlying channel is still dead — only the
+        # reported GDP total is overridden.
+        entry = PUBLISHED_MULTIPLIERS[convention_detail["channel"]]
+        out.attrs["published_conventions"] = True
+        out.attrs["convention"] = convention_detail
+        out.attrs["dead_channel"] = var in _DEAD_UNDER_DEMAND_CLOSURE
+        out.attrs["published_conventions_note"] = (
+            "delta_gdp follows the OBR's published multiplier convention, not "
+            f"model dynamics: impact multiplier {entry.impact} for "
+            f"{entry.label} ({entry.source}), fading linearly to zero over "
+            f"{TAPER_QUARTERS} quarters from the shock start. The linear path "
+            "shape is this repo's choice — the OBR publishes the impact value "
+            "and the zero endpoint, not the path. Imposed as a GDPM add-factor "
+            "on the shocked run only; the model's own channel for this "
+            "instrument is "
+            + (
+                "dead (no transmission path to GDP)"
+                if var in _DEAD_UNDER_DEMAND_CLOSURE
+                else "an accounting identity (1.0-flat passthrough)"
+            )
+            + " and cannot produce this profile. Component deltas "
+            "(delta_cons_m, delta_if_m) are NOT overridden — they remain the "
+            "raw model's values, so e.g. delta_if_m stays exactly zero for a "
+            "capital-spending shock even though delta_gdp follows the "
+            "convention."
+        )
+    elif not investment_closure:
+        out.attrs["published_conventions"] = False
         out.attrs["mechanical_passthrough"] = True
         out.attrs["obr_published_impact_multiplier"] = {
             "current_spending": 0.6,
@@ -551,7 +724,30 @@ def run_reform(
             warnings.warn(msg, stacklevel=2)
         else:
             out.attrs["dead_channel"] = False
+        if published_conventions:
+            # The flag was requested but no convention is wired for this
+            # instrument. Deliberate for the household channel: it has live
+            # behaviour, and imposing a published number on top of behaviour
+            # would mix judgement and model dynamics in one figure.
+            if var == HOUSEHOLD_COSTING_VAR:
+                out.attrs["published_conventions_note"] = (
+                    "published_conventions requested but NOT applied: the "
+                    "household-tax channel has live model behaviour "
+                    "(dlog(CONS) responds to real income), so the model's own "
+                    "response is reported unchanged. The OBR's published "
+                    "income tax/NICs multiplier (0.3, fading) is in "
+                    "obr_macro.published_conventions for reference but is "
+                    "never imposed on a live channel."
+                )
+            else:
+                out.attrs["published_conventions_note"] = (
+                    f"published_conventions requested but NOT applied: no "
+                    f"published convention is wired for instrument {var!r} "
+                    "(only identity/dead channels — CGG, CGIPS/LAIPS/GGIPS — "
+                    "are overridden). The raw model result is reported."
+                )
     else:
+        out.attrs["published_conventions"] = False
         out.attrs["mechanical_passthrough"] = False
         _label_investment_closure_divergence(out)
     if var == HOUSEHOLD_COSTING_VAR:
