@@ -22,7 +22,7 @@ miss. In one place:
 | **Government-consumption multiplier** | 1.00 on impact and **flat** for 12 quarters, because the shock lands directly in the expenditure identity and no second-round channel is live. The OBR's published impact multiplier for **current** spending is **0.6**, decaying to zero. This model overstates it by ~67% on impact and by more thereafter. It is accounting, not a multiplier. The model cannot produce the OBR's multiplier; `run_reform(..., published_conventions=True)` (off by default) imposes the published 0.6-fading convention as a labelled add-factor path — judgement re-applied, not a model result. |
 | **Government-investment multiplier** | **No channel at all.** `IF` has no live equation in the published model, so `CGIPS → GGIPS → GGI → IF` never reaches GDP: `delta_IF` is exactly zero and the GDP residue is wrong-signed deflator noise. `run_reform` warns. The OBR's capital multiplier is 1.0. The model cannot produce it; `run_reform(..., published_conventions=True)` (off by default) imposes the published 1.0-fading convention as a labelled add-factor path — `delta_IF` stays exactly zero, because only the GDP total is imposed. |
 | **Household tax multiplier** | The one channel with genuine behaviour (`dlog(CONS)` responds to real income). Year-1 average 0.17, rising to ~0.40 by quarter 12 on the March-2026 baseline (0.16 → 0.37 on the November-2025 vintage), against the OBR's 0.3 impact multiplier decaying. Right order of magnitude, wrong profile. |
-| **Corporation tax** | Requires `investment_closure=True`, which is a stop-gap. It freezes `MSGVA`, `PIF` and `PIRHH` to stop an explosive accelerator — unguarded, a **zero-shock** baseline runs business investment from £94bn to £7.3tn in 11 quarters. That guard fixes the *level*; it does **not** fix the base-vs-shock *deviation*, which compounds at 1.21–1.27× **every quarter for at least 25 quarters** and never reaches a steady state (`delta_IF` for a sustained +5pp rise: £1.0bn at q8, £2.9bn at q12, £43.4bn at q25). `run_reform` now warns on every investment-closure run, including the 12-quarter horizon all published results here use. **Read the sign, not the magnitude.** The size of the response is set by four constants (`DB`, `DP`, `DV`, `COCU`) this repo invents because the OBR's published equations for them need inputs the OBR does not publish. The OBR's corporation-tax multiplier is 0.2. |
+| **Corporation tax** | Requires `investment_closure=True`, which is a stop-gap. It freezes `MSGVA`, `PIF` and `PIRHH` to stop an explosive accelerator — unguarded, a **zero-shock** baseline runs business investment from £94bn to £7.3tn in 11 quarters. The base-vs-shock *deviation* now converges to a steady state: the anchor add-factors are held in **log space** (the EViews convention for a `dlog` equation), so the published equation's own error-correction term pulls the deviation to `dlog(KSTAR) = −0.4·dlog(TAF)`. (Until 2026-08 the anchors were *level* add-factors, which amplified the deviation by 1.21–1.27× per quarter — `delta_IF` for +5pp hit £43.4bn by q25 with no steady state.) Measured now for a sustained +5pp rise: £0.24bn at q8, £0.38bn at q12, £0.68bn at q25, approaching a ~£0.95bn/q plateau; the error-correction root is slow (~0.958/quarter), so a 12-quarter figure is **~40% of the plateau** — `df.attrs["investment_closure_plateau_fraction"]` says where a run sits. The response size is set by `DB`, `DP`, `DV` (present values of capital allowances), now **estimated from statute and the OBR's published gilt assumption** rather than invented — see below. The OBR's corporation-tax multiplier is 0.2. |
 | **Uncertainty** | None. Every result is a point estimate. |
 
 Instrument-level guards added on top of this: shocking a variable that is
@@ -42,7 +42,7 @@ results = run_reform(
     name="Fiscal Stimulus",
     var="CGG",
     shock=1250,  # £1.25bn per quarter
-    periods=4
+    periods=4,
 )
 print(results[["period", "delta_gdp_bn", "pct_gdp"]])
 
@@ -60,11 +60,7 @@ print(results.attrs["delta_hhdi_m"])
 
 # Run a corporation tax cut (-5pp)
 results = run_reform(
-    name="Corp Tax Cut",
-    var="TCPRO",
-    shock=-0.05,
-    periods=12,
-    investment_closure=True
+    name="Corp Tax Cut", var="TCPRO", shock=-0.05, periods=12, investment_closure=True
 )
 ```
 
@@ -107,25 +103,35 @@ uv sync
 3. **Closure swap**: For shocks, DINV (inventories) becomes residual, GDP becomes endogenous
 4. **Deviation mode**: Compare shocked vs baseline to isolate policy effects
 
-### Constants this repo invents
+### Constants this repo supplies (estimated where possible)
 
 Four constants set the entire magnitude of the corporation-tax → investment
-response and appear in **no** OBR publication:
+response. The OBR publishes their equations but not the equations' inputs
+(`DISCO`, `IIB`, `SIB`, `FP`, `SP`, `SV`, `DELTA`, `RWACC` have no equation
+and no data in any published artefact), so the published equations always
+evaluate to NaN and `solve_period` silently drops them: the seeds are the
+operative values for the whole run, not starting guesses.
 
-| | seeded | why it is not the OBR's |
-|---|--:|---|
-| `DB` | 0.18 | published equation needs `DISCO`, `IIB`, `SIB` |
-| `DP` | 0.06 | needs `DISCO`, `FP`, `SP` |
-| `DV` | 0.25 | needs `DISCO`, `SV` |
-| `COCU` | 0.12 | needs `DELTA`, `RWACC` |
+Since 2026-08 the three allowance PVs are **estimated from published sources**
+(statutory capital-allowance rates + the OBR's own EFO long-gilt assumption,
+run through the OBR's published formulas — derivation committed as
+`obr_macro/cost_of_capital.py`, reproduce with
+`python -m obr_macro.cost_of_capital`):
 
-None of those inputs has an equation in the published model file or a series in
-any published data source, so the OBR's equations always evaluate to NaN and
-`solve_period` silently drops them: the seeds are the operative values for the
-whole run, not starting guesses. They live in
-`full_solver.UNPUBLISHED_COST_OF_CAPITAL_SEEDS` and are pinned by
-`tests/test_calibration_constants.py`. They are declared, not fitted — no
-attempt is made to tune them so a costing hits a target.
+| | now | was | basis |
+|---|--:|--:|---|
+| `DB` (PV of allowances, buildings) | 0.0 | 0.18 | the OBR's own equation zeroes it after 2011Q2 (Industrial Buildings Allowance abolished April 2011); no unpublished input needed |
+| `DP` (PV of allowances, plant) | 0.9515 | 0.06 | full expensing (100% first-year, permanent since FA 2024) collapses the formula to `1/(1+DISCO)`; `DISCO` = 0.051, mean EFO March-2026 20-year gilt over the solve window |
+| `DV` (PV of allowances, vehicles) | 0.7793 | 0.25 | `SV/(DISCO+SV)` with the statutory 18% main-rate WDA |
+| `COCU` (pre-tax user cost) | 0.12 | 0.12 | **kept as a declared seed**: its level provably cancels in the corporation-tax deviation (doubling it moves a 12q `delta_IF` path by <1e-10), and its equation needs a 1970Q1 rebasing anchor predating every committed series — no estimate can beat it on evidence |
+
+The old `DB`/`DP`/`DV` numbers were statutory writing-down **rates** mislabeled
+and pasted in as present **values** (with the asset classes swapped — the OBR's
+variables workbook defines `DB`=buildings, `DP`=plant, `DV`=vehicles), which
+overstated `(1−D)` and hence the corporation-tax response roughly 2.4×. The
+seeds live in `full_solver.UNPUBLISHED_COST_OF_CAPITAL_SEEDS` and are pinned to
+their derivation by `tests/test_calibration_constants.py`. They are estimated,
+not fitted — no attempt is made to tune them so a costing hits a target.
 
 Two more level anchors are worth knowing about, both legitimate (each is
 anchored to *published* data, and each applies identically to the baseline and

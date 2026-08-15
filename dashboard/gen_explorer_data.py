@@ -19,10 +19,13 @@ from obr_macro.reform_analysis import (
 
 START, END = "2025Q1", "2027Q4"
 
-# Corporation-tax scenarios are excluded: under the cost-of-capital closure the
-# re-solved path diverges (~x2 per quarter, reaching tens of £bn), which is
-# solver behaviour, not economics — the same reason gen_reform_grid excludes
-# the TCPRO lever. The £10bn-government-investment scenario is excluded because
+# Corporation-tax scenarios are excluded. Historically because the closure's
+# deviation diverged (~x2 per quarter, reaching tens of £bn); that was fixed
+# 2026-08 (log-space anchoring gives it a steady state — see
+# reform_analysis._stabilise_investment_closure), but the scenarios stay out
+# until the re-estimated response is benchmarked against the OBR's published
+# 0.2 corporation-tax multiplier — the same status as gen_reform_grid's TCPRO
+# lever. The £10bn-government-investment scenario is excluded because
 # under the standard closure IF is a given input (CGIPS -> GGIPS -> GGI never
 # reaches GDP), so it is structurally unable to move anything.
 SCENARIOS = [

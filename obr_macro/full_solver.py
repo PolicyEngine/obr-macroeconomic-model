@@ -44,20 +44,64 @@ PUBLISHED_MODEL_CONSTANTS = {
     "RDELTA": 0.022,  # line 66
 }
 
-# Constants this repository INVENTS. Each has a published OBR equation, but the
-# equation's inputs (DISCO, IIB, SIB, FP, SP, SV, DELTA, RWACC) have no
-# equation and no data in any published OBR artefact, so the equation always
-# evaluates to NaN and solve_period drops it. These seeds are therefore not
-# starting values that get refined — they are the operative values for the
-# entire run, and they set the magnitude of the corporation-tax -> investment
-# response through TAF. They are documented, not fitted: no attempt is made to
-# tune them so that a costing matches a target.
+# Constants whose published OBR equations cannot fire here. Each of DB/DP/DV/
+# COCU has a published equation, but the equation's inputs (DISCO, IIB, SIB,
+# FP, SP, SV, DELTA, RWACC) have no equation and no data in any published OBR
+# artefact, so the equation always evaluates to NaN and solve_period drops it.
+# These seeds are therefore not starting values that get refined — they are
+# the operative values for the entire run, and they set the magnitude of the
+# corporation-tax -> investment response through TAF.
+#
+# DB/DP/DV are ESTIMATED, not invented: they are the OBR's published formulas
+# (present values of capital allowances for buildings/plant/vehicles — the
+# asset labels are the OBR's own, from the committed variables workbook)
+# evaluated over statutory allowance rates and the OBR's published long-gilt
+# assumption. The derivation is committed as obr_macro/cost_of_capital.py and
+# pinned by tests/test_calibration_constants.py; run
+# `python -m obr_macro.cost_of_capital` to reproduce the numbers. Nothing is
+# fitted to make a costing come out anywhere in particular.
+#
+# History: until 2026-08 these were DB=0.18, DP=0.06, DV=0.25, described as
+# "typical values". Those numbers are the statutory writing-down RATES
+# (18% main pool / 6% special rate / 25% pre-2008 pool) pasted in as present
+# VALUES, with the asset classes mislabeled (DB called "plant", DP called
+# "buildings"; the OBR's variables workbook defines DB=buildings, DP=plant,
+# DV=vehicles). A PV of allowances is what the tax-adjustment factor
+# TAF_i = (1 - TCPRO*D_i)/(1 - TCPRO) needs: rates in [0.06, 0.25] where PVs
+# belong made (1 - D_i) — and hence the corporation-tax response — roughly
+# 2.4x too large under post-2023 law (full expensing makes marginal main-rate
+# plant investment nearly tax-neutral, D_P ~ 0.95, a fact the old rate-as-PV
+# numbers could not represent).
 UNPUBLISHED_COST_OF_CAPITAL_SEEDS = {
-    "DB": 0.18,  # PV of plant & machinery allowances
-    "DP": 0.06,  # PV of structures & buildings allowances
-    "DV": 0.25,  # PV of vehicle allowances
-    "COCU": 0.12,  # pre-tax user cost of capital (level only — cancels in the
-    # corporation-tax response, see _initialize_historical)
+    # PV of allowances, buildings: pinned to ZERO by the OBR's own equation —
+    # its @recode date gate zeroes DB for every quarter after 2011Q2 (the
+    # Industrial Buildings Allowance was abolished from April 2011), which
+    # covers the whole initialise/solve window. No unpublished input needed;
+    # the NaN that forced a seed is the float artefact 0*NaN. The published
+    # file ignores the 2018 Structures and Buildings Allowance; so do we.
+    "DB": 0.0,
+    # PV of allowances, plant: 1/(1+DISCO) — full expensing (100% first-year
+    # deduction for companies' main-rate plant, permanent since FA 2024)
+    # collapses the published formula; DISCO = 0.0510 (mean EFO March 2026
+    # 20-year gilt over the solve window). Was 0.18.
+    "DP": 0.9515,
+    # PV of allowances, vehicles: SV/(DISCO+SV) with SV = 0.18 statutory
+    # main-rate WDA (cars <=50g/km; commercial vehicles are main-pool plant).
+    # Bounded caveats in cost_of_capital.py: 6% special-rate cars pull it
+    # down, 100% FYA zero-emission cars pull it up. Was 0.25.
+    "DV": 0.7793,
+    # Pre-tax user cost of capital: KEPT AS A DECLARED SEED — the one of the
+    # four that published data cannot beat. Its published equation needs (a) a
+    # PIBUS/PGDP rebasing to 1970Q1, which predates every committed series
+    # (the databank starts 1972Q2), and (b) DELTA and RWACC, which the OBR
+    # does not publish. And no estimate could be shown superior on evidence:
+    # COC = TAF*COCU, so dlog(COC) = dlog(TAF) and the COCU LEVEL cancels
+    # exactly in the base-vs-shock deviation; it moves only the KSTAR level,
+    # which the investment closure's add-factor anchor absorbs (see
+    # reform_analysis._stabilise_investment_closure). Measured: doubling this
+    # seed to 0.24 moved a 12-quarter +5pp corporation-tax delta_IF path by
+    # at most 6e-11 GBP m — float noise.
+    "COCU": 0.12,
 }
 
 
@@ -187,9 +231,25 @@ class FullOBRSolver:
         self._compute_residuals()
 
         # Structural add-factors {(var, t): value}, applied in every solve
-        # regardless of shock mode (see solve_period). The investment closure
-        # merges further entries in to anchor the dlog(IBUSX) baseline.
+        # regardless of shock mode (see solve_period). Additive on the LEVEL —
+        # appropriate for level identities (OSHH) and level instruments
+        # (HHDI_ADDFACTOR).
         self.add_factors = {}
+
+        # Structural LOG add-factors {(var, t): value}, applied as
+        # new_val * exp(af). This is the EViews convention for add-factoring a
+        # log-difference equation (the add-factor sits on the equation's dlog
+        # residual, not on the level), and the distinction is load-bearing:
+        # a LEVEL add-factor af on a dlog equation turns the base-vs-shock
+        # deviation recursion into exp(x_t) = rho*exp(x_{t-1}+delta) + (1-rho)
+        # with rho = 1 - af/level, so a persistent negative af AMPLIFIES the
+        # deviation by rho every quarter regardless of the equation's own
+        # dynamics. A log add-factor keeps the deviation recursion exactly
+        # x_t = x_{t-1} + delta_t, preserving the published equation's
+        # error-correction root. The investment closure anchors dlog(IBUSX)
+        # through this dict (see reform_analysis._stabilise_investment_closure
+        # for the measurement that motivated it).
+        self.log_add_factors = {}
 
         # Anchor the OSHH level to the published ONS series (see method doc).
         self._anchor_oshh_to_ons()
@@ -453,15 +513,17 @@ class FullOBRSolver:
             if "TCPRO" in col_idx and np.isnan(self._get("TCPRO", t)):
                 self.data.iloc[t, col_idx["TCPRO"]] = 0.25
 
-            # DB, DP, DV = present value of capital allowances (plant,
-            # buildings, vehicles). NOT from the OBR: the published equations
-            # (model file lines 38-42) need DISCO/IIB/SIB/FP/SP/SV, which have
-            # no equation and no data anywhere in the published material, so
-            # they evaluate to NaN and solve_period silently skips them —
-            # these seeds are what the model actually runs on, forever.
-            # See UNPUBLISHED_COST_OF_CAPITAL_SEEDS below; they set the SIZE of
-            # the whole corporation-tax -> investment response via
-            # TAF = WB*(1-TCPRO*DB)/(1-TCPRO) + ... .
+            # DB, DP, DV = present value of capital allowances (buildings,
+            # plant, vehicles — the OBR's own labels). Their published
+            # equations (model file lines 38-42) need DISCO/IIB/SIB/FP/SP/SV,
+            # which have no equation and no data anywhere in the published
+            # material, so they evaluate to NaN and solve_period silently
+            # skips them — these seeds are what the model actually runs on,
+            # forever. They set the SIZE of the whole corporation-tax ->
+            # investment response via TAF = WB*(1-TCPRO*DB)/(1-TCPRO) + ... .
+            # The values are estimated from statute and the OBR's published
+            # gilt assumption: see UNPUBLISHED_COST_OF_CAPITAL_SEEDS and
+            # obr_macro/cost_of_capital.py for the committed derivation.
             if "DB" in col_idx and np.isnan(self._get("DB", t)):
                 self.data.iloc[t, col_idx["DB"]] = UNPUBLISHED_COST_OF_CAPITAL_SEEDS[
                     "DB"
@@ -487,10 +549,13 @@ class FullOBRSolver:
                     self.data.iloc[t, col_idx[_w]] = PUBLISHED_MODEL_CONSTANTS[_w]
 
             # COCU = user cost of capital (pre-tax). The published equation
-            # (line 68) needs DELTA and RWACC, both unavailable; see DB/DP/DV.
-            # NB the LEVEL of COCU does not affect the corporation-tax
-            # response: KSTAR ~ COC^-0.4 with COC = TAF*COCU, so dlog(COC) =
-            # dlog(TAF) and COCU cancels. It sets the KSTAR level only.
+            # (line 68) needs DELTA, RWACC and a 1970Q1 rebasing anchor, none
+            # of which any published artefact supplies. The LEVEL of COCU does
+            # not affect the corporation-tax response: KSTAR ~ COC^-0.4 with
+            # COC = TAF*COCU, so dlog(COC) = dlog(TAF) and COCU cancels. It
+            # sets the KSTAR level only, which the investment closure's anchor
+            # absorbs — hence this seed is deliberately kept rather than
+            # estimated (see UNPUBLISHED_COST_OF_CAPITAL_SEEDS).
             if "COCU" in col_idx and np.isnan(self._get("COCU", t)):
                 self.data.iloc[t, col_idx["COCU"]] = UNPUBLISHED_COST_OF_CAPITAL_SEEDS[
                     "COCU"
@@ -907,6 +972,7 @@ class FullOBRSolver:
         # Own copy of the structural add-factors: a shocked clone must carry the
         # same held add-factors as its baseline so they cancel in the delta.
         new.add_factors = dict(getattr(self, "add_factors", {}))
+        new.log_add_factors = dict(getattr(self, "log_add_factors", {}))
         new.max_iter = getattr(self, "max_iter", 60)
         new.equations = list(self.equations)  # own list; shared eq objects
         new.data = self.data.copy()  # own data
@@ -1086,13 +1152,26 @@ class FullOBRSolver:
                         # (above, disabled in shock mode), these are applied
                         # ALWAYS — in the baseline and every shocked clone alike.
                         # They therefore cancel in a base-vs-shock delta and
-                        # only re-centre the shared level. The investment closure
-                        # uses this to hold the reconstructed dlog(IBUSX) baseline
-                        # on the OBR published path (see reform_analysis) without
-                        # contaminating the corporation-tax response.
+                        # only re-centre the shared level. Additive, so used
+                        # for level identities/instruments only (OSHH anchor,
+                        # HHDI_ADDFACTOR); log-difference equations must use
+                        # log_add_factors below or the "cancel in the delta"
+                        # property fails for them (see __init__).
                         af = getattr(self, "add_factors", None)
                         if af:
                             new_val += af.get((var, t), 0.0)
+
+                        # Log add-factors: multiplicative on the level, i.e.
+                        # additive on the equation's dlog — the EViews
+                        # convention for anchoring a log-difference equation.
+                        # Kept separate from the additive dict above because
+                        # the choice changes the base-vs-shock deviation
+                        # dynamics (see __init__ for the arithmetic).
+                        laf = getattr(self, "log_add_factors", None)
+                        if laf:
+                            a = laf.get((var, t))
+                            if a is not None:
+                                new_val *= np.exp(a)
 
                         # Update both the DataFrame and the context dict
                         if var in col_idx:

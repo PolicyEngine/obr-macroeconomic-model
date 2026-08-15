@@ -46,9 +46,11 @@ VARS = [
 # Each lever overrides one instrument. `to_internal` maps a display value to the
 # instrument's own units. Only levers that stay bounded and correctly signed
 # against the held baseline are kept; corporation tax is excluded because its
-# business-investment-to-GDP transmission is dead in this model (a rise and a cut
-# move GDP the same way under the demand closure, and the cost-of-capital closure
-# diverges) — it needs that channel re-calibrated before it can be shown honestly.
+# business-investment-to-GDP transmission is dead in this model (a rise and a
+# cut move GDP the same way under the demand closure; the cost-of-capital
+# closure's old divergence was fixed 2026-08, but its magnitude has not been
+# benchmarked against the OBR's 0.2 multiplier) — it needs that before it can
+# be shown honestly.
 LEVERS = [
     dict(
         id="CGG",

@@ -124,37 +124,45 @@ _DEAD_UNDER_DEMAND_CLOSURE = {
 }
 
 
-# THE INVESTMENT CLOSURE'S SHOCK DEVIATION DOES NOT CONVERGE — AT ANY HORIZON.
+# THE INVESTMENT CLOSURE'S SHOCK DEVIATION NOW HAS A STEADY STATE.
 #
-# _stabilise_investment_closure anchors the LEVEL of business investment with
-# held add-factors. Nothing anchors the base-vs-shock DEVIATION, and measured
-# on a sustained +5pp TCPRO rise it compounds at 1.21x-1.27x per quarter for
-# every one of 25 quarters, with no sign of settling:
+# Until 2026-08 it did not: the deviation compounded at 1.21-1.27x per quarter
+# for all 25 quarters measured (|delta_IF| for a sustained +5pp TCPRO rise:
+# GBP 1.0bn at q8, 2.9bn at q12, 43.4bn at q25) and run_reform warned on every
+# run. The cause was NOT the missing MSGVA feedback, as this file previously
+# claimed: with MSGVA frozen, the published equation's own error-correction
+# term -0.0418*(log(IBUSX(-1)) - log(KSTAR(-2))) (KMSXH cancels against KGAP)
+# already gives the log-deviation a stable root converging to
+# dlog(KSTAR) = -0.4*dlog(TAF). What destroyed it was the anchoring
+# convention: LEVEL add-factors on a LOG-difference equation multiply the
+# deviation by rho = 1 - af/level each quarter, and with the equation
+# over-predicting by 20-27% a quarter (af/level in [-0.27, -0.18]), rho was
+# 1.18-1.28 — the measured compounding, reproduced to two decimal places.
+# Anchoring in log space (_stabilise_investment_closure) removed the
+# amplification; nothing else changed.
 #
-#   |delta_IF|, GBP m:  q3 97, q4 216, q6 546, q8 1,032, q12 2,876,
-#                       q16 6,885, q20 15,664, q25 43,387 (~36% of quarterly
-#                       investment for a 5pp tax change)
-#   q-on-q growth:      2.22, 1.63, 1.55, 1.39, 1.36, 1.32, 1.31, 1.27, 1.27,
-#                       1.25, 1.24, 1.25, 1.23, 1.23, 1.24, 1.22, 1.23, 1.22,
-#                       1.24, 1.22, 1.21, 1.24
-#
-# An error-correction model should converge to a new steady state as the
-# capital stock reaches the new desired level. This one cannot: the MSGVA
-# freeze that tames the level instability also removes the feedback that would
-# close the capital gap, so KGAP's correction never catches up. A second
-# symptom: truncating the shock to 8 quarters instead of 12 leaves the q11/q12
-# response almost unchanged (2,170/2,662 vs 2,268/2,876), i.e. the number is
-# dominated by accumulated drift rather than by the current tax rate.
-#
-# 12 quarters is not a horizon at which this has settled; it is the horizon at
-# which the magnitude still happens to look plausible. Every published result
-# in this repo uses it. The flag below therefore fires on EVERY
-# investment-closure run, which is correct: the caller should know.
+# Measured after the fix (sustained +5pp TCPRO, 2025Q1 start, current
+# DB/DP/DV estimates): |delta_IF| GBP 0.24bn at q8, 0.38bn at q12, 0.68bn at
+# q25, converging monotonically from below towards the analytic plateau
+# IBUSX*(1-exp(dlog KSTAR)) ~ GBP 0.95bn/q with quarter-on-quarter growth
+# falling 1.90 -> 1.023 by q25 and never rising. The error-correction root is
+# slow (~0.958/quarter, half-life ~17 quarters), so the 12-quarter figure
+# every published result uses is a partial response — ~40% of the plateau —
+# and the attrs below say so. That is a statement about horizon choice, not
+# about stability, hence no warning for it; the divergence warning is kept
+# and fires only if the deviation ever overshoots its own steady-state target
+# while still growing (the pre-fix signature).
 _INVESTMENT_CLOSURE_CREDIBLE_QUARTERS = 12
-# Quarter-on-quarter growth of |delta_IF| above which the tail is compounding
-# rather than settling. A converging error-correction response would approach
-# 1.0 from above and then fall below it once the capital stock adjusts.
+# Quarter-on-quarter growth of |delta_IF| above which the tail has not yet
+# settled. A converging error-correction response approaches 1.0 from above;
+# combined with target overshoot (which a stable path cannot produce under a
+# sustained shock) growth above this threshold marks genuine divergence.
 _INVESTMENT_CLOSURE_COMPOUNDING_QOQ = 1.05
+# |dlog(IBUSX)| may exceed |dlog(KSTAR)| transiently after a shock is
+# switched off (the target collapses to ~0 faster than the slow root decays),
+# so overshoot alone is not divergence; overshoot by more than this factor
+# WHILE the deviation is still compounding is.
+_INVESTMENT_CLOSURE_OVERSHOOT_TOL = 1.10
 
 
 def _apply_household_costing(solver, shock, start: str, periods: int) -> None:
@@ -227,12 +235,14 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
          dynamically stable, and the corporation-tax channel survives intact
          because KSTAR still responds to COC (TCPRO -> TAF -> COC -> KSTAR).
       2. Re-centre the level by anchoring dlog(IBUSX) to the OBR published path
-         with held add-factors (the same ground-truth device used for the
-         anchored baseline). Applied identically in the baseline and every
-         shocked clone, they cancel in the delta and only fix the shared level.
+         with held add-factors in LOG space (the EViews convention for a
+         log-difference equation — see the block below for why the level
+         convention used before 2026-08 destroyed the deviation's steady
+         state). Applied identically in the baseline and every shocked clone,
+         they cancel in the delta and only fix the shared level.
 
     Mutates ``baseline`` in place (freezes MSGVA, PIF and PIRHH; sets
-    ``add_factors``). The
+    ``log_add_factors``). The
     reference MSGVA and add-factors are held constant across the base/shock pair,
     so the reported delta isolates the cost-of-capital response. This is a
     stop-gap for the missing supply-side calibration, not a substitute for it:
@@ -261,16 +271,29 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     trk.solve(start, end)
     msgva_ref = trk.data["MSGVA"].copy()
 
-    # Held level add-factors: actual - predicted, in the solver's convention
-    # (new_val = IBUSX(-1) * exp(pred_dlog) + add_factor).
-    add_factors = {}
+    # Held add-factors, in LOG space: actual dlog minus predicted dlog, the
+    # EViews convention for add-factoring a log-difference equation (applied
+    # in solve_period as new_val * exp(af)). This choice, not a nicety, is
+    # what gives the closure a steady state in deviation space. Until 2026-08
+    # the anchor was a LEVEL add-factor (actual - predicted level); because
+    # the reconstructed equation persistently over-predicts IBUSX by ~20-25%
+    # a quarter on this data-starved model, those add-factors were ~ -0.2 to
+    # -0.27 of the level, and a level add-factor af turns the base-vs-shock
+    # deviation recursion into exp(x_t) = rho*exp(x_{t-1}+delta) + (1-rho)
+    # with rho = 1 - af/level ~ 1.18-1.28 — measured deviation compounding of
+    # 1.21-1.27x per quarter, which exactly matched the divergence this
+    # closure used to warn about. In log space the recursion is
+    # x_t = x_{t-1} + delta_t and the published equation's own -0.0418
+    # error-correction term (log(IBUSX(-1)) - log(KSTAR(-2)), once KGAP's
+    # KMSXH cancels) gives the deviation a stable root: x converges to
+    # dlog(KSTAR) = -0.4*dlog(TAF), a genuine steady state.
+    log_add_factors = {}
     for t in range(t0, t1 + 1):
         pred_dlog = eval(trk._compiled(IBUSX_EQ.python_expr), trk._build_context(t))
         prev = actual_ibusx.iloc[t - 1]
-        if np.isfinite(pred_dlog) and np.isfinite(prev):
-            pred_level = prev * np.exp(pred_dlog)
-            if np.isfinite(pred_level):
-                add_factors[("IBUSX", t)] = actual_ibusx.iloc[t] - pred_level
+        actual = actual_ibusx.iloc[t]
+        if np.isfinite(pred_dlog) and prev > 0 and actual > 0:
+            log_add_factors[("IBUSX", t)] = np.log(actual) - np.log(prev) - pred_dlog
 
     # --- Apply to the baseline: freeze the leak paths, hold the IBUSX
     # add-factors. MSGVA breaks the spurious accelerator (above). PIF and
@@ -303,9 +326,9 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
         baseline.make_exogenous(var)
         for t in range(t0, t1 + 1):
             baseline._set(var, t, ref.iloc[t])
-    # Preserve structural add-factors already installed by FullOBRSolver,
-    # notably the OSHH level anchor added by this change.
-    baseline.add_factors.update(add_factors)
+    # Merge rather than assign: FullOBRSolver's own structural anchors (the
+    # OSHH level add-factor) live in the additive dict and must survive.
+    baseline.log_add_factors.update(log_add_factors)
 
 
 # Cache of stabilised, unsolved reform templates keyed by structure
@@ -357,16 +380,27 @@ def _build_reform_template(var, start, end, investment_closure):
     return baseline
 
 
-def _label_investment_closure_divergence(out: pd.DataFrame) -> None:
-    """Flag an investment-closure result whose deviation has not settled.
+def _label_investment_closure_divergence(
+    out: pd.DataFrame, dlog_ibusx_end: float, dlog_kstar_end: float
+) -> None:
+    """Label an investment-closure result with its convergence diagnostics.
 
-    ``_stabilise_investment_closure`` anchors the LEVEL of business investment;
-    nothing anchors the base-vs-shock DEVIATION, which compounds instead of
-    converging (see ``_INVESTMENT_CLOSURE_COMPOUNDING_QOQ`` for the measured
-    path). On the current model this fires for every run, including the
-    12-quarter horizon all this repo's published corporation-tax results use —
-    which is the point. It is not a bug that the flag is always on; it is the
-    honest reading of a closure that has no steady state.
+    Since the 2026-08 log-anchoring fix the deviation converges: under a
+    sustained shock |dlog(IBUSX)| approaches its steady-state target
+    |dlog(KSTAR)| from below with quarter-on-quarter growth falling towards
+    1.0 (see the measured path at ``_INVESTMENT_CLOSURE_CREDIBLE_QUARTERS``).
+    The attrs report where on that path the horizon-end figure sits, because
+    the error-correction root is slow (~0.958/quarter): a 12-quarter figure is
+    ~40% of the plateau, which a caller quoting it should know — that is
+    horizon information, not an instability, so it is recorded without a
+    warning.
+
+    The divergence warning is retained as a tripwire and fires only on the
+    pre-fix signature — the deviation OVERSHOOTING its own steady-state target
+    while still compounding — which a stable error-correction path cannot
+    produce under a sustained shock. If it fires again, the deviation dynamics
+    have genuinely broken (e.g. the anchoring convention regressed); do not
+    quote magnitudes from such a run.
     """
     d = out["delta_if_m"].abs().to_numpy(dtype=float)
     tail_growth = None
@@ -377,32 +411,34 @@ def _label_investment_closure_divergence(out: pd.DataFrame) -> None:
         _INVESTMENT_CLOSURE_CREDIBLE_QUARTERS
     )
     out.attrs["investment_closure_tail_qoq_growth"] = tail_growth
+    # Steady-state target of the deviation (dlog KSTAR = -0.4*dlog TAF under a
+    # sustained shock) and the fraction of it attained at the horizon end.
+    out.attrs["investment_closure_deviation_dlog"] = dlog_ibusx_end
+    out.attrs["investment_closure_deviation_target_dlog"] = dlog_kstar_end
+    plateau_fraction = None
+    if np.isfinite(dlog_ibusx_end) and abs(dlog_kstar_end) > 1e-12:
+        plateau_fraction = float(dlog_ibusx_end / dlog_kstar_end)
+    out.attrs["investment_closure_plateau_fraction"] = plateau_fraction
 
-    reasons = []
-    if tail_growth is not None and tail_growth > _INVESTMENT_CLOSURE_COMPOUNDING_QOQ:
-        reasons.append(
-            f"|delta_IF| is still growing {tail_growth:.2f}x per quarter in the "
-            "final quarter, i.e. compounding rather than settling to a new "
-            "steady state"
-        )
-    if len(out) > _INVESTMENT_CLOSURE_CREDIBLE_QUARTERS:
-        reasons.append(
-            f"the horizon is {len(out)} quarters against the "
-            f"{_INVESTMENT_CLOSURE_CREDIBLE_QUARTERS} used for every published "
-            "result here, so the compounding has had longer to dominate "
-            "(|delta_IF| for a 5pp rise: GBP 2.9bn at 12 quarters, GBP 43.4bn "
-            "at 25)"
-        )
-    out.attrs["investment_closure_diverging"] = bool(reasons)
-    if reasons:
+    overshoot = (
+        plateau_fraction is not None
+        and plateau_fraction > _INVESTMENT_CLOSURE_OVERSHOOT_TOL
+    )
+    compounding = (
+        tail_growth is not None and tail_growth > _INVESTMENT_CLOSURE_COMPOUNDING_QOQ
+    )
+    diverging = overshoot and compounding
+    out.attrs["investment_closure_diverging"] = diverging
+    if diverging:
         msg = (
-            "Investment-closure result does not converge: "
-            + "; ".join(reasons)
-            + ". The closure's held add-factors anchor the investment LEVEL but "
-            "not the base-vs-shock deviation; the MSGVA freeze that tames the "
-            "level instability also removes the feedback that would close the "
-            "capital gap. Read the sign and the direction, not the magnitude, "
-            "and do not extrapolate the path."
+            "Investment-closure result does not converge: |dlog(IBUSX)| is "
+            f"{plateau_fraction:.2f}x its steady-state target |dlog(KSTAR)| "
+            f"and still growing {tail_growth:.2f}x per quarter at the horizon "
+            "end. A stable error-correction deviation cannot overshoot its "
+            "own target under a sustained shock, so the deviation dynamics "
+            "are broken (this is the signature of the pre-2026-08 level "
+            "add-factor amplification). Read the sign and the direction, not "
+            "the magnitude, and do not extrapolate the path."
         )
         out.attrs["investment_closure_warning"] = msg
         warnings.warn(msg, stacklevel=3)
@@ -749,7 +785,19 @@ def run_reform(
     else:
         out.attrs["published_conventions"] = False
         out.attrs["mechanical_passthrough"] = False
-        _label_investment_closure_divergence(out)
+        # End-of-horizon log deviations of investment and its steady-state
+        # target, for the convergence diagnostics (guarded: a broken run can
+        # leave non-positive levels, which must label as NaN, not raise).
+        with np.errstate(invalid="ignore", divide="ignore"):
+            dlog_ibusx_end = float(
+                np.log(shocked_data.iloc[t_end]["IBUSX"])
+                - np.log(baseline_data.iloc[t_end]["IBUSX"])
+            )
+            dlog_kstar_end = float(
+                np.log(shocked_data.iloc[t_end]["KSTAR"])
+                - np.log(baseline_data.iloc[t_end]["KSTAR"])
+            )
+        _label_investment_closure_divergence(out, dlog_ibusx_end, dlog_kstar_end)
     if var == HOUSEHOLD_COSTING_VAR:
         out.attrs["costing_sign_convention"] = (
             "Quarterly £m; positive = revenue raised = household disposable "

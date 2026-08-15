@@ -68,6 +68,20 @@ pre-OSHH-anchor vintage; 6.27%, 6.03% and 63.29% in the table above). The
 freeze is vintage-independent: `MAJGDP` and `CORP` are still absent from the
 current databank, so the fix cannot move any line on any vintage.
 
+**Cost-of-capital re-estimation (issue #30): scorecard unchanged.** Replacing
+the invented `DB`/`DP`/`DV` seeds (0.18/0.06/0.25 — statutory writing-down
+*rates* pasted in as present *values*) with the estimates derived in
+`obr_macro/cost_of_capital.py` (0.0/0.9515/0.7793, from statutory allowance
+rates and the EFO's published 20-year gilt assumption) leaves every line above
+bitwise identical, business investment (15.73%) and Company profits (63.29%)
+included. That is the expected null: the constants only enter through
+`TAF → COC → KSTAR`, a chain consumed solely by the reconstructed
+`dlog(IBUSX)` equation under the *investment closure*, which no scorecard
+solve activates. What the re-estimation changes is the corporation-tax
+*response* (roughly 0.42x the old magnitude, because full expensing makes
+marginal main-rate plant investment nearly tax-neutral), not the baseline fit
+scored here.
+
 ## Honest score
 - **11 of 21** headline variables are actually computed; the other **10 are passthrough**.
 - Of the 11 computed: 1 is a trivial identity, 5 are fair, 3 are poor, and 2 are off.

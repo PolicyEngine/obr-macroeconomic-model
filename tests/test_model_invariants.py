@@ -290,28 +290,36 @@ def test_corp_tax_rate_cannot_leave_its_usable_domain():
         _check_instrument_domain(tmpl, "TCPRO", [0.75] * 4, "2025Q1")  # -> 1.0
 
 
-def test_corp_tax_deviation_never_settles_and_says_so():
-    """THE investment closure's defect, measured rather than described.
+def test_corp_tax_deviation_converges_to_its_steady_state():
+    """The investment closure's deviation now has a steady state — the genuine
+    improvement the predecessor of this test (
+    test_corp_tax_deviation_never_settles_and_says_so) reserved as its escape
+    hatch: "if the deviation now converges ... that is a real improvement:
+    retire the flag". Retired 2026-08 and re-pinned here.
 
-    The held add-factors anchor the LEVEL of business investment. Nothing
-    anchors the base-vs-shock DEVIATION, and it compounds at 1.21x-1.27x per
-    quarter for all 25 quarters measured, with no sign of converging:
-    |delta_IF| for a sustained +5pp rise is £0.10bn at q3, £1.03bn at q8,
-    £2.88bn at q12, £15.7bn at q20 and £43.4bn at q25 (~36% of quarterly
-    investment). An error-correction model should settle once the capital
-    stock reaches its new desired level; this one cannot, because the MSGVA
-    freeze that tames the level instability also removes the feedback that
-    would close the capital gap.
+    Before: LEVEL add-factors on the log-difference dlog(IBUSX) anchor
+    multiplied the base-vs-shock deviation by rho = 1 - af/level ~ 1.18-1.28
+    every quarter (af/level measured at -0.18 to -0.27), which was the whole
+    of the observed 1.21-1.27x compounding — |delta_IF| for a sustained +5pp
+    rise hit £2.88bn at q12 and £43.4bn at q25 with no steady state.
 
-    So the divergence flag fires on EVERY investment-closure run, including
-    the 12-quarter horizon every published corporation-tax result in this repo
-    uses. That is deliberate. 12 quarters is not where this converges — it is
-    where the magnitude still happens to look plausible. This test pins both
-    the compounding and the fact that run_reform announces it.
+    After (log-space anchoring restores the published equation's -0.0418
+    error-correction root, and the estimated allowance PVs reset the target):
+    the deviation converges monotonically from below towards
+    dlog(KSTAR) = -0.4*dlog(TAF), measured |delta_IF| £0.24bn at q8, £0.38bn
+    at q12, £0.68bn at q25 against an analytic plateau of ~£0.95bn/q, with
+    q-on-q growth falling 1.90 -> 1.023 by q25 and never rising. The root is
+    slow (~0.958/quarter), so the 12-quarter figure is ~40% of the plateau —
+    pinned below via the plateau_fraction attr so nobody mistakes a partial
+    response for a settled one.
     """
     from obr_macro.reform_analysis import run_reform
 
-    with pytest.warns(UserWarning, match="does not converge"):
+    # Record warnings rather than erroring on them: a fresh template build can
+    # legitimately emit unrelated model-file warnings; what must NOT appear is
+    # the divergence warning.
+    with warnings.catch_warnings(record=True) as rec:
+        warnings.simplefilter("always")
         short = run_reform(
             "12q",
             "TCPRO",
@@ -321,20 +329,28 @@ def test_corp_tax_deviation_never_settles_and_says_so():
             periods=12,
             investment_closure=True,
         )
-    assert short.attrs["investment_closure_diverging"] is True
-    growth = short.attrs["investment_closure_tail_qoq_growth"]
-    assert 1.15 < growth < 1.40, (
-        f"tail growth {growth:.3f} left the measured 1.21-1.27 band — if the "
-        "deviation now converges (growth <= 1.0) that is a real improvement: "
-        "retire the flag and re-benchmark against the OBR's 0.2 corporation-tax "
-        "multiplier"
+    assert not [w for w in rec if "does not converge" in str(w.message)], (
+        "the divergence warning is back — the deviation dynamics regressed"
     )
-    # Compounding is not a tail artefact: it holds across the whole path.
+    assert short.attrs["investment_closure_diverging"] is False
+    growth = short.attrs["investment_closure_tail_qoq_growth"]
+    assert 1.0 < growth < 1.15, (
+        f"q12 tail growth {growth:.3f} outside the converging band (measured "
+        "1.095: still rising towards the plateau, no longer compounding at "
+        "1.21-1.27)"
+    )
+    frac = short.attrs["investment_closure_plateau_fraction"]
+    assert 0.2 < frac < 1.02, (
+        f"q12 deviation is {frac:.2f}x its steady-state target (measured 0.40); "
+        "a stable path must approach 1 from below, never overshoot"
+    )
+    # The path rises monotonically towards the plateau (no oscillation).
     d = short["delta_if_m"].abs().to_numpy()
     live = d[d > 1e-9]
-    assert (np.diff(live) > 0).all(), "response is no longer monotonically growing"
+    assert (np.diff(live) > 0).all(), "path towards the plateau is not monotone"
 
-    with pytest.warns(UserWarning, match="does not converge"):
+    with warnings.catch_warnings(record=True) as rec:
+        warnings.simplefilter("always")
         long = run_reform(
             "25q",
             "TCPRO",
@@ -344,20 +360,42 @@ def test_corp_tax_deviation_never_settles_and_says_so():
             periods=25,
             investment_closure=True,
         )
-    assert long.attrs["investment_closure_diverging"] is True
-    assert "25 quarters" in long.attrs["investment_closure_warning"]
-    # Doubling the horizon multiplies the response by ~15x, not by ~2x.
+    assert not [w for w in rec if "does not converge" in str(w.message)], (
+        "the divergence warning is back at 25 quarters"
+    )
+    assert long.attrs["investment_closure_diverging"] is False
+    dl = long["delta_if_m"].abs().to_numpy()
+    # Plateau criterion (issue #31): by the far end the response must be
+    # flattening, not compounding. Measured: final q-on-q growth 1.023 and
+    # every quarter's growth smaller than the one before.
+    qoq = dl[13:] / dl[12:-1]  # growth over the back half of the path
+    assert qoq[-1] < 1.03, f"final q-on-q growth {qoq[-1]:.3f} — not flattening"
+    assert (np.diff(qoq) < 0).all(), "q-on-q growth is no longer declining"
+    # No overshoot of the steady-state target even at 25 quarters.
+    assert long.attrs["investment_closure_plateau_fraction"] < 1.02
+    # Doubling the horizon now approaches the plateau (~1.8x the q12 figure,
+    # measured 677/381); the broken dynamics multiplied it by ~15x.
     ratio = abs(long["delta_if_m"].iloc[-1]) / abs(short["delta_if_m"].iloc[-1])
-    assert ratio > 5, f"the deviation stopped compounding (ratio {ratio:.1f})"
+    assert ratio < 2.5, f"horizon doubling scaled the response {ratio:.1f}x"
 
 
-def test_corp_tax_response_is_dominated_by_drift_not_by_the_tax_rate():
-    """A second, independent symptom of the same defect: truncating the shock
-    from 12 quarters to 8 barely changes the quarter-11 and quarter-12
-    response (measured |delta_IF| 2,170/2,662 vs 2,268/2,876 £m). A genuine
-    cost-of-capital response would fall back once the tax rate returned to
-    baseline; this one is carried by accumulated drift, so removing a third of
-    the shock moves it by only a few percent."""
+def test_corp_tax_response_tracks_the_tax_rate_not_drift():
+    """The drift symptom the predecessor of this test (
+    test_corp_tax_response_is_dominated_by_drift_not_by_the_tax_rate) pinned
+    is gone — the "if the response now tracks the tax rate ... that is a real
+    fix" escape hatch it reserved, exercised 2026-08 with the log-anchoring
+    fix (see test_corp_tax_deviation_converges_to_its_steady_state).
+
+    Before: truncating the shock from 12 quarters to 8 left the q11/q12
+    response almost unchanged AND STILL GROWING (measured 2,170 -> 2,662 £m
+    with the tax rate back at baseline) — the number was accumulated drift.
+    After: once the tax rate returns to baseline the truncated response turns
+    around and decays (measured q11 308 -> q12 303 £m, vs the sustained run
+    still rising 348 -> 381), i.e. the deviation follows its steady-state
+    target back down. The decay is slow — the same ~0.958/quarter
+    error-correction root that makes the build-up gradual (q12 truncated/full
+    = 0.79) — so the response carries genuine capital-stock history, but it
+    now has the right SHAPE: rate off, response falling."""
     from obr_macro.reform_analysis import run_reform
 
     with warnings.catch_warnings():
@@ -370,11 +408,23 @@ def test_corp_tax_response_is_dominated_by_drift_not_by_the_tax_rate():
         )
     # Same reporting window, four fewer shocked quarters.
     assert len(full) == len(trunc) == 12
-    tail_ratio = abs(trunc["delta_if_m"].iloc[-1]) / abs(full["delta_if_m"].iloc[-1])
-    assert tail_ratio > 0.80, (
-        f"dropping a third of the shock changed the final response by "
-        f"{100 * (1 - tail_ratio):.0f}% — if the response now tracks the tax "
-        "rate rather than accumulated drift, that is a real fix"
+    # The qualitative signature: with the shock switched off after q8, the
+    # truncated response must be FALLING by q12 while the sustained one still
+    # rises towards its plateau. Under the old drift dynamics both grew.
+    t_11, t_12 = abs(trunc["delta_if_m"].iloc[10]), abs(trunc["delta_if_m"].iloc[11])
+    f_11, f_12 = abs(full["delta_if_m"].iloc[10]), abs(full["delta_if_m"].iloc[11])
+    assert t_12 < t_11, (
+        f"truncated response still growing after the shock ended "
+        f"({t_11:.0f} -> {t_12:.0f} £m): drift dynamics are back"
+    )
+    assert f_12 > f_11, "sustained response should still be approaching plateau"
+    # And the magnitude must depend on the shock actually being in force:
+    # dropping a third of the shocked quarters must show up in the tail
+    # (measured ratio 0.79; drift dynamics measured 0.92).
+    tail_ratio = t_12 / f_12
+    assert tail_ratio < 0.85, (
+        f"q12 response is {tail_ratio:.2f}x the sustained run's despite four "
+        "unshocked quarters — the tail is drift, not the tax rate"
     )
 
 
@@ -382,8 +432,11 @@ def test_corp_tax_response_is_convex_but_not_divergent_over_shock_size():
     """Sanity on the shock-size dimension (as opposed to the horizon). The
     per-pp investment response is convex in the rate — TAF = (1-T*D)/(1-T)
     steepens as T rises — so a rise bites harder per pp than a cut helps.
-    Measured at 12 quarters: -541 £m/pp for a 5pp cut vs -575 £m/pp for a 5pp
-    rise, widening to -435 vs -859 at 50pp. That asymmetry is the arithmetic
+    Measured at 12 quarters (2026-08, after the estimated allowance PVs and
+    the log-anchoring fix): -69 £m/pp for a 5pp cut vs -76 £m/pp for a 5pp
+    rise, widening to -97 £m/pp for a 25pp rise. (Pre-fix these were -541 /
+    -575 / -859: the old rate-as-PV constants overstated (1-D) and the level
+    add-factors compounded the deviation.) The asymmetry is the arithmetic
     of the user-cost formula and is expected; what must NOT happen is the
     response ceasing to scale monotonically or blowing past the shock's own
     scale."""
