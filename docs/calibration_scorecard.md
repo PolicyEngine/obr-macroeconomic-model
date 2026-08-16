@@ -60,10 +60,13 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 **`log(X)` LHS fix (issue #14): scorecard unchanged.** Adding the missing `log`
 branch to `_parse_lhs` makes `log(HHTFA)` and `log(NDIVHH)` index under their
 real column names, but both stay frozen because their inputs `MAJGDP` and `CORP`
-are all-NaN in the published databank. Every line above is bitwise identical
-before and after — including Household income (14.76%), Real household income
-(14.48%) and Company profits (54.57%), the lines that would move if the
-profits → dividends channel were live.
+are all-NaN in the published databank. When the fix landed the whole scorecard
+was verified bitwise identical before and after — including Household income,
+Real household income and Company profits, the lines that would move if the
+profits → dividends channel were live (then 14.76%, 14.48% and 54.57% on the
+pre-OSHH-anchor vintage; 6.27%, 6.03% and 63.29% in the table above). The
+freeze is vintage-independent: `MAJGDP` and `CORP` are still absent from the
+current databank, so the fix cannot move any line on any vintage.
 
 ## Honest score
 - **11 of 21** headline variables are actually computed; the other **10 are passthrough**.
