@@ -607,8 +607,14 @@ def run_reform(
         shocked.apply_shock(var, shock, start, periods=periods)
 
     baseline.solve(start, end)
+    # getattr, not attribute access: solve() always sets this, but the
+    # bridge-contract tests drive run_reform with a solver double that
+    # implements solve() and nothing else. A missing report means "not
+    # reported", never a crash.
+    baseline_report = getattr(baseline, "last_solve_report", None)
     baseline_data = baseline.data.copy()
     shocked.solve(start, end)
+    shocked_report = getattr(shocked, "last_solve_report", None)
     shocked_data = shocked.data.copy()
 
     # Build results
@@ -663,6 +669,47 @@ def run_reform(
         )
 
     out = pd.DataFrame(results)
+
+    # Solver convergence, carried on the frame. solve() already computes a
+    # per-period exit status and a non-converged list, but until now it was
+    # left on the solver and dropped here, so a caller -- and every MCP
+    # consumer downstream -- read the deltas with no way to know whether the
+    # Gauss-Seidel iteration had reached tol or merely stopped improving.
+    #
+    # That matters because a reported delta is the difference of TWO solves.
+    # Where both stall, the residual noise does not cancel: on the 1p
+    # basic-rate score every one of the 20 quarters exits 'stall' in both
+    # runs, and the first year of the GDP path oscillates (-0.13, -0.48,
+    # +0.21, -0.24 bn) under a shock that is FLAT across those four quarters.
+    # A constant input cannot produce that shape; it is solver residue, and
+    # a sign flip in a headline number is exactly the thing a caller must be
+    # able to see rather than infer.
+    if baseline_report is not None and shocked_report is not None:
+        nonconverged = sorted(
+            set(baseline_report["nonconverged"])
+            | set(shocked_report["nonconverged"])
+        )
+        out.attrs["solver_converged"] = not nonconverged
+        out.attrs["solver_nonconverged_periods"] = nonconverged
+        out.attrs["solver_exit_status"] = {
+            "baseline": dict(baseline_report["exit_status"]),
+            "shocked": dict(shocked_report["exit_status"]),
+        }
+        out.attrs["solver_eq_failures"] = {
+            "baseline": sum(baseline_report["eq_failures"].values()),
+            "shocked": sum(shocked_report["eq_failures"].values()),
+        }
+    else:
+        nonconverged = []
+    if nonconverged:
+        out.attrs["solver_warning"] = (
+            f"{len(nonconverged)} of {len(out)} quarters did not converge to "
+            "tolerance in the baseline and/or shocked solve (Gauss-Seidel "
+            "exited on the stall break). Reported deltas are differences of "
+            "two non-converged solves: treat small or sign-flipping "
+            "quarter-to-quarter movements as solver residue, not as the "
+            "model's answer."
+        )
 
     # Honest-labelling metadata (df.attrs travels with the frame). Under the
     # demand closure a spending shock's GDP response is MECHANICAL PASSTHROUGH:

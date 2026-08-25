@@ -903,3 +903,54 @@ def test_closure_freezes_pif_and_pirhh(corp_tax_rise_results=None):
         s = shock.data[var].iloc[t0 : t1 + 1]
         assert np.isfinite(b).all(), f"{var} non-finite in baseline"
         assert np.allclose(b, s), f"{var} moved between base and shock"
+
+
+def test_run_reform_reports_solver_convergence():
+    """A delta is the difference of two solves; say whether either converged.
+
+    solve() has always computed a per-period exit status and a non-converged
+    list, but run_reform dropped both, so every consumer downstream -- the
+    policyengine-macro adapter and every MCP caller through it -- read the
+    deltas with no way to tell a converged answer from a stalled one.
+
+    Measured on the 1p basic-rate costing path: all 20 quarters exit 'stall'
+    in both the baseline and the shocked run, and the first year of the GDP
+    path oscillates (-0.13, -0.48, +0.21, -0.24 bn) under a shock that is
+    FLAT across those four quarters. A constant input cannot produce a sign
+    flip; that is solver residue surviving the subtraction. This pins the
+    reporting, not the convergence -- the model is allowed to stall, but it
+    is not allowed to stall silently.
+    """
+    from obr_macro.reform_analysis import HOUSEHOLD_COSTING_VAR, run_reform
+
+    path = [1615.75] * 4 + [1673.75] * 4
+    out = run_reform(
+        name="convergence reporting",
+        var=HOUSEHOLD_COSTING_VAR,
+        shock=path,
+        periods=len(path),
+        start="2026Q1",
+        end="2027Q4",
+    )
+
+    assert "solver_converged" in out.attrs, "convergence status is not reported"
+    assert isinstance(out.attrs["solver_converged"], bool)
+
+    periods = out.attrs["solver_nonconverged_periods"]
+    assert isinstance(periods, list)
+    # Every reported period must be a real quarter of this run, so the list
+    # can be joined against the results frame rather than merely counted.
+    assert set(periods) <= set(out["period"].astype(str))
+
+    status = out.attrs["solver_exit_status"]
+    assert set(status) == {"baseline", "shocked"}
+    for run in status.values():
+        assert set(run.values()) <= {"tol", "stall", "max_iter", "unknown"}
+
+    # The two must agree: a warning iff something failed to converge.
+    assert out.attrs["solver_converged"] is (not periods)
+    if periods:
+        assert out.attrs["solver_warning"], "stalled solve carries no warning"
+        assert "stall" in out.attrs["solver_warning"]
+    else:
+        assert "solver_warning" not in out.attrs
