@@ -372,22 +372,51 @@ def test_block_is_inert_under_every_lever(respond, col, block):
 # ---------------------------------------------------------------------------
 
 
-def test_public_investment_is_dead_and_wrong_signed(respond):
-    """DEFECT (pinned). CGIPS moves investment hard in the WRONG direction.
+def test_public_investment_does_not_transmit(respond):
+    """DEFECT (pinned). CGIPS produces drift, not a public investment effect.
 
-    A rise in government investment should raise total investment; the OBR's
+    A rise in government investment should raise total investment -- the OBR's
     published impact multiplier for public investment is 1.0, the highest of
-    any instrument. Measured here: business investment moves by -292% of the
-    shock -- it falls by roughly three times the amount the government spends.
+    any instrument. This model cannot deliver that, in two separate ways.
 
-    Capital spending must not be scored on this model. Pinned so the defect
-    cannot quietly change size.
+    First, total fixed investment (IF) moves EXACTLY zero, because IF has no
+    live equation in the published listing (both IF identities are commented
+    out). The CGIPS chain never reaches the GDP identity at all.
+
+    Second, business investment (IBUSX) does move, but not as a channel: the
+    response is wrong-signed AND grossly non-proportional. Measured means over
+    eight quarters:
+
+        shock  +1500   ->  IBUSX  -6803  (-454% of shock)
+        shock  +3000   ->  IBUSX  -8751  (-292% of shock)
+        shock  +6000   ->  IBUSX -11602  (-193% of shock)
+
+    Quadrupling the shock changes the response by well under a factor of two.
+    A transmission channel scales with its input; a residue does not. So the
+    percentage is not a multiplier and must never be quoted as one -- which is
+    why this test asserts the NON-proportionality rather than any single
+    number.
+
+    Capital spending must not be scored on this model.
     """
-    shock = 3000.0
-    r = respond("CGIPS", shock)
-    assert r["IBUSX"]["mean"] < 0, "the wrong-signed investment residue is gone"
-    assert share_of_shock(r, "IBUSX", shock) < -100.0, (
-        "the CGIPS investment residue changed magnitude; re-measure and update"
+    small, large = 1500.0, 6000.0
+    r_small, r_large = respond("CGIPS", small), respond("CGIPS", large)
+
+    # The dead leg: total fixed investment never moves, at any shock size.
+    assert r_small["IF"]["mean"] == 0.0 and r_large["IF"]["mean"] == 0.0, (
+        "IF now responds to CGIPS -- an IF equation may have been added"
+    )
+
+    # The drift leg: wrong-signed, and not proportional to the shock.
+    assert r_small["IBUSX"]["mean"] < 0 and r_large["IBUSX"]["mean"] < 0, (
+        "the wrong-signed business-investment residue is gone"
+    )
+    scale = r_large["IBUSX"]["mean"] / r_small["IBUSX"]["mean"]
+    shock_scale = large / small  # 4x
+    assert scale < 0.5 * shock_scale, (
+        f"CGIPS now scales with the shock (response x{scale:.2f} for a "
+        f"x{shock_scale:.0f} shock) -- it may have become a real channel; "
+        "re-measure and update this test"
     )
 
 
