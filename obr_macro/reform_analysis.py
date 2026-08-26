@@ -686,8 +686,7 @@ def run_reform(
     # able to see rather than infer.
     if baseline_report is not None and shocked_report is not None:
         nonconverged = sorted(
-            set(baseline_report["nonconverged"])
-            | set(shocked_report["nonconverged"])
+            set(baseline_report["nonconverged"]) | set(shocked_report["nonconverged"])
         )
         out.attrs["solver_converged"] = not nonconverged
         out.attrs["solver_nonconverged_periods"] = nonconverged
