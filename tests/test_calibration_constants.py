@@ -7,13 +7,16 @@ Two separate honesty gates, both fast (they parse the model file; no solve):
    suppresses the published equation for every period that is initialised but
    never solved — including the whole residual window.
 
-2. Constants this repo INVENTS must stay visible as inventions. Each of
-   DB/DP/DV/COCU has a published OBR equation, but its inputs are absent from
-   every published artefact, so the equation always evaluates to NaN and
+2. Constants this repo SUPPLIES must stay pinned to their stated basis. Each
+   of DB/DP/DV/COCU has a published OBR equation, but its inputs are absent
+   from every published artefact, so the equation always evaluates to NaN and
    solve_period silently drops it. The seeds are therefore the operative
    values for the entire run, and they set the magnitude of the corporation
-   tax -> investment response. Nothing else in the suite says so out loud;
-   this does.
+   tax -> investment response. DB/DP/DV are estimated from statute and the
+   OBR's published gilt assumption (obr_macro/cost_of_capital.py) and must
+   equal that derivation; COCU is a declared seed whose level provably
+   cancels in the corporation-tax deviation. Nothing else in the suite says
+   so out loud; this does.
 """
 
 import re
@@ -89,19 +92,49 @@ def test_invented_seeds_have_no_computable_published_equation(published):
 
 
 def test_invented_seeds_are_plausible_but_declared():
-    """Bounds only, so a typo (0.18 -> 18) is caught, and an explicit record
-    that these numbers are declared rather than derived."""
+    """Bounds so a typo (0.9515 -> 9.515) is caught, and an explicit record of
+    the operative values. DB is legitimately 0.0: the OBR's own equation
+    zeroes buildings allowances after 2011Q2 (Industrial Buildings Allowance
+    abolished), so the lower bound is inclusive."""
     for name, v in UNPUBLISHED_COST_OF_CAPITAL_SEEDS.items():
-        assert 0.0 < v < 1.0, f"{name}={v} is outside any sane range"
+        assert 0.0 <= v < 1.0, f"{name}={v} is outside any sane range"
     # These four numbers appear in no OBR publication. Changing one changes
     # every corporation-tax costing the model produces, so a change must be a
-    # deliberate edit here and not a silent drift elsewhere.
+    # deliberate edit here and not a silent drift elsewhere. (Deliberately
+    # changed 2026-08: DB/DP/DV moved from the invented 0.18/0.06/0.25 —
+    # statutory writing-down RATES mislabeled and pasted in as present
+    # VALUES — to the estimates derived in obr_macro/cost_of_capital.py;
+    # the next test pins them to that derivation.)
     assert UNPUBLISHED_COST_OF_CAPITAL_SEEDS == {
-        "DB": 0.18,
-        "DP": 0.06,
-        "DV": 0.25,
+        "DB": 0.0,
+        "DP": 0.9515,
+        "DV": 0.7793,
         "COCU": 0.12,
     }
+
+
+def test_estimated_allowance_pvs_match_their_committed_derivation():
+    """DB/DP/DV must equal obr_macro.cost_of_capital's derivation (statutory
+    allowance rates + the OBR's published long-gilt assumption, evaluated
+    through the OBR's own published formulas) to within the declared 4-decimal
+    rounding. If this fails, either the seeds were edited without re-running
+    the derivation, or the committed EFO workbook changed under them — both
+    must be a visible, deliberate change here."""
+    from obr_macro.cost_of_capital import derive_allowance_pvs
+
+    derived = derive_allowance_pvs()
+    for name in ("DB", "DP", "DV"):
+        assert UNPUBLISHED_COST_OF_CAPITAL_SEEDS[name] == pytest.approx(
+            derived[name], abs=5e-5
+        ), (
+            f"{name}: seed {UNPUBLISHED_COST_OF_CAPITAL_SEEDS[name]} no longer "
+            f"matches its derivation {derived[name]:.6f} "
+            "(python -m obr_macro.cost_of_capital)"
+        )
+    # COCU is deliberately NOT derived: its level cancels in the deviation
+    # (dlog COC = dlog TAF) and its published equation needs a 1970Q1 rebasing
+    # anchor that predates every committed series. The seed stays declared.
+    assert "COCU" not in derived
 
 
 @pytest.mark.slow
