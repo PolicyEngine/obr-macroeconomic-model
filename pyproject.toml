@@ -9,6 +9,7 @@ dependencies = [
     "openpyxl>=3.1",
     "scipy>=1.15.3",
     "matplotlib>=3.10.8",
+    "certifi>=2024.2.2",
 ]
 
 [build-system]

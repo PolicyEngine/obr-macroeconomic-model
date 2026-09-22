@@ -796,16 +796,16 @@ def test_raw_calibration_scorecard_does_not_regress():
 
     reference = {
         # code: (kind, reference error)
-        "GDPM": ("lvl", 4.49),  # % MAPE
-        "CONS": ("lvl", 7.49),
-        "IBUS": ("lvl", 15.73),
-        "LFSUR": ("pp", 1.01),  # mean abs pp
-        "RPI": ("pp", 1.71),
-        "HHDI": ("lvl", 6.27),
-        "RHHDI": ("lvl", 6.04),
-        "FYCPR": ("lvl", 63.30),
-        "CB": ("gdp", 3.61),  # % of GDP
-        "TB": ("gdp", 0.69),
+        "GDPM": ("lvl", 4.22),  # % MAPE
+        "CONS": ("lvl", 7.06),
+        "IBUS": ("lvl", 11.85),
+        "LFSUR": ("pp", 0.85),  # mean abs pp
+        "RPI": ("pp", 1.48),
+        "HHDI": ("lvl", 5.53),
+        "RHHDI": ("lvl", 5.29),
+        "FYCPR": ("lvl", 23.32),
+        "CB": ("gdp", 2.74),  # % of GDP
+        "TB": ("gdp", 0.76),
     }
     report = build_scorecard()
     scored = {

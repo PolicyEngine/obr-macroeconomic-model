@@ -16,6 +16,7 @@ averaged over months (an annual value is held flat across the four quarters).
 from __future__ import annotations
 
 import json
+import ssl
 import time
 import urllib.error
 import urllib.request
@@ -495,6 +496,24 @@ def series_type(cdid: str) -> str:
     return SERIES_TYPE.get(cdid.upper(), "flow")
 
 
+def _ssl_context():
+    """A TLS context with a usable CA bundle.
+
+    A Python that was not installed with its own certificates (a bare venv on
+    macOS is the common case) has an empty trust store, so every ONS fetch
+    fails with CERTIFICATE_VERIFY_FAILED. ons_pull catches per-series failures
+    and carries on, so the symptom is not an error but a snapshot that is
+    quietly short of series — which is how the shipped snapshot lost 8 of them.
+    Prefer certifi's bundle; fall back to the system default.
+    """
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
+
+
 def _get_json(url, tries=4):
     """GET a JSON document, retrying only transient failures.
 
@@ -503,10 +522,11 @@ def _get_json(url, tries=4):
     payload — those are deterministic and retrying just wastes 4 round-trips.
     """
     last = None
+    ctx = _ssl_context()
     for i in range(tries):
         try:
             req = urllib.request.Request(url, headers=_HEADERS)
-            with urllib.request.urlopen(req, timeout=30) as r:
+            with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
                 return json.load(r)
         except urllib.error.HTTPError as e:
             if e.code >= 500 or e.code == 429:

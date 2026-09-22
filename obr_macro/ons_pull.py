@@ -22,7 +22,19 @@ from obr_macro.data import load_obr_data, DATA_DIR, ensure_model_code
 from obr_macro.transpiler import parse_model_file
 from obr_macro.ons_fetch import fetch_series
 
-CACHE = DATA_DIR / "ons_cache"  # gitignored, transient
+# Transient fetch cache. It must NOT live under DATA_DIR: in a checkout without
+# a repo-root data/ directory, DATA_DIR resolves to the package's own _data/,
+# and the cache then ships inside the package tree (the packaging test catches
+# this). Keep it at the repo root when there is one, else fall back to the
+# user cache directory.
+def _cache_dir():
+    repo_root = Path(__file__).resolve().parent.parent
+    if (repo_root / "pyproject.toml").is_file():
+        return repo_root / "data" / "ons_cache"
+    return Path.home() / ".cache" / "obr_macro" / "ons_cache"
+
+
+CACHE = _cache_dir()  # gitignored, transient
 SEEDS = Path(__file__).parent / "seeds"  # committed
 SNAPSHOT = SEEDS / "ons_exogenous_snapshot.csv"
 MANIFEST = SEEDS / "snapshot_manifest.json"
