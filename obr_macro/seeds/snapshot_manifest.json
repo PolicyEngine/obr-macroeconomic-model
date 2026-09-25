@@ -1,6 +1,7 @@
 {
  "n_series": 355,
- "pulled": "2026-09-22",
+ "pulled": "2026-07-11",
+ "recovered": "2026-09-22",
  "series": {
   "AAROW": {
    "aggregation": "none",
@@ -29,7 +30,7 @@
   "ALAD": {
    "aggregation": "none",
    "cdid": "DMUM",
-   "dataset": "PN2",
+   "dataset": "QNA",
    "source_freq": "quarterly",
    "title": "CVM SA changes in inventories timing adjustment \u00a3m",
    "type": "flow"
@@ -143,7 +144,7 @@
   "BLROW": {
    "aggregation": "none",
    "cdid": "HHZX",
-   "dataset": "PNBP",
+   "dataset": "UKEA",
    "source_freq": "quarterly",
    "title": "BoP FA PI Asset flows total debt securities NSA \u00a3m",
    "type": "stock"
@@ -297,7 +298,7 @@
   "CGITFA": {
    "aggregation": "none",
    "cdid": "CGDN",
-   "dataset": "UKEA",
+   "dataset": "PNBP",
    "source_freq": "quarterly",
    "title": "Secondary Income Credits: Central Govt Other receipts: CP SA \u00a3m",
    "type": "flow"
@@ -461,7 +462,7 @@
   "CGTSUB": {
    "aggregation": "none",
    "cdid": "NMCD",
-   "dataset": "PUSF",
+   "dataset": "EDP",
    "source_freq": "quarterly",
    "title": "CG: Current expenditure: Subsidies: \u00a3m CPNSA",
    "type": "flow"
@@ -479,7 +480,7 @@
     {
      "aggregation": "none",
      "cdid": "HBOK",
-     "dataset": "UKEA",
+     "dataset": "PNBP",
      "source_freq": "quarterly",
      "title": "BoP Investment Income Credits / Rest of the World (S.2): Property income (D.4): Use: Current price \u00a3m: Seasonally adjusted",
      "type": "flow"
@@ -737,7 +738,7 @@
   "EECOMPC": {
    "aggregation": "none",
    "cdid": "IJAH",
-   "dataset": "UKEA",
+   "dataset": "PNBP",
    "source_freq": "quarterly",
    "title": "Rest of the World (S.2): Compensation of employees (D.1): Use: Current price \u00a3million: Seasonally adjusted",
    "type": "flow"
@@ -853,7 +854,7 @@
   "EESCLA": {
    "aggregation": "none",
    "cdid": "L8ND",
-   "dataset": "EDP",
+   "dataset": "UKEA",
    "source_freq": "quarterly",
    "title": "S1313 Local Govt: D.611: Res: Employers actual social contributions: CP: NSA",
    "type": "flow"
@@ -1036,7 +1037,7 @@
   "EUKT": {
    "aggregation": "none",
    "cdid": "GTTY",
-   "dataset": "UKEA",
+   "dataset": "PNBP",
    "source_freq": "quarterly",
    "title": "Capital Account (Credits)Total of which EU Institutions: CP SA",
    "type": "flow"
@@ -1065,7 +1066,7 @@
   "EUSF": {
    "aggregation": "none",
    "cdid": "H5U3",
-   "dataset": "UKEA",
+   "dataset": "PNBP",
    "source_freq": "quarterly",
    "title": "Transfers credits: Other Sectors EC budget: social fund (D75): CP SA",
    "type": "flow"
@@ -1273,7 +1274,7 @@
     {
      "aggregation": "none",
      "cdid": "NMRY",
-     "dataset": "PN2",
+     "dataset": "QNA",
      "source_freq": "quarterly",
      "title": "General Government: Final consumption expenditure: P3: CVM SA \u00a3m",
      "type": "index"
@@ -1286,7 +1287,7 @@
     {
      "aggregation": "none",
      "cdid": "DLWF",
-     "dataset": "CXNV",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "Gross Fixed Capital Formation:Total General Government P51:CVM SA: \u00a3m",
      "type": "index"
@@ -1344,7 +1345,7 @@
     {
      "aggregation": "none",
      "cdid": "NNBK",
-     "dataset": "PUSF",
+     "dataset": "EDP",
      "source_freq": "quarterly",
      "title": "General Government (S.13): Net lending (+) / Net borrowing (-) (B.9N): CP \u00a3m: NSA",
      "type": "flow"
@@ -1413,7 +1414,7 @@
   "GVAPS": {
    "aggregation": "none",
    "cdid": "ABML",
-   "dataset": "PN2",
+   "dataset": "UKEA",
    "source_freq": "quarterly",
    "title": "Gross Value Added (Average) at basic prices: CP SA \u00a3m",
    "type": "flow"
@@ -1583,7 +1584,7 @@
   "IHPS": {
    "aggregation": "none",
    "cdid": "L62T",
-   "dataset": "PN2",
+   "dataset": "QNA",
    "source_freq": "quarterly",
    "title": "GFCF:Private sector: TOTAL: Dwellings, excluding land: \u00a3m: CP: SA",
    "type": "flow"
@@ -1707,7 +1708,7 @@
   "IPRLPS": {
    "aggregation": "none",
    "cdid": "L62U",
-   "dataset": "PN2",
+   "dataset": "CXNV",
    "source_freq": "quarterly",
    "title": "GFCF:Private sector: TOTAL: Transfer of ownership costs: \u00a3m: CP: SA",
    "type": "flow"
@@ -2041,7 +2042,7 @@
   "LASC": {
    "aggregation": "none",
    "cdid": "M9WY",
-   "dataset": "EDP",
+   "dataset": "UKEA",
    "source_freq": "quarterly",
    "title": "Local Govt: D.612: Res: Employers imputed social contributions: CP: NSA",
    "type": "flow"
@@ -2258,7 +2259,7 @@
     {
      "aggregation": "none",
      "cdid": "BQKO",
-     "dataset": "PN2",
+     "dataset": "QNA",
      "source_freq": "quarterly",
      "title": "Trade in Goods (T): WW: Imports: BOP: CVM: SA",
      "type": "flow"
@@ -2287,7 +2288,7 @@
     {
      "aggregation": "none",
      "cdid": "ABML",
-     "dataset": "PN2",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "Gross Value Added (Average) at basic prices: CP SA \u00a3m",
      "type": "flow"
@@ -2316,7 +2317,7 @@
     {
      "aggregation": "none",
      "cdid": "ABJR",
-     "dataset": "PN2",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "Household final consumption expenditure :National concept CVM SA - \u00a3m",
      "type": "index"
@@ -2340,7 +2341,7 @@
     {
      "aggregation": "none",
      "cdid": "CAFU",
-     "dataset": "PN2",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "Changes in inventories including alignment adjustment - CVM NAYear SA \u00a3m",
      "type": "index"
@@ -2348,7 +2349,7 @@
     {
      "aggregation": "none",
      "cdid": "HAYO",
-     "dataset": "PN2",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "Final Consumption Expenditure of NPISHs CVM SA \u00a3m",
      "type": "index"
@@ -2364,7 +2365,7 @@
     {
      "aggregation": "none",
      "cdid": "NMRY",
-     "dataset": "PN2",
+     "dataset": "QNA",
      "source_freq": "quarterly",
      "title": "General Government: Final consumption expenditure: P3: CVM SA \u00a3m",
      "type": "index"
@@ -2372,7 +2373,7 @@
     {
      "aggregation": "none",
      "cdid": "NPQT",
-     "dataset": "CXNV",
+     "dataset": "QNA",
      "source_freq": "quarterly",
      "title": "Total Gross Fixed Capital Formation CVM SA \u00a3m",
      "type": "index"
@@ -2768,7 +2769,7 @@
     {
      "aggregation": "none",
      "cdid": "FHJL",
-     "dataset": "PNBP",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "Acquisitions/Disposals of NPNF Assets (Credits) Total: CP SA: \u00a3m",
      "type": "flow"
@@ -3006,7 +3007,7 @@
     {
      "aggregation": "none",
      "cdid": "NPVQ",
-     "dataset": "EDP",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "ESA:GG:LI:LEVEL:Total financial liabilities",
      "type": "stock"
@@ -3157,7 +3158,7 @@
   "OPSKTA": {
    "aggregation": "none",
    "cdid": "FLWI",
-   "dataset": "PNBP",
+   "dataset": "UKEA",
    "source_freq": "quarterly",
    "title": "Other Sectors Transfers (Debits) Total: CP SA: \u00a3m",
    "type": "flow"
@@ -3290,7 +3291,7 @@
   "OTAROW": {
    "aggregation": "none",
    "cdid": "HLYD",
-   "dataset": "UKEA",
+   "dataset": "PNBP",
    "source_freq": "quarterly",
    "title": "BoP IIP total OI liability level NSA \u00a3m",
    "type": "stock"
@@ -3298,7 +3299,7 @@
   "OTLROW": {
    "aggregation": "none",
    "cdid": "HLXV",
-   "dataset": "UKEA",
+   "dataset": "PNBP",
    "source_freq": "quarterly",
    "title": "BoP IIP total OI Asset level NSA \u00a3m",
    "type": "stock"
@@ -3380,7 +3381,7 @@
   "PCLEB": {
    "aggregation": "none",
    "cdid": "L635",
-   "dataset": "PN2",
+   "dataset": "UKEA",
    "source_freq": "quarterly",
    "title": "GFCF:Public non-fin corps: TOTAL: Transfer of ownership costs: \u00a3m: CVM: SA",
    "type": "flow"
@@ -3456,7 +3457,7 @@
     {
      "aggregation": "none",
      "cdid": "CAFU",
-     "dataset": "PN2",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "Changes in inventories including alignment adjustment - CVM NAYear SA \u00a3m",
      "type": "index"
@@ -3467,7 +3468,7 @@
   "PGVA": {
    "aggregation": "none",
    "cdid": "CGBV",
-   "dataset": "PN2",
+   "dataset": "QNA",
    "source_freq": "quarterly",
    "title": "Gross Value Added at basic prices: Implied deflator:SA",
    "type": "index"
@@ -3477,7 +3478,7 @@
     {
      "aggregation": "none",
      "cdid": "L62T",
-     "dataset": "PN2",
+     "dataset": "QNA",
      "source_freq": "quarterly",
      "title": "GFCF:Private sector: TOTAL: Dwellings, excluding land: \u00a3m: CP: SA",
      "type": "flow"
@@ -3522,7 +3523,7 @@
     {
      "aggregation": "none",
      "cdid": "BOKH",
-     "dataset": "MRET",
+     "dataset": "PNBP",
      "source_freq": "quarterly",
      "title": "Trade in Goods (T): WW: Imports: BOP: CP: SA",
      "type": "index"
@@ -3538,7 +3539,7 @@
     {
      "aggregation": "none",
      "cdid": "BQKO",
-     "dataset": "PN2",
+     "dataset": "QNA",
      "source_freq": "quarterly",
      "title": "Trade in Goods (T): WW: Imports: BOP: CVM: SA",
      "type": "flow"
@@ -3607,7 +3608,7 @@
   "POPAL": {
    "aggregation": "none",
    "cdid": "EBAQ",
-   "dataset": "PN2",
+   "dataset": "UKEA",
    "source_freq": "quarterly",
    "title": "UK resident population: mid-year estimates (Qtly data interpolated)",
    "type": "stock"
@@ -3700,7 +3701,7 @@
   "PSAVEI": {
    "aggregation": "none",
    "cdid": "KAC4",
-   "dataset": "LMS",
+   "dataset": "EMP",
    "source_freq": "quarterly",
    "title": "AWE: Private Sector Level (\u00a3): Seasonally Adjusted Total Pay Excluding Arrears",
    "type": "index"
@@ -3742,7 +3743,7 @@
     {
      "aggregation": "none",
      "cdid": "NPUP",
-     "dataset": "EDP",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "GG:AS:LEVEL:Total Financial Assets: CP NSA \u00a3m",
      "type": "stock"
@@ -3763,7 +3764,7 @@
     {
      "aggregation": "none",
      "cdid": "NPVQ",
-     "dataset": "EDP",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "ESA:GG:LI:LEVEL:Total financial liabilities",
      "type": "stock"
@@ -3897,7 +3898,7 @@
     {
      "aggregation": "none",
      "cdid": "BOKG",
-     "dataset": "PN2",
+     "dataset": "PNBP",
      "source_freq": "quarterly",
      "title": "Trade in Goods (T): WW: Exports: BOP: CP: SA",
      "type": "index"
@@ -3955,7 +3956,7 @@
     {
      "aggregation": "none",
      "cdid": "IKBB",
-     "dataset": "MRET",
+     "dataset": "PNBP",
      "source_freq": "quarterly",
      "title": "Trade in Services (TS): WW: Exports: BOP: CP: SA",
      "type": "index"
@@ -4005,7 +4006,7 @@
     {
      "aggregation": "none",
      "cdid": "HBOK",
-     "dataset": "UKEA",
+     "dataset": "PNBP",
      "source_freq": "quarterly",
      "title": "BoP Investment Income Credits / Rest of the World (S.2): Property income (D.4): Use: Current price \u00a3m: Seasonally adjusted",
      "type": "flow"
@@ -4138,7 +4139,7 @@
   "SDEPS": {
    "aggregation": "none",
    "cdid": "GIXM",
-   "dataset": "PN2",
+   "dataset": "QNA",
    "source_freq": "quarterly",
    "title": "Difference between GDP(E) and GDP(A) MP (SA CP) \u00a3m",
    "type": "flow"
@@ -4276,7 +4277,7 @@
   "TFEPS": {
    "aggregation": "none",
    "cdid": "ABMF",
-   "dataset": "PN2",
+   "dataset": "QNA",
    "source_freq": "quarterly",
    "title": "Total gross final expenditure (aligned) - P.3+P.5+P.6 : CP SA \u00a3m",
    "type": "flow"
@@ -4294,7 +4295,7 @@
     {
      "aggregation": "none",
      "cdid": "NTAP",
-     "dataset": "PN2",
+     "dataset": "UKEA",
      "source_freq": "quarterly",
      "title": "Total adjustment to basic prices (General Government + ROW) CP SA \u00a3m",
      "type": "flow"

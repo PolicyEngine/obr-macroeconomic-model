@@ -28,27 +28,26 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
 
 | Variable | Error (held-AF forecast) | band |
 |---|--:|---|
-| Real GDP | 0.35% | within |
-| Consumption | 0.26% | within |
+| Real GDP | 0.27% | within |
+| Consumption | 0.19% | within |
 | Employment | 0.00% | **trivial identity** |
 | Unemployment rate | 0.51pp | within |
 | Real household income | — | **held at EFO (not forecast)** |
 | Household income | — | **held at EFO (not forecast)** |
-| Business investment | 8.79% | within |
-| Company profits | 15.26% | **over** |
-| Trade balance | 0.30% of GDP | within |
-| Current account | 1.54% of GDP | **over** |
+| Unemployment rate | 0.69pp | within |
+| Business investment | 13.32% | **over** |
+| Company profits | 14.86% | **over** |
+| Trade balance | 0.25% of GDP | within |
+| Current account | 1.39% of GDP | within |
 
-> **Complete-snapshot revision.** These follow the ONS-pull repair (see
-> `calibration_scorecard.md`): 355 series rather than 347, add-factors now held
-> for 38 behavioural equations rather than 35. Business investment moves inside
-> the band (15.11% → 8.79%) and GDP, consumption and unemployment all improve.
-> **Company profits regresses** (12.40% → 15.26%) and the current account falls
-> out of band (1.36% → 1.54% of GDP): the financial block now carries live data
-> through equations that were previously inert, and not all of it helps. The
-> superseded figures were GDP 0.37%, Consumption 0.33%, Unemployment 0.69pp,
-> Business investment 15.11%, Company profits 12.40%, Trade balance 0.25% and
-> Current account 1.36% of GDP.
+> **Recovered-series revision.** These follow the ONS-pull repair (see
+> `calibration_scorecard.md`): the eight series the TLS failure had been
+> dropping, merged into the existing 2026-07-11 vintage. Add-factors are now
+> held for 38 behavioural equations rather than 35. GDP improves 0.37% → 0.27%,
+> consumption 0.33% → 0.19% and business investment 15.11% → 13.32%; company
+> profits worsens 12.40% → 14.86%. The superseded figures were GDP 0.37%,
+> Consumption 0.33%, Business investment 15.11%, Company profits 12.40%,
+> Trade balance 0.25% and Current account 1.36% of GDP.
 
 **8 of 16 headline variables computed; 6 of those within band (net balances as
 % of GDP).** No explosions — the financial blocks are bounded by their real data.
@@ -88,7 +87,7 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
    consumption, and adds seven EFO series. It is a statement about the
    consumption equation's short-run dynamics, not about the model forecasting
    GDP. The un-anchored version of the same question is the raw calibration
-   scorecard (GDP 4.22%, consumption 7.06%, household income 5.53%) — that is
+   scorecard (GDP 4.32%, consumption 7.22%, household income 6.18%) — that is
    the number to quote for forecast skill.
 
 5. **ONS vintage mismatch.** The ~348 unpublished-input series pulled from the
