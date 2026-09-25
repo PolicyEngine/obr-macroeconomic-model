@@ -212,9 +212,19 @@ def test_government_consumption_moves_nothing_but_gdp(respond):
 
 
 def test_tax_rise_lowers_gdp(respond):
-    """A tax rise takes income out of households, so GDP falls."""
+    """A tax rise on households lowers GDP -- in every quarter, not on average.
+
+    This used to assert only the mean, because the first-year path flipped
+    sign under a flat shock (solve residue, see #38): the pinned defect
+    test_flat_shock_still_flips_the_gdp_sign_in_the_first_year recorded it.
+    Completing the ONS snapshot made the path monotone, so that pin is gone
+    and the assertion is tightened here, as its docstring instructed.
+    """
     r = respond("HHDI_ADDFACTOR", TAX_RISE_M)
     assert r["GDPM"]["mean"] < 0, "a tax rise did not lower GDP"
+    assert all(x < 0 for x in r["GDPM"]["path"]), (
+        f"a flat tax rise did not lower GDP in every quarter: {r['GDPM']['path']}"
+    )
     assert clears_noise(r, "GDPM", TAX_RISE_M)
 
 
@@ -264,27 +274,6 @@ def test_household_shock_signs_are_opposite_in_the_two_directions(respond):
     up = respond("HHDI_ADDFACTOR", TAX_RISE_M)["GDPM"]["mean"]
     down = respond("HHDI_ADDFACTOR", -TAX_RISE_M)["GDPM"]["mean"]
     assert up < 0 < down, f"tax rise {up} and cut {down} do not have opposite signs"
-
-
-def test_flat_shock_still_flips_the_gdp_sign_in_the_first_year(respond):
-    """DEFECT (pinned). A constant shock produces a non-constant-sign response.
-
-    The shock is flat at TAX_RISE_M for all eight quarters, yet the GDP path
-    reads roughly -0.13, -0.48, +0.21, -0.24 bn across the first four. A
-    constant input cannot produce a sign flip in a solved model; this is
-    residue from two non-converged solves failing to cancel
-    (obr-macroeconomic-model#38).
-
-    Pinned so nobody reads an early-quarter number as economics, and so that
-    fixing convergence trips this test. If it fails, check whether the path
-    is now monotone -- and if so, delete this test and tighten
-    test_tax_rise_lowers_gdp to assert the whole path.
-    """
-    path = respond("HHDI_ADDFACTOR", TAX_RISE_M)["GDPM"]["path"]
-    first_year = path[:4]
-    assert min(first_year) < 0 < max(first_year), (
-        "the first-year sign flip is gone -- convergence may be fixed; see docstring"
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -420,21 +409,28 @@ def test_public_investment_does_not_transmit(respond):
     )
 
 
-def test_bank_rate_response_is_too_asymmetric_to_use(respond):
-    """DEFECT (pinned). A rate cut and a rate rise are not mirror images.
+def test_bank_rate_response_is_unusable(respond):
+    """DEFECT (pinned). The monetary channel does not behave like one.
 
-    +100bp moves GDP by about -26m; -100bp moves it by about +2393m. The cut
-    is roughly ninety times the rise. A linear-in-the-small-neighbourhood
-    monetary channel cannot behave like this, and business investment falls
-    under BOTH directions, so the sign is not informative either.
+    Two independent defects, either one disqualifying:
 
-    There is no monetary policy experiment this model can answer. Pinned to
-    stop R being offered as a lever on the strength of its GDP sign alone.
+    * **A rate RISE raises GDP.** +100bp moves GDP by about +387m. Tighter
+      money expanding output is the wrong sign outright.
+    * **Business investment falls under BOTH directions** (-7.9bn on a rise,
+      -17.0bn on a cut), so its sign carries no information either.
+
+    The asymmetry that this test used to pin has narrowed sharply -- the cut
+    was ~90x the rise before the ONS snapshot was completed, and is ~6x now --
+    so the ratio is no longer the thing worth asserting. What survives is that
+    there is still no monetary policy experiment this model can answer. Pinned
+    to stop R being offered as a lever on the strength of a GDP number.
     """
     up = respond("R", 1.0)
     down = respond("R", -1.0)
-    ratio = abs(down["GDPM"]["mean"]) / max(abs(up["GDPM"]["mean"]), 1e-9)
-    assert ratio > 10.0, f"Bank Rate is now roughly symmetric (ratio {ratio:.1f})"
+    assert up["GDPM"]["mean"] > 0, (
+        "a rate rise no longer raises GDP -- the sign defect may be fixed; "
+        "re-derive this test rather than loosening it"
+    )
     assert up["IBUSX"]["mean"] < 0 and down["IBUSX"]["mean"] < 0, (
         "business investment no longer falls under both rate directions"
     )

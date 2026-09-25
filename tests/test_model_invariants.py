@@ -849,15 +849,23 @@ def test_raw_calibration_scorecard_does_not_regress():
 
     reference = {
         # code: (kind, reference error)
-        "GDPM": ("lvl", 4.49),  # % MAPE
-        "CONS": ("lvl", 7.49),
-        "IBUS": ("lvl", 15.73),
+        "GDPM": ("lvl", 4.32),  # % MAPE
+        "CONS": ("lvl", 7.22),
+        "IBUS": ("lvl", 15.28),
         "LFSUR": ("pp", 1.01),  # mean abs pp
         "RPI": ("pp", 1.71),
-        "HHDI": ("lvl", 6.27),
-        "RHHDI": ("lvl", 6.04),
-        "FYCPR": ("lvl", 63.30),
-        "CB": ("gdp", 3.61),  # % of GDP
+        "HHDI": ("lvl", 6.18),
+        "RHHDI": ("lvl", 5.94),
+        # DELIBERATELY RAISED, 63.30 -> 82.78. Recovering OAHHx (household
+        # other income, ONS NNMY+NNOA+NNPM+MMW5 — absent only because the ONS
+        # pull was failing on TLS) improves GDP, consumption and the current
+        # account, and fixes the first-year sign-flip defect in the household
+        # costing channel. It also worsens the profits fit, which was already
+        # the worst line in the model and is documented below as dominated by
+        # an unpublished OBR calibration constant rather than a live bug. The
+        # trade was taken knowingly; see issue on the FYCPR/OSHH identity.
+        "FYCPR": ("lvl", 82.78),
+        "CB": ("gdp", 3.02),  # % of GDP
         "TB": ("gdp", 0.69),
     }
     report = build_scorecard()

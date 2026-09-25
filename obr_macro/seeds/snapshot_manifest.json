@@ -1,6 +1,7 @@
 {
- "n_series": 347,
+ "n_series": 355,
  "pulled": "2026-07-11",
+ "recovered": "2026-09-22",
  "series": {
   "AAROW": {
    "aggregation": "none",
@@ -569,6 +570,14 @@
    "title": "HH & NPISH (S.14 + S.15): Currency and deposits (AF.2): Asset: Current price: \u00a3m: NSA",
    "type": "flow"
   },
+  "DEPHHx": {
+   "aggregation": "none",
+   "cdid": "NNMP",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Currency and deposits (AF.2): Asset: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
   "DICGOP": {
    "aggregation": "none",
    "cdid": "NMFX",
@@ -633,6 +642,14 @@
    "title": "Private non-financial corps (S.1102+S.11003): Interest (D.41): Uses: Current price: \u00a3million: Seasonally adjusted",
    "type": "flow"
   },
+  "DIPICf": {
+   "aggregation": "none",
+   "cdid": "IV86",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps: Financial intermediation services indirectly measured (P.119): Uses: Current price: \u00a3m: SA",
+   "type": "flow"
+  },
   "DIRHH": {
    "aggregation": "none",
    "cdid": "ROYM",
@@ -641,12 +658,28 @@
    "title": "HH & NPISH (S.14 + S.15): Interest (D.41): Resources: Current price: \u00a3m: SA",
    "type": "flow"
   },
+  "DIRHHf": {
+   "aggregation": "none",
+   "cdid": "IV8W",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Financial intermediation services indirectly measured (FISIM) on deposits: (P.119): Resources: CP:\u00a3m:NSA",
+   "type": "flow"
+  },
   "DIRIC": {
    "aggregation": "none",
    "cdid": "ROAY",
    "dataset": "UKEA",
    "source_freq": "quarterly",
    "title": "Private non-financial corps (S.1102+S.11003): Interest (D.41): Resources: Current price: \u00a3million: Seasonally adjusted",
+   "type": "flow"
+  },
+  "DIRICf": {
+   "aggregation": "none",
+   "cdid": "IV87",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "Private non-financial corps: Financial intermediation services indirectly measured (P.119): Resources: Current price: \u00a3m: NSA",
    "type": "flow"
   },
   "DLROW": {
@@ -2414,6 +2447,14 @@
    "title": "HH & NPISH (S.14 + S.15): Equity and investment fund shares/units (F.5): Asset: Current price: \u00a3m: NSA",
    "type": "flow"
   },
+  "NAEQHHx": {
+   "aggregation": "none",
+   "cdid": "NFXV",
+   "dataset": "UKEA",
+   "source_freq": "quarterly",
+   "title": "HH & NPISH (S.14 + S.15): Equity and investment fund shares/units (F.5): Asset: Current price: \u00a3m: NSA",
+   "type": "flow"
+  },
   "NAEQLIC": {
    "aggregation": "none",
    "cdid": "NEVL",
@@ -2481,6 +2522,27 @@
    "formula": "NEUX+NEUZ"
   },
   "NAINS": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "M9WF",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Life insurance and annuity entitlements (F.62): Asset: Current price: \u00a3m: NSA",
+     "type": "flow"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NFYO",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Non-life insurance technical reserves (F.61): Asset: Current price: \u00a3m: NSA",
+     "type": "flow"
+    }
+   ],
+   "formula": "NFYO+M9WF"
+  },
+  "NAINSx": {
    "components": [
     {
      "aggregation": "none",
@@ -2842,6 +2904,43 @@
    ],
    "formula": "NNMY+NNOA+NNPM+MMW5"
   },
+  "OAHHx": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "MMW5",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Financial derivatives and employee stock options (AF.7): Asset: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNMY",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Debt securities (AF.3): Asset: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNOA",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Loans (AF.4): Asset: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNPM",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Other accounts receivable/payable (AF.8): Asset: Current price: \u00a3m: NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "NNMY+NNOA+NNPM+MMW5"
+  },
   "OCT": {
    "components": [
     {
@@ -3026,6 +3125,35 @@
     }
    ],
    "formula": "NNPP-NNRP"
+  },
+  "OLPEx": {
+   "components": [
+    {
+     "aggregation": "none",
+     "cdid": "CT9E",
+     "dataset": "QNA",
+     "source_freq": "quarterly",
+     "title": "CG: AF4 A: Net Lending to Private Sector: Student Loans (\u00a3m NSA)",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNPP",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Total financial liabilities (AF.L): Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    },
+    {
+     "aggregation": "none",
+     "cdid": "NNRP",
+     "dataset": "UKEA",
+     "source_freq": "quarterly",
+     "title": "HH & NPISH (S.14 + S.15): Loans secured on dwellings (AF.422): Liability: Current price: \u00a3m: NSA",
+     "type": "stock"
+    }
+   ],
+   "formula": "NNPP-NNRP-CT9E"
   },
   "OPSKTA": {
    "aggregation": "none",

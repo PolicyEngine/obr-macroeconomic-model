@@ -28,16 +28,26 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
 
 | Variable | Error (held-AF forecast) | band |
 |---|--:|---|
-| Real GDP | 0.37% | within |
-| Consumption | 0.33% | within |
+| Real GDP | 0.27% | within |
+| Consumption | 0.19% | within |
 | Employment | 0.00% | **trivial identity** |
-| Unemployment rate | 0.69pp | within |
+| Unemployment rate | 0.51pp | within |
 | Real household income | — | **held at EFO (not forecast)** |
 | Household income | — | **held at EFO (not forecast)** |
-| Business investment | 15.11% | **over** |
-| Company profits | 12.40% | **over** |
+| Unemployment rate | 0.69pp | within |
+| Business investment | 13.32% | **over** |
+| Company profits | 14.86% | **over** |
 | Trade balance | 0.25% of GDP | within |
-| Current account | 1.36% of GDP | within |
+| Current account | 1.39% of GDP | within |
+
+> **Recovered-series revision.** These follow the ONS-pull repair (see
+> `calibration_scorecard.md`): the eight series the TLS failure had been
+> dropping, merged into the existing 2026-07-11 vintage. Add-factors are now
+> held for 38 behavioural equations rather than 35. GDP improves 0.37% → 0.27%,
+> consumption 0.33% → 0.19% and business investment 15.11% → 13.32%; company
+> profits worsens 12.40% → 14.86%. The superseded figures were GDP 0.37%,
+> Consumption 0.33%, Business investment 15.11%, Company profits 12.40%,
+> Trade balance 0.25% and Current account 1.36% of GDP.
 
 **8 of 16 headline variables computed; 6 of those within band (net balances as
 % of GDP).** No explosions — the financial blocks are bounded by their real data.
@@ -77,7 +87,7 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
    consumption, and adds seven EFO series. It is a statement about the
    consumption equation's short-run dynamics, not about the model forecasting
    GDP. The un-anchored version of the same question is the raw calibration
-   scorecard (GDP 4.48%, consumption 7.49%, household income 6.27%) — that is
+   scorecard (GDP 4.32%, consumption 7.22%, household income 6.18%) — that is
    the number to quote for forecast skill.
 
 5. **ONS vintage mismatch.** The ~348 unpublished-input series pulled from the
