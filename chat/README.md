@@ -24,6 +24,10 @@ pre-computed model data, so answers are instant (no slow solver runs).
    The group requires `anthropic>=1.0` (which supports `output_config`) and
    `uv.lock` pins the SDK and server dependencies used by the offline tests.
 
+Opus 5.5 uses its always-on adaptive thinking with the `thinking` parameter
+omitted. The Sonnet 5.5 override explicitly enables adaptive thinking. Both
+models use medium effort and a 16,000-token limit for thinking and the reply.
+
 ## Run (from the repo root)
 ```bash
 uv run --group chat uvicorn chat.server:app --reload --port 8000
@@ -44,6 +48,8 @@ rises 5pp?"* or *"What does TCPRO mean?"*
   the agent is instructed to say so.
 - If the model declines a request, the chat displays a notice and removes that
   request and its tool rounds from the API history so the user can rephrase it.
+- The agent requires histories to end with a user turn. Empty histories and
+  assistant prefill are rejected locally without calling the model.
 
 ## Tests
 Run `uv run --group chat pytest -q tests/test_chat_agent.py`. These tests use the

@@ -259,6 +259,10 @@ def _refusal_reply(removed_last_message: bool) -> str:
 
 def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
     """Run the agentic tool loop. Returns (final_text, updated_messages)."""
+    # Claude 5.5 rejects assistant prefill. Validate before creating a client
+    # so invalid histories never reach the provider or require an API key.
+    if not messages or messages[-1].get("role") != "user":
+        return "Please send a user message to continue the conversation.", messages
     client = anthropic.Anthropic(timeout=60.0)  # per-API-call timeout
     start = time.monotonic()
     response = None
@@ -283,6 +287,11 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
                 max_tokens=MAX_TOKENS,
                 system=SYSTEM,
                 tools=TOOLS,
+                thinking=(
+                    {"type": "adaptive"}
+                    if MODEL == "claude-sonnet-5-5"
+                    else anthropic.omit
+                ),
                 output_config={"effort": "medium"},
                 messages=messages,
             )

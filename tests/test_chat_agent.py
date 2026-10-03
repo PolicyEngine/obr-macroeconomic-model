@@ -130,13 +130,35 @@ def test_request_shape_is_valid_for_claude_5_5(api, monkeypatch, model):
     # forced tool use with a 400.
     for param in SAMPLING_PARAMS:
         assert param not in body
-    assert "thinking" not in body
+    if model == "claude-sonnet-5-5":
+        assert body["thinking"] == {"type": "adaptive"}
+    else:
+        assert "thinking" not in body
     assert body.get("tool_choice", {"type": "auto"})["type"] in ("auto", "none")
     # Effort is set explicitly: the Opus 5.5 default (medium) differs from
     # earlier Opus models (high).
     assert body["output_config"]["effort"] == "medium"
     # No assistant prefill: the conversation sent ends on a user turn.
     assert body["messages"][-1]["role"] == "user"
+
+
+@pytest.mark.parametrize(
+    "history",
+    [
+        [],
+        [{"role": "assistant", "content": "prefill"}],
+        [{"role": "assistant", "content": [_text("prefill")]}],
+    ],
+)
+def test_invalid_history_never_reaches_the_provider(monkeypatch, history):
+    def unexpected_client(*args, **kwargs):
+        pytest.fail("An empty history or assistant prefill must not reach the provider")
+
+    monkeypatch.setattr(agent.anthropic, "Anthropic", unexpected_client)
+    reply, messages = agent.respond(history)
+
+    assert "user message" in reply
+    assert messages is history
 
 
 def test_tool_loop_appends_and_replays_thinking_unchanged(api):
