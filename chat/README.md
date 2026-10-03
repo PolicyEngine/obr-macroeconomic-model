@@ -8,7 +8,8 @@ pre-computed model data, so answers are instant (no slow solver runs).
 ## Architecture
 - `agent.py` — the tools (`model_overview`, `list_scenarios`, `scenario_impact`,
   `search_variables`, `get_equation`) wrapping `dashboard/public/data/*.json`,
-  plus the manual Claude tool-use loop (`claude-opus-4-8`, adaptive thinking).
+  plus the manual Claude tool-use loop (`claude-opus-5-5`, adaptive thinking at
+  explicit medium effort with a 16,000-token limit for thinking and the reply).
 - `server.py` — FastAPI: `POST /api/chat`, and `GET /` serves the UI.
 - `static/index.html` — minimal chat page.
 
@@ -16,14 +17,16 @@ pre-computed model data, so answers are instant (no slow solver runs).
 1. Put your Anthropic key in `.env` at the repo root (gitignored):
    ```
    ANTHROPIC_API_KEY=sk-ant-...
-   ANTHROPIC_MODEL=claude-opus-4-8   # optional; or claude-sonnet-4-6 to cut cost
+   ANTHROPIC_MODEL=claude-opus-5-5   # optional; or claude-sonnet-5-5 to cut cost
    ```
    You need API **credits** — add them at console.anthropic.com/settings/billing.
-2. Install deps: `pip install anthropic fastapi "uvicorn[standard]" python-dotenv`
+2. Install the optional chat dependencies: `uv sync --locked --group chat`.
+   The group requires `anthropic>=1.0` (which supports `output_config`) and
+   `uv.lock` pins the SDK and server dependencies used by the offline tests.
 
 ## Run (from the repo root)
 ```bash
-python -m uvicorn chat.server:app --reload --port 8000
+uv run --group chat uvicorn chat.server:app --reload --port 8000
 ```
 The server binds to `127.0.0.1` (uvicorn's default) so it is only reachable
 locally; pass `--host 0.0.0.0` explicitly if you really want to expose it on
@@ -39,3 +42,10 @@ rises 5pp?"* or *"What does TCPRO mean?"*
   Python solver (~1–2 min) and is the natural next addition.
 - Answers are emulator output under the user's assumptions — not OBR forecasts;
   the agent is instructed to say so.
+- If the model declines a request, the chat displays a notice and removes that
+  request and its tool rounds from the API history so the user can rephrase it.
+
+## Tests
+Run `uv run --group chat pytest -q tests/test_chat_agent.py`. These tests use the
+real SDK with a mock HTTP transport; they need no API key and make no model API
+calls.

@@ -27,6 +27,13 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.8",
 ]
+# The optional local chat server in chat/ (see chat/README.md).
+chat = [
+    "anthropic>=1.0",
+    "fastapi>=0.100",
+    "python-dotenv>=1.0",
+    "uvicorn[standard]",
+]
 
 [tool.pytest.ini_options]
 markers = [

@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()  # read ANTHROPIC_API_KEY (and ANTHROPIC_MODEL) from .env
 
 DATA = Path(__file__).resolve().parents[1] / "dashboard" / "public" / "data"
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-5-5")
 
 _model = json.loads((DATA / "model_data.json").read_text())
 _explorer = json.loads((DATA / "explorer_data.json").read_text())
@@ -230,6 +230,31 @@ quarter. Keep answers concise and lead with the headline number."""
 
 
 REQUEST_BUDGET_S = 90  # wall-clock budget for the whole tool loop, per request
+# Thinking is always on for claude-opus-5-5 and counts toward max_tokens, so
+# leave room for it as well as the reply.
+MAX_TOKENS = 16000
+
+
+def _is_typed_user_turn(message: dict) -> bool:
+    """True for a user message the person typed (not a tool_result turn)."""
+    if message.get("role") != "user":
+        return False
+    content = message.get("content")
+    if isinstance(content, str):
+        return True
+    return not any(
+        isinstance(b, dict) and b.get("type") == "tool_result" for b in content
+    )
+
+
+def _refusal_reply(removed_last_message: bool) -> str:
+    text = "Sorry — the model declined to answer that."
+    if removed_last_message:
+        text += (
+            " Your last message has been removed from the conversation, "
+            "so you can rephrase it and try again."
+        )
+    return text
 
 
 def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
@@ -238,6 +263,12 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
     start = time.monotonic()
     response = None
     notes: list[str] = []
+    # Where to cut the history back to if the model declines: before the typed
+    # message that prompted this request and any tool rounds it triggered, so
+    # the declined request isn't replayed on every later turn. Only trailing
+    # turns are dropped, so earlier thinking blocks stay valid.
+    drops_typed_message = bool(messages) and _is_typed_user_turn(messages[-1])
+    rollback_to = len(messages) - 1 if drops_typed_message else len(messages)
     for _ in range(max_rounds):
         if time.monotonic() - start > REQUEST_BUDGET_S:
             notes.append(
@@ -249,10 +280,9 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
         try:
             response = client.messages.create(
                 model=MODEL,
-                max_tokens=8000,
+                max_tokens=MAX_TOKENS,
                 system=SYSTEM,
                 tools=TOOLS,
-                thinking={"type": "adaptive"},
                 output_config={"effort": "medium"},
                 messages=messages,
             )
@@ -261,6 +291,11 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
                 f"Sorry — the model API call failed "
                 f"({type(e).__name__}: {e}). Please try again."
             ), messages
+        if response.stop_reason == "refusal":
+            # Declined by the model or a safety classifier. The content is empty
+            # or a partial turn; neither is an answer or safe to replay.
+            del messages[rollback_to:]
+            return _refusal_reply(drops_typed_message), messages
         messages.append({"role": "assistant", "content": response.content})
         if response.stop_reason == "max_tokens":
             notes.append(
