@@ -7,7 +7,9 @@ skipped without them.
 """
 
 import importlib
+import itertools
 import json
+from collections import defaultdict, deque
 
 import pytest
 
@@ -59,12 +61,14 @@ ANSWER = _message([_thinking("sig-2"), _text("GDP rises 0.3%.")], "end_turn")
 
 @pytest.fixture
 def api(monkeypatch):
-    """Serve canned responses in order and record every request body."""
-    state = {"responses": [], "requests": []}
+    """Serve canned responses in order and record every request body and the
+    response served to it."""
+    state = {"responses": [], "requests": [], "served": []}
 
     def handler(request):
         state["requests"].append(json.loads(request.content))
-        return httpx2.Response(200, json=state["responses"].pop(0))
+        state["served"].append(state["responses"].pop(0))
+        return httpx2.Response(200, json=state["served"][-1])
 
     real_client = anthropic.Anthropic
 
@@ -82,11 +86,6 @@ def api(monkeypatch):
     return state
 
 
-def _field(block, key):
-    # History blocks are dicts (from the UI) or SDK objects (from responses).
-    return block[key] if isinstance(block, dict) else getattr(block, key)
-
-
 def _assert_valid_history(messages):
     """Invariants any history handed back to the UI must satisfy, so the next
     request is accepted: no empty assistant turn, and every tool_use is answered
@@ -95,11 +94,42 @@ def _assert_valid_history(messages):
         if m["role"] != "assistant":
             continue
         assert m["content"], f"message {i} is an empty assistant turn"
-        ids = {_field(b, "id") for b in m["content"] if _field(b, "type") == "tool_use"}
+        ids = {b["id"] for b in m["content"] if b["type"] == "tool_use"}
         if ids:
             nxt = messages[i + 1]
-            answered = {_field(b, "tool_use_id") for b in nxt["content"]}
+            answered = {b["tool_use_id"] for b in nxt["content"]}
             assert ids <= answered, f"message {i} has unanswered tool_use blocks"
+
+
+def _assert_replayed_thinking_is_bound(requests, served):
+    """A stricter form of the preserved-thinking check, applied to every
+    thinking block replayed in any request: the system prompt, the tools (in
+    order) and every message before the block's turn are identical (same JSON,
+    same key order) to the request that produced it, and the turn itself equals
+    the content the API returned. Returns how many replayed blocks were
+    checked."""
+    produced = {}
+    for body, response in zip(requests, served):
+        for block in response["content"]:
+            if block["type"] == "thinking":
+                produced[block["signature"]] = (body, response["content"])
+    checked = 0
+    for body in requests:
+        for i, m in enumerate(body["messages"]):
+            if m["role"] != "assistant" or isinstance(m["content"], str):
+                continue
+            for block in m["content"]:
+                if block["type"] != "thinking":
+                    continue
+                origin, content = produced[block["signature"]]
+                assert json.dumps(body["messages"][:i]) == json.dumps(
+                    origin["messages"]
+                ), f"history before the turn at message {i} was edited"
+                assert m["content"] == content, f"turn at message {i} was edited"
+                assert json.dumps(body["system"]) == json.dumps(origin["system"])
+                assert json.dumps(body["tools"]) == json.dumps(origin["tools"])
+                checked += 1
+    return checked
 
 
 @pytest.mark.parametrize("override", [None, "claude-sonnet-5-5"])
@@ -130,16 +160,35 @@ def test_request_shape_is_valid_for_claude_5_5(api, monkeypatch, model):
     # forced tool use with a 400.
     for param in SAMPLING_PARAMS:
         assert param not in body
-    if model == "claude-sonnet-5-5":
-        assert body["thinking"] == {"type": "adaptive"}
-    else:
-        assert "thinking" not in body
+    assert body["thinking"] == {"type": "adaptive"}
     assert body.get("tool_choice", {"type": "auto"})["type"] in ("auto", "none")
     # Effort is set explicitly: the Opus 5.5 default (medium) differs from
     # earlier Opus models (high).
     assert body["output_config"]["effort"] == "medium"
     # No assistant prefill: the conversation sent ends on a user turn.
     assert body["messages"][-1]["role"] == "user"
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "claude-opus-5",
+        # Values the previous README put in .env, which still override the
+        # default. Omitting thinking turns it off on these models.
+        "claude-opus-4-8",
+        "claude-sonnet-4-6",
+    ],
+)
+def test_every_model_override_keeps_adaptive_thinking(api, monkeypatch, model):
+    monkeypatch.setattr(agent, "MODEL", model)
+    api["responses"] = [ANSWER]
+    agent.respond([{"role": "user", "content": "q"}])
+
+    (body,) = api["requests"]
+    assert body["model"] == model
+    assert body["thinking"] == {"type": "adaptive"}
 
 
 @pytest.mark.parametrize(
@@ -179,7 +228,109 @@ def test_tool_loop_appends_and_replays_thinking_unchanged(api):
     assert result["type"] == "tool_result"
     assert result["tool_use_id"] == "toolu_1"
     assert "scenarios" in json.loads(result["content"])
+    # The history returned holds plain JSON with only the fields the API sent,
+    # so serializing it for the UI adds nothing (no unset fields as nulls).
+    assert messages[1]["content"] == TOOL_ROUND["content"]
+    assert messages[3]["content"] == ANSWER["content"]
     _assert_valid_history(messages)
+    assert _assert_replayed_thinking_is_bound(api["requests"], api["served"]) == 1
+
+
+def _search_round(tag):
+    """A tool round whose blocks mix fields the API set (a null citations, a
+    caller) with fields it left unset (toolset_name), plus a non-ASCII input."""
+    return _message(
+        [
+            _thinking(f"sig-{tag}"),
+            {"type": "text", "text": "Searching.", "citations": None},
+            {
+                "type": "tool_use",
+                "id": f"toolu_{tag}",
+                "name": "search_variables",
+                "input": {"query": "consumption – £", "limit": 3},
+                "caller": {"type": "direct"},
+            },
+        ],
+        "tool_use",
+    )
+
+
+def _server_client(monkeypatch):
+    pytest.importorskip("fastapi")
+    from starlette.testclient import TestClient
+
+    from chat import server
+
+    monkeypatch.setattr(server, "_hits", defaultdict(deque))
+    return TestClient(server.app)
+
+
+def _chat_turns(client, questions):
+    """Drive the UI's loop: append the typed question, post the history, keep
+    the history the server returns."""
+    history = []
+    for question in questions:
+        history.append({"role": "user", "content": question})
+        response = client.post("/api/chat", json={"messages": history})
+        assert response.status_code == 200
+        history = response.json()["messages"]
+    return history
+
+
+@pytest.mark.parametrize(
+    "tool_rounds",
+    list(itertools.product(range(3), repeat=3)),
+    ids=lambda rounds: "rounds-" + "-".join(map(str, rounds)),
+)
+def test_history_round_trips_through_the_server_unchanged(
+    api, monkeypatch, tool_rounds
+):
+    """Every combination of 0-2 tool rounds in each of three HTTP turns. Between
+    turns the history goes through FastAPI's JSON encoder, a JSON round trip
+    (Python's, standing in for the UI's) and request validation. Every request
+    must extend the previous one append-only and replay each earlier thinking
+    block with its prefix intact, as the preserved-thinking check on Claude 5.5
+    requires."""
+    client = _server_client(monkeypatch)
+    api["responses"] = [
+        response
+        for turn, rounds in enumerate(tool_rounds)
+        for response in [_search_round(f"{turn}-{r}") for r in range(rounds)]
+        + [_message([_thinking(f"sig-{turn}-answer"), _text("Done.")], "end_turn")]
+    ]
+    history = _chat_turns(client, ["q1", "q2", "q3"])
+
+    requests = api["requests"]
+    assert len(requests) == sum(tool_rounds) + 3
+    for previous, current in zip(requests, requests[1:]):
+        shared = current["messages"][: len(previous["messages"])]
+        assert json.dumps(shared) == json.dumps(previous["messages"])
+    assert _assert_replayed_thinking_is_bound(requests, api["served"]) > 0
+    _assert_valid_history(history)
+
+
+def test_refusal_rollback_keeps_earlier_thinking_bound(api, monkeypatch):
+    """A turn declined after a tool round is rolled back; the next turn still
+    replays the earlier turns' thinking blocks with their prefixes intact."""
+    client = _server_client(monkeypatch)
+    answer = _message([_thinking("sig-answer"), _text("Done.")], "end_turn")
+    api["responses"] = [
+        _search_round("1"),
+        answer,
+        _search_round("2"),
+        _refusal([_text("partial")]),
+        _message([_thinking("sig-3"), _text("Done again.")], "end_turn"),
+    ]
+    history = _chat_turns(client, ["q1", "declined", "q3"])
+
+    first_turn = api["requests"][1]["messages"] + [
+        {"role": "assistant", "content": answer["content"]}
+    ]
+    assert api["requests"][-1]["messages"] == first_turn + [
+        {"role": "user", "content": "q3"}
+    ]
+    assert _assert_replayed_thinking_is_bound(api["requests"], api["served"]) > 0
+    _assert_valid_history(history)
 
 
 def test_refusal_before_output_rolls_back_the_declined_message(api):

@@ -230,9 +230,13 @@ quarter. Keep answers concise and lead with the headline number."""
 
 
 REQUEST_BUDGET_S = 90  # wall-clock budget for the whole tool loop, per request
-# Thinking is always on for claude-opus-5-5 and counts toward max_tokens, so
-# leave room for it as well as the reply.
+# Adaptive thinking counts toward max_tokens, so leave room for it as well as
+# the reply.
 MAX_TOKENS = 16000
+# Sent to every model. On claude-opus-5-5 and claude-sonnet-5-5 this equals
+# omitting the parameter, but an ANTHROPIC_MODEL override such as
+# claude-opus-4-8 or claude-sonnet-4-6 runs without thinking unless it is set.
+THINKING = {"type": "adaptive"}
 
 
 def _is_typed_user_turn(message: dict) -> bool:
@@ -287,11 +291,7 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
                 max_tokens=MAX_TOKENS,
                 system=SYSTEM,
                 tools=TOOLS,
-                thinking=(
-                    {"type": "adaptive"}
-                    if MODEL == "claude-sonnet-5-5"
-                    else anthropic.omit
-                ),
+                thinking=THINKING,
                 output_config={"effort": "medium"},
                 messages=messages,
             )
@@ -305,7 +305,13 @@ def respond(messages: list, max_rounds: int = 6) -> tuple[str, list]:
             # or a partial turn; neither is an answer or safe to replay.
             del messages[rollback_to:]
             return _refusal_reply(drops_typed_message), messages
-        messages.append({"role": "assistant", "content": response.content})
+        # Store each block as the fields the API sent, not as SDK objects: the
+        # server's JSON encoder would add the unset fields as nulls, and the
+        # history the UI sends back would then differ from the one later
+        # thinking blocks were produced against.
+        messages.append(
+            {"role": "assistant", "content": [b.to_dict() for b in response.content]}
+        )
         if response.stop_reason == "max_tokens":
             notes.append(
                 "[Note: the answer was cut off at the output token limit "

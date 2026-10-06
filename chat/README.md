@@ -20,13 +20,24 @@ pre-computed model data, so answers are instant (no slow solver runs).
    ANTHROPIC_MODEL=claude-opus-5-5   # optional; or claude-sonnet-5-5 to cut cost
    ```
    You need API **credits** — add them at console.anthropic.com/settings/billing.
+   An `ANTHROPIC_MODEL` line left in `.env` by an earlier setup (such as
+   `claude-opus-4-8`) still overrides the default; update or delete it.
 2. Install the optional chat dependencies: `uv sync --locked --group chat`.
    The group requires `anthropic>=1.0` (which supports `output_config`) and
    `uv.lock` pins the SDK and server dependencies used by the offline tests.
 
-Opus 5.5 uses its always-on adaptive thinking with the `thinking` parameter
-omitted. The Sonnet 5.5 override explicitly enables adaptive thinking. Both
-models use medium effort and a 16,000-token limit for thinking and the reply.
+Every request sends adaptive thinking (`thinking: {"type": "adaptive"}`),
+medium effort and a 16,000-token limit for thinking and the reply. On Opus 5.5
+and Sonnet 5.5 sending adaptive thinking is the same as omitting the parameter;
+older models such as Opus 4.8 and Sonnet 4.6 run without thinking unless it is
+sent.
+
+Each reply's content blocks are kept with only the fields the API returned, so
+the history the server hands the UI gains no fields. The UI posts it back on the
+next turn, and later requests replay earlier turns, including their thinking
+blocks, with the fields and values the API returned. (The browser's JSON
+handling would turn a number such as `3.0` in a tool input into `3`; this app's
+tool inputs are strings and an integer.)
 
 ## Run (from the repo root)
 ```bash
