@@ -595,6 +595,51 @@ def test_anchored_household_income_is_held_not_reproduced(anchored):
     )
 
 
+@pytest.mark.parametrize(
+    "var,investment_closure",
+    [("HHDI_ADDFACTOR", False), ("CGG", False), ("TCPRO", True)],
+)
+def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
+    """Every reform is described as scored against the March-2026 EFO
+    anchored baseline; this pins that it is.
+
+    Until 2026-10 it was not: the reform template set _shock_active=True,
+    which also switched the anchoring residuals off, so the reform baseline
+    was the free-running model — measured 4.35% GDP, 7.26% consumption and
+    5.66% household income off the EFO. The residuals are now frozen into
+    the template (FullOBRSolver.freeze_anchoring) and HHDI (plus IF under the
+    investment closure) is held on the EFO by a level add-factor
+    (_anchor_published_levels), so the reform baseline must track the EFO as
+    closely as the standalone anchored baseline does (0.30% / 0.49%), and the
+    shocked clone must carry the same residuals.
+    """
+    from obr_macro import reform_analysis as ra
+    from obr_macro.data import load_obr_data
+
+    efo = load_obr_data()
+    tmpl = ra._build_reform_template(var, "2025Q1", "2027Q4", investment_closure)
+    base = tmpl.clone()
+    base.solve("2025Q1", "2027Q4")
+    t0, t1 = base.period_idx("2025Q1"), base.period_idx("2027Q4")
+    mape = {c: _mape(base.data, efo, c, t0, t1) for c in ("GDPM", "CONS", "HHDI")}
+    assert mape["GDPM"] < 0.45, f"reform baseline GDP {mape['GDPM']:.2f}% off EFO"
+    assert mape["CONS"] < 0.75, f"reform baseline CONS {mape['CONS']:.2f}% off EFO"
+    assert mape["HHDI"] < 0.10, f"reform baseline HHDI {mape['HHDI']:.2f}% off EFO"
+    if investment_closure:
+        assert _mape(base.data, efo, "IF", t0, t1) < 0.05
+
+    shocked = tmpl.clone()
+    if var == ra.HOUSEHOLD_COSTING_VAR:
+        ra._apply_household_costing(shocked, 100.0, "2025Q1", 4)
+    else:
+        shocked.apply_shock(var, 0.01 if var == "TCPRO" else 100.0, "2025Q1", 4)
+    assert shocked._shock_active and shocked._anchoring_applies(), (
+        "the shocked run dropped the anchoring residuals — the delta is again "
+        "measured around two different baselines"
+    )
+    assert shocked.anchor_terms is tmpl.anchor_terms
+
+
 def test_anchored_unemployment_divergence_is_bounded(anchored):
     """EXPECTED DIVERGENCE, explicitly documented: unlike GDPM/CONS/HHDI, the
     anchored unemployment rate does NOT reproduce the EFO path — LFSUR drifts
