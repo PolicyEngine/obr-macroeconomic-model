@@ -4,12 +4,12 @@ Horizon 2025Q1–2026Q2 (6 quarters), final-period response vs an unchanged base
 
 | Shock | Verdict | GDP | Consumption | Investment | Bus. invest. | Exports | Imports | Employment | Unemp. rate | CPI | House prices | Gilt yield |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Gov consumption +£1.25bn/q | **identity-only** | +0.18% | -0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Gov investment +£3bn/q | **transmitting** | -0.01% | -0.01% | +0.00% | -1.69% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Gov consumption +£1.25bn/q | **identity-only** | +0.18% | +0.00% | +0.00% | +0.01% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Gov investment +£3bn/q | **transmitting** | -0.01% | -0.02% | +0.00% | -1.80% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
 | Corp tax +1pp | **transmitting** | -0.00% | -0.00% | -0.02% | -0.04% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Bank Rate +1pp | **transmitting** | -0.07% | -0.11% | +0.00% | +0.05% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Sterling -10% (ERI) | **transmitting** | -0.05% | -0.09% | +0.00% | +5.66% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
-| Oil price +$10/bbl | **transmitting** | -0.02% | -0.04% | +0.00% | +1.74% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Bank Rate +1pp | **transmitting** | -0.07% | -0.11% | +0.00% | -0.03% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Sterling -10% (ERI) | **transmitting** | -0.05% | -0.08% | +0.00% | +5.55% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
+| Oil price +$10/bbl | **transmitting** | -0.02% | -0.03% | +0.00% | +1.08% | +0.00% | +0.00% | +0.00% | +0.00pp | +0.00% | +0.00% | +0.00pp |
 
 ## Reading this
 

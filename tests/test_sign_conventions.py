@@ -362,7 +362,8 @@ def test_block_is_inert_under_every_lever(respond, col, block):
 
 
 def test_public_investment_does_not_transmit(respond):
-    """DEFECT (pinned). CGIPS produces drift, not a public investment effect.
+    """DEFECT (pinned). CGIPS produces an accounting mirror, not a public
+    investment effect.
 
     A rise in government investment should raise total investment -- the OBR's
     published impact multiplier for public investment is 1.0, the highest of
@@ -372,19 +373,23 @@ def test_public_investment_does_not_transmit(respond):
     live equation in the published listing (both IF identities are commented
     out). The CGIPS chain never reaches the GDP identity at all.
 
-    Second, business investment (IBUSX) does move, but not as a channel: the
-    response is wrong-signed AND grossly non-proportional. Measured means over
-    eight quarters:
+    Second, business investment (IBUSX) does move, but not as a channel. With
+    IF exogenous, IBUS is the OBR's residual identity
+    IBUS = IF - GGI - PCIH - PCLEB - IH - IPRL, so a rise in real government
+    investment GGI = 100*GGIPS/GGIDEF is booked one-for-one as a FALL in
+    business investment. Measured means over eight quarters (2026-10, reform
+    baseline anchored to the EFO, GGIDEF ~98):
 
-        shock  +1500   ->  IBUSX  -6803  (-454% of shock)
-        shock  +3000   ->  IBUSX  -8751  (-292% of shock)
-        shock  +6000   ->  IBUSX -11602  (-193% of shock)
+        shock  +1500   ->  IBUSX  -1468  (-98% of shock)
+        shock  +6000   ->  IBUSX  -5941  (-99% of shock)
 
-    Quadrupling the shock changes the response by well under a factor of two.
-    A transmission channel scales with its input; a residue does not. So the
-    percentage is not a multiplier and must never be quoted as one -- which is
-    why this test asserts the NON-proportionality rather than any single
-    number.
+    Until 2026-10 the reform baseline ran free, GGIDEF sat near 850 instead of
+    ~100 and oscillated, and this test pinned the resulting non-proportional
+    residue (-6803 / -11602). Anchoring removed the noise and exposed the
+    mechanism: a wrong-signed crowding-out by definition, not by behaviour.
+    (A +3000 shock lands on a stalled Gauss-Seidel quarter and reads -835:
+    solver residue on top of the mirror, see
+    test_government_investment_channel_is_dead_and_says_so.)
 
     Capital spending must not be scored on this model.
     """
@@ -396,44 +401,46 @@ def test_public_investment_does_not_transmit(respond):
         "IF now responds to CGIPS -- an IF equation may have been added"
     )
 
-    # The drift leg: wrong-signed, and not proportional to the shock.
-    assert r_small["IBUSX"]["mean"] < 0 and r_large["IBUSX"]["mean"] < 0, (
-        "the wrong-signed business-investment residue is gone"
-    )
-    scale = r_large["IBUSX"]["mean"] / r_small["IBUSX"]["mean"]
-    shock_scale = large / small  # 4x
-    assert scale < 0.5 * shock_scale, (
-        f"CGIPS now scales with the shock (response x{scale:.2f} for a "
-        f"x{shock_scale:.0f} shock) -- it may have become a real channel; "
-        "re-measure and update this test"
-    )
+    # The mirror leg: business investment falls by ~the shock, i.e. it is the
+    # residual identity absorbing real GGI, not an investment response.
+    for shock, r in ((small, r_small), (large, r_large)):
+        ratio = r["IBUSX"]["mean"] / shock
+        assert -1.1 < ratio < -0.85, (
+            f"IBUSX/CGIPS = {ratio:.2f} at a {shock:+.0f} shock -- no longer "
+            "the one-for-one residual-identity mirror; re-measure and update"
+        )
 
 
-def test_bank_rate_response_is_unusable(respond):
-    """DEFECT (pinned). The monetary channel does not behave like one.
+def test_bank_rate_response_is_consumption_only(respond):
+    """DEFECT (pinned, narrowed 2026-10). Bank Rate moves GDP the right way,
+    but only through consumption.
 
-    Two independent defects, either one disqualifying:
+    Until 2026-10 this test pinned "a rate RISE raises GDP" (+387m) and
+    "business investment falls under BOTH directions". Both were artefacts of
+    scoring around the free-running baseline. Around the anchored baseline,
+    over eight quarters from 2026Q1:
 
-    * **A rate RISE raises GDP.** +100bp moves GDP by about +387m. Tighter
-      money expanding output is the wrong sign outright.
-    * **Business investment falls under BOTH directions** (-7.9bn on a rise,
-      -17.0bn on a cut), so its sign carries no information either.
+        +100bp  ->  GDP  -358m,  IBUSX  -360m
+        -100bp  ->  GDP  +222m,  IBUSX +1464m
 
-    The asymmetry that this test used to pin has narrowed sharply -- the cut
-    was ~90x the rise before the ONS snapshot was completed, and is ~6x now --
-    so the ratio is no longer the thing worth asserting. What survives is that
-    there is still no monetary policy experiment this model can answer. Pinned
-    to stop R being offered as a lever on the strength of a GDP number.
+    The GDP sign is now right in both directions, and all of it is
+    consumption (the d(R) and real-rate terms in dlog(CONS)): IF has no
+    equation, so GDP == CONS. The IBUSX numbers are not an investment
+    channel: under the demand closure IBUS is the residual identity
+    IBUS = IF - GGI - ..., moved by the government-investment deflator. So
+    this is a consumption-only rate channel, asymmetric and with no
+    investment or exchange-rate leg -- not a monetary-policy model.
     """
     up = respond("R", 1.0)
     down = respond("R", -1.0)
-    assert up["GDPM"]["mean"] > 0, (
-        "a rate rise no longer raises GDP -- the sign defect may be fixed; "
-        "re-derive this test rather than loosening it"
+    assert up["GDPM"]["mean"] < 0 < down["GDPM"]["mean"], (
+        "Bank Rate GDP response has the wrong sign again"
     )
-    assert up["IBUSX"]["mean"] < 0 and down["IBUSX"]["mean"] < 0, (
-        "business investment no longer falls under both rate directions"
-    )
+    for r in (up, down):
+        assert r["IF"]["mean"] == 0.0, "IF responds to Bank Rate -- re-derive"
+        assert r["GDPM"]["mean"] == pytest.approx(r["CONS"]["mean"], abs=1e-6), (
+            "GDP now moves through something other than consumption -- re-derive"
+        )
 
 
 def test_exchange_rate_has_no_trade_channel(respond):
