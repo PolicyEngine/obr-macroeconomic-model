@@ -18,9 +18,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from obr_macro.data import load_obr_data, DATA_DIR, ensure_model_code
+from obr_macro.data import load_obr_data, ensure_model_code
 from obr_macro.transpiler import parse_model_file
 from obr_macro.ons_fetch import fetch_series
+
 
 # Transient fetch cache. It must NOT live under DATA_DIR: in a checkout without
 # a repo-root data/ directory, DATA_DIR resolves to the package's own _data/,
