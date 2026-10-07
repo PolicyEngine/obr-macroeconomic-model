@@ -507,8 +507,9 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
       swap, and CGG's dlog equation is driven by exogenous EFO nominal
       spending and pinned by its own residual. So the GDP fit is the
       consumption fit scaled by the consumption share, and it is measurably
-      exactly that: GDPM 0.1567%, CONS 0.2573%, ratio 0.6088 against a
-      consumption share of GDP of 0.6092.
+      exactly that: GDPM 0.300%, CONS 0.493%, ratio 0.609 against a
+      consumption share of GDP of 0.609 (March-2026 EFO, 355-series ONS
+      snapshot).
     - HHDI is not scored here at all. baseline.build(anchored=True) makes HHDI
       and RHHDI EXOGENOUS (_PUBLISHED_LEVEL_ANCHORS), so their "MAPE 0.00%" was
       the tautology "a series held at its EFO value equals its EFO value" — an
@@ -522,12 +523,22 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
     t1 = anchored.period_idx("2027Q4")
 
     mapes = {c: _mape(anchored.data, efo, c, t0, t1) for c in ("GDPM", "CONS")}
+    # Pinned near the measured fit (GDPM 0.300%, CONS 0.493%) with a 25%
+    # tolerance: the previous blanket "< 1%" gate let the fit roughly double
+    # (0.16% -> 0.30%) without anyone noticing. A change outside the band in
+    # either direction means the anchoring changed and the README and
+    # scorecard figures must be refreshed with it.
+    reference = {"GDPM": 0.300, "CONS": 0.493}
     for code, mape in mapes.items():
-        assert mape < 1.0, f"anchored {code} MAPE {mape:.2f}% — not reproducing EFO"
+        ref = reference[code]
+        assert 0.75 * ref < mape < 1.25 * ref, (
+            f"anchored {code} MAPE {mape:.3f}% vs reference {ref:.3f}% — the "
+            "anchored fit moved; re-measure and update the published figures"
+        )
 
     # The GDP fit is not independent evidence: it is the consumption fit
     # diluted by the exogenous expenditure components. Pin that so the headline
-    # "GDP reproduces the EFO to 0.16%" cannot be read as a second success.
+    # "GDP reproduces the EFO to 0.30%" cannot be read as a second success.
     for code in ("IF", "X", "M", "DINV", "VAL", "SDE"):
         assert code not in anchored.eq_for_var, (
             f"{code} became endogenous — the anchored GDP fit is no longer just "
@@ -560,7 +571,7 @@ def test_anchored_household_income_is_held_not_reproduced(anchored):
     This matters for the honesty of the anchored headline. It is legitimate
     anchoring — the EFO publishes HHDI, so this is anchoring to ground truth —
     but it means the anchored baseline demonstrates nothing whatsoever about
-    the model's household-income block, whose raw error is 6.27% MAPE.
+    the model's household-income block, whose raw error is 6.18% MAPE.
     """
     from obr_macro.baseline import _PUBLISHED_LEVEL_ANCHORS
     from obr_macro.data import load_obr_data

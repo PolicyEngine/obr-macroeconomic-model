@@ -11,7 +11,7 @@ add-factors — a genuine forecast, not a reproduction of the input.
 The dead/exploding financial blocks turned out to be **findable**: of the 261
 endogenous variables the model referenced but the EFO did not publish, **199 had
 ONS codes**. Pulling their observed series (`ons_pull.py`, now widened to all
-findable variables → **348-series snapshot**) gave the circular fiscal/financial
+findable variables → **355-series snapshot**) gave the circular fiscal/financial
 sub-blocks real balancing data. They stopped diverging.
 
 ## Result — forecast fit, base 2024Q1–2025Q4, projected 2026Q1–2027Q4, vs the OBR
@@ -82,17 +82,20 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
    published EFO values for the whole projection. `RHHDI` is the income driver
    of the one live behavioural aggregate, `dlog(CONS)`; and under the demand
    closure every other term in `GDPM = CGG + CONS + IF + DINV + VAL + X − M +
-   SDE` is exogenous and likewise held at EFO. So "Real GDP forecasts to 0.37%"
+   SDE` is exogenous and likewise held at EFO. So "Real GDP forecasts to 0.27%"
    decomposes as: the model is given household income, uses it to project
    consumption, and adds seven EFO series. It is a statement about the
    consumption equation's short-run dynamics, not about the model forecasting
    GDP. The un-anchored version of the same question is the raw calibration
-   scorecard (GDP 4.32%, consumption 7.22%, household income 6.18%) — that is
-   the number to quote for forecast skill.
+   scorecard (GDP 4.32%, consumption 7.22%, household income 6.18%). That is
+   not a forecast-skill number either, and not an OBR error: in the OBR's
+   model GDP is an input, so it cannot miss it. It measures this emulator —
+   the closure swap that makes GDP endogenous plus the OBR inputs that are not
+   published and are filled from the ONS or seeded here.
 
-5. **ONS vintage mismatch.** The ~348 unpublished-input series pulled from the
-   ONS API are current-vintage data, merged into an autumn-2025 EFO baseline
-   (October-2025 model code, November-2025 EFO tables). Where the ONS has since
+5. **ONS vintage mismatch.** The 355 unpublished-input series pulled from the
+   ONS API are current-vintage data, merged into the March-2026 EFO baseline
+   (October-2025 model code). Where the ONS has since
    revised history, the national-accounts identities no longer close exactly
    against the EFO aggregates, and that identity slack is silently absorbed
    into the add-factors — it looks like model error/judgement but is partly a
@@ -230,8 +233,8 @@ With a NaN input the RHS evaluates to NaN, `_lhs_new_value` returns non-finite,
 and `solve_period` skips the update — so `HHTFA` and `NDIVHH` remain frozen for a
 second, independent reason. Every validation number is therefore **bitwise
 unchanged** by this fix: anchored GDPM MAPE 0.1756% / CONS 0.2888% on the
-November-2025 vintage current when that check was run (0.1567% / 0.2573% on the
-March-2026 vintage), the full
+November-2025 vintage current when that check was run (0.30% / 0.49% on the
+current March-2026 vintage, after the recovered-series revision), the full
 calibration scorecard, and the standard `CGG +£1.25bn × 4q` shock path.
 
 The `FYCPR → NDIVHH → PIRHH → HHDI` (corporate profits → household dividend

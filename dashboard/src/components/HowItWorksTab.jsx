@@ -396,14 +396,16 @@ export default function HowItWorksTab({ model, explorer }) {
           across the horizon, every given input is held flat at its last value,
           and the seeded constants (tax &amp; depreciation parameters)
           don&rsquo;t move. The data comes from the OBR{" "}
-          <strong>EFO Nov 2025</strong> tables, the <strong>372 equations</strong>{" "}
-          (15 Oct 2025 code) and a <strong>~350-series ONS</strong> snapshot.
+          <strong>EFO March 2026</strong> tables, the <strong>372 equations</strong>{" "}
+          (15 Oct 2025 code) and a <strong>355-series ONS</strong> snapshot.
         </p>
 
         <div className="note-card mt-5 rounded-r-xl p-4 text-sm leading-6">
-          <strong>A few variables can switch sides.</strong> The GDP identity is
-          switched off in the OBR file, so we swap <code>GDPM</code> in (and{" "}
-          <code>DINV</code> out) to make the model solve for GDP. The
+          <strong>A few variables can switch sides.</strong> In the OBR file GDP
+          is an input and inventories (<code>DINV</code>) are the balancing item
+          of the expenditure identity. We delete that <code>DINV</code> equation,
+          hold <code>DINV</code> at its EFO path and add a <code>GDPM</code>{" "}
+          identity, so the model solves for GDP. The
           corporation-tax channel likewise turns business investment from a fixed
           input into a solved equation. And not everything is recomputed &mdash; a
           few unstable fiscal/financial blocks are left at their given values,

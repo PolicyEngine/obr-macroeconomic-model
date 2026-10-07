@@ -4,7 +4,13 @@ Python implementation of the OBR's published macroeconomic model, enabling polic
 
 ## Features
 
-- Runs the OBR's 372 published EViews equations in Python
+- Parses all 372 equations in the OBR's published EViews model code and solves them in Python.
+  Not all of them run: at solve time 79 are skipped (in the final scored quarter, 2027Q4)
+  because at least one input has no data, so the equation evaluates to NaN; several headline variables
+  (investment, trade, prices, earnings) have no live equation and pass through at the OBR's
+  value. The business-investment equation `dlog(IBUSX)` is reconstructed from a line the OBR
+  publishes commented out, and under the investment closure `MSGVA`, `PIF` and `PIRHH` are
+  frozen to keep it stable (see the table below).
 - Gauss-Seidel solver for simultaneous equation systems
 - Policy shock analysis (fiscal multipliers, tax changes)
 - Visualisation of reform impacts
@@ -17,11 +23,12 @@ miss. In one place:
 
 | | |
 |---|---|
-| **Anchored fit to the March 2026 EFO** | GDP 0.16% MAPE, consumption 0.26% (2025Q1–2027Q4). **By construction** — the add-factors are computed as `EFO − model` and added back. It proves the anchoring machinery works, nothing about forecast skill. And only consumption is re-derived: every other term in the GDP identity is held at its EFO value, so the GDP number is the consumption number diluted by the consumption share. |
-| **Free-running (add-factors off)** | GDP 4.32%, consumption 7.22%, business investment 15.28%, household income 6.18%, company profits 82.77%, current account 3.02% of GDP. 11 of 21 headline variables are computed at all; the other 10 are held at the OBR's value. See `docs/calibration_scorecard.md`. |
+| **Anchored fit to the March 2026 EFO** | GDP 0.30% MAPE, consumption 0.49% (2025Q1–2027Q4). **By construction** — the add-factors are computed as `EFO − model` and added back. It proves the anchoring machinery works, nothing about forecast skill. And only consumption is re-derived: every other term in the GDP identity is held at its EFO value, so the GDP number is the consumption number diluted by the consumption share. |
+| **Reform baseline** | `run_reform` scores every reform around this anchored baseline: the add-factors are frozen into the baseline *and* the shocked run, so they set the level and cancel in the delta. Its own baseline solve tracks the EFO to GDP 0.31%, consumption 0.51%, household income 0.03% (household income and, under the investment closure, total investment are held on the EFO by a level add-factor rather than by deleting their identities, so reforms can still move them). Before 2026-10 the reform baseline silently ran free — 4.35% off on GDP. |
+| **Free-running (add-factors off)** | GDP 4.32%, consumption 7.22%, business investment 15.28%, household income 6.18%, company profits 82.77%, current account 3.02% of GDP. 11 of 21 headline variables are computed at all; the other 10 are held at the OBR's value. This gap is a property of **this emulator**, not an OBR forecast error: in the OBR's own model GDP is an input (the expenditure identity solves for inventories), so their model cannot miss it. What the gap measures is this repo's closure swap (GDP made endogenous) plus the OBR inputs and constants that are not published and had to be pulled from the ONS or seeded. See `docs/calibration_scorecard.md`. |
 | **Government-consumption multiplier** | 1.00 on impact and **flat** for 12 quarters, because the shock lands directly in the expenditure identity and no second-round channel is live. The OBR's published impact multiplier for **current** spending is **0.6**, decaying to zero. This model overstates it by ~67% on impact and by more thereafter. It is accounting, not a multiplier. The model cannot produce the OBR's multiplier; `run_reform(..., published_conventions=True)` (off by default) imposes the published 0.6-fading convention as a labelled add-factor path — judgement re-applied, not a model result. |
 | **Government-investment multiplier** | **No channel at all.** `IF` has no live equation in the published model, so `CGIPS → GGIPS → GGI → IF` never reaches GDP: `delta_IF` is exactly zero and the GDP residue is wrong-signed deflator noise. `run_reform` warns. The OBR's capital multiplier is 1.0. The model cannot produce it; `run_reform(..., published_conventions=True)` (off by default) imposes the published 1.0-fading convention as a labelled add-factor path — `delta_IF` stays exactly zero, because only the GDP total is imposed. |
-| **Household tax multiplier** | The one channel with genuine behaviour (`dlog(CONS)` responds to real income). Year-1 average 0.17, rising to ~0.40 by quarter 12 on the March-2026 baseline (0.16 → 0.37 on the November-2025 vintage), against the OBR's 0.3 impact multiplier decaying. Right order of magnitude, wrong profile. |
+| **Household tax multiplier** | The one channel with genuine behaviour (`dlog(CONS)` responds to real income). For a 1p basic-rate rise (£1,616m/quarter from 2025Q1, sustained) the GDP multiplier averages 0.15 in year 1, rising to 0.35 by quarter 12 (0.16 → 0.37 when the reform baseline ran free, before 2026-10), against the OBR's 0.3 impact multiplier decaying. Right order of magnitude, wrong profile. |
 | **Corporation tax** | Requires `investment_closure=True`, which is a stop-gap. It freezes `MSGVA`, `PIF` and `PIRHH` to stop an explosive accelerator — unguarded, a **zero-shock** baseline runs business investment from £94bn to £7.3tn in 11 quarters. The base-vs-shock *deviation* now converges to a steady state: the anchor add-factors are held in **log space** (the EViews convention for a `dlog` equation), so the published equation's own error-correction term pulls the deviation to `dlog(KSTAR) = −0.4·dlog(TAF)`. (Until 2026-08 the anchors were *level* add-factors, which amplified the deviation by 1.21–1.27× per quarter — `delta_IF` for +5pp hit £43.4bn by q25 with no steady state.) Measured now for a sustained +5pp rise: £0.24bn at q8, £0.38bn at q12, £0.68bn at q25, approaching a ~£0.95bn/q plateau; the error-correction root is slow (~0.958/quarter), so a 12-quarter figure is **~40% of the plateau** — `df.attrs["investment_closure_plateau_fraction"]` says where a run sits. The response size is set by `DB`, `DP`, `DV` (present values of capital allowances), now **estimated from statute and the OBR's published gilt assumption** rather than invented — see below. The OBR's corporation-tax multiplier is 0.2. |
 | **Uncertainty** | None. Every result is a point estimate. |
 
@@ -100,8 +107,11 @@ uv sync
 
 1. **Transpiler** (`transpiler.py`): Converts OBR EViews syntax to Python
 2. **Solver** (`full_solver.py`): Gauss-Seidel iteration over ~370 equations
-3. **Closure swap**: For shocks, DINV (inventories) becomes residual, GDP becomes endogenous
-4. **Deviation mode**: Compare shocked vs baseline to isolate policy effects
+3. **Closure swap**: In the OBR file GDP is an input and inventories (`DINV`) are the balancing item of the
+   expenditure identity (`DINV = GDPM + M − SDE − CGG − CONS − VAL − IF − X`). To let a demand shock move GDP,
+   `swap_closure` deletes that `DINV` equation, holds `DINV` exogenous at its EFO path, and adds the identity
+   `GDPM = CGG + CONS + IF + DINV + VAL + X − M + SDE`, so GDP becomes endogenous
+4. **Deviation mode**: Solve a baseline and a shocked run from the same anchored template (add-factors applied in both) and difference them to isolate policy effects
 
 ### Constants this repo supplies (estimated where possible)
 

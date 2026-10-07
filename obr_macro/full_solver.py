@@ -1151,7 +1151,8 @@ class FullOBRSolver:
 
         self.make_exogenous(var)
 
-        # Mark that we're in shock mode (disable residuals)
+        # Mark shock mode. This disables the legacy anchoring residuals unless
+        # they were frozen into the solver (freeze_anchoring, as run_reform does).
         self._shock_active = True
 
         for p, s in enumerate(values):
