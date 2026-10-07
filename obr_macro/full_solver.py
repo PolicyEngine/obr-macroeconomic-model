@@ -1004,27 +1004,29 @@ class FullOBRSolver:
         and every shocked clone.
 
         For that to be a re-levelling and not a change in the reform effect,
-        each residual is re-expressed in the units of its equation's own LHS
-        transform — the EViews add-factor convention — rather than as an
+        each residual is re-expressed in the units of its equation's own
+        transform (the EViews add-factor convention) rather than as an
         additive term on the LEVEL:
 
-          dlog(X) = rhs + a    a = log(actual / predicted)
-          log(X)  = rhs + a    a = log(actual / predicted)
-          X/X(-n) = rhs + a    a = (actual - predicted) / X(-n)
-          d(X)/X(-n) = rhs + a a = (actual - predicted) / X(-n)
-          d(X), X = rhs + a    a = actual - predicted
+          dlog(X), log(X), X/X(-n)   multiplicative:  X *= exp(a),
+                                     a = log(actual / predicted)
+          d(X)/X(-n) = rhs + a       a = (actual - predicted) / X(-n)
+          d(X) = rhs + a, X = rhs + a  a = actual - predicted
 
         At the anchoring point every form reproduces the published value
-        exactly, as the level residual did. They differ in the deviation
-        dynamics: a level residual r on a multiplicative equation scales the
-        propagation of a shocked run's relative deviation in X(-n) by
-        1 - r/X every quarter (the compounding measured on the investment
-        closure, see reform_analysis._stabilise_investment_closure), whereas
-        in equation units the coefficient on the lagged deviation stays
-        exactly what the published equation says. A dlog residual whose
-        actual or predicted level is non-positive cannot be expressed in log
-        units and keeps the level form; the count is kept in
-        ``anchor_level_fallbacks``.
+        exactly, as the level residual did. They differ in how a shocked
+        run's deviation propagates. For the multiplicative forms the log
+        deviation then obeys exactly the published equation's recursion
+        (e.g. WYQC/WYQC(-1) = FYCPR/FYCPR(-1) makes WYQC's log deviation
+        track FYCPR's one-for-one), whereas a level residual r scales the
+        lagged deviation by 1 - r/X every quarter (the compounding measured
+        on the investment closure, see
+        reform_analysis._stabilise_investment_closure) and an additive term
+        on a ratio stops the deviations telescoping when it varies by
+        quarter. A multiplicative residual whose actual or predicted level is
+        non-positive cannot be expressed in logs; it falls back to the
+        additive equation-units form (ratio) or the level form (dlog/log),
+        counted in ``anchor_level_fallbacks``.
         """
         terms = {}
         fallbacks = 0
@@ -1038,23 +1040,24 @@ class FullOBRSolver:
             kind, lag_n = kinds[var]
             actual = self.baseline.iloc[t][var] if var in self.baseline else np.nan
             pred = actual - r
-            if kind in ("dlog", "log"):
-                if actual > 0 and pred > 0:
-                    terms[(var, t)] = ("eq", float(np.log(actual / pred)))
-                else:
-                    terms[(var, t)] = ("level", float(r))
-                    fallbacks += 1
-            elif kind in ("ratio", "growth"):
+            if kind in ("dlog", "log", "ratio") and actual > 0 and pred > 0:
+                terms[(var, t)] = ("mul", float(np.log(actual / pred)))
+                continue
+            if kind in ("ratio", "growth"):
                 lag_val = (
                     self.baseline.iloc[t - lag_n][var] if t - lag_n >= 0 else np.nan
                 )
                 if np.isfinite(lag_val) and abs(lag_val) > 0:
-                    terms[(var, t)] = ("eq", float(r / lag_val))
-                else:
-                    terms[(var, t)] = ("level", float(r))
-                    fallbacks += 1
-            else:  # 'd' and 'level': the level residual IS the equation residual
-                terms[(var, t)] = ("eq", float(r))
+                    terms[(var, t)] = ("rhs", float(r / lag_val))
+                    if kind == "ratio":
+                        fallbacks += 1
+                    continue
+            if kind in ("d", "level"):
+                # The level residual IS the equation residual here.
+                terms[(var, t)] = ("rhs", float(r))
+                continue
+            terms[(var, t)] = ("level", float(r))
+            fallbacks += 1
         self.anchor_terms = terms
         self.anchor_level_fallbacks = fallbacks
         self.anchor_residuals = True
@@ -1229,11 +1232,14 @@ class FullOBRSolver:
                     # (freeze_anchoring): it enters the RHS, so the LHS form
                     # carries it exactly as the published equation would.
                     level_resid = 0.0
+                    mul_resid = None
                     if terms is not None:
                         term = terms.get((var, t))
                         if term is not None:
-                            if term[0] == "eq":
+                            if term[0] == "rhs":
                                 rhs_val = rhs_val + term[1]
+                            elif term[0] == "mul":
+                                mul_resid = term[1]
                             else:
                                 level_resid = term[1]
 
@@ -1248,6 +1254,8 @@ class FullOBRSolver:
                         if anchoring and terms is None:
                             new_val += self.residuals.get((var, t), 0)
                         new_val += level_resid
+                        if mul_resid is not None:
+                            new_val *= np.exp(mul_resid)
 
                         # Structural add-factors: unlike legacy anchoring
                         # residuals (above, disabled in shock mode unless
