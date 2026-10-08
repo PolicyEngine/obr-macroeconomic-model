@@ -10,9 +10,11 @@ shocks perturb.
 Two modes:
   - anchored=True  : residuals on -> the published variables reproduce the OBR
                      baseline; this is the usable forecast foundation.
-  - anchored=False : residuals off -> the raw model generates its own path; the
-                     gap vs the OBR baseline is the honest measure of how much of
-                     the forecast is the model versus the OBR's judgement.
+  - anchored=False : residuals off -> the raw model generates its own path. The
+                     gap vs the OBR baseline measures THIS emulator (its closure
+                     swap making GDP endogenous, plus the unpublished OBR inputs
+                     filled from the ONS or seeded), not an OBR forecast error:
+                     in the OBR's own model GDP is an exogenous input.
 
     uv run python -m obr_macro.baseline
 """

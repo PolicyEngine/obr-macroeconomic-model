@@ -2,8 +2,14 @@
 
 How well does the *raw* model (residuals/add-factors OFF) reproduce the OBR's
 published baseline? The anchored model matches by construction (the residuals
-absorb every error), so the raw-vs-OBR gap is the true measure of calibration
-quality across the model's blocks.
+absorb every error), so it says nothing; the raw-vs-OBR gap is what is left.
+
+That gap is a property of THIS emulator, not an OBR forecast error. In the
+OBR's own model GDPM is an exogenous input (the expenditure identity solves
+for DINV), so their model cannot "miss" GDP. What the gap measures is this
+repo's closure swap (GDPM made endogenous, DINV held at its EFO path) plus the
+inputs and calibration constants the OBR does not publish, which here come
+from current-vintage ONS data or seeds.
 
 Scores, over the horizon vs the EFO baseline:
   - level variables : mean absolute % error (MAPE)

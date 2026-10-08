@@ -32,7 +32,7 @@ becomes the user's, exactly as the OBR intends.
 
 ## What we have today (Stage 0)
 
-- The 372 equations, parsed and transpiled to Python.
+- The 372 equations, parsed and transpiled to Python (all parse; 79 are skipped at solve time because at least one input has no data, so the equation evaluates to NaN).
 - `FullOBRSolver`: Gauss–Seidel solve of the full system, with hand-wired
   closure swaps and single-variable shocks (`apply_shock`, `swap_closure`).
 - `reform_analysis.run_reform`: shock-and-compare against history/EFO data.

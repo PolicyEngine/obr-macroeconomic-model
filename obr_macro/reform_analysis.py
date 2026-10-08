@@ -267,6 +267,13 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     trk.make_exogenous("IBUSX")
     for t in range(t0, t1 + 1):
         trk._set("IBUSX", t, actual_ibusx.iloc[t])
+    if getattr(baseline, "anchor_residuals", False):
+        # Anchored template: track around the anchored baseline, so the frozen
+        # MSGVA/PIF/PIRHH references and the IBUSX add-factors below are taken
+        # from the path reforms are scored against. HHDI is held at its
+        # published value here (as baseline.build does); the template's own
+        # HHDI anchor is fitted afterwards (_anchor_published_levels).
+        trk.make_exogenous("HHDI")
     trk._shock_active = True
     trk.solve(start, end)
     msgva_ref = trk.data["MSGVA"].copy()
@@ -331,6 +338,62 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     baseline.log_add_factors.update(log_add_factors)
 
 
+# Published EFO aggregates computed by LEVEL identities in the reform template.
+# The anchoring residuals reach only behavioural equations, so these get a held
+# level add-factor instead (_anchor_published_levels). HHDI is live in every
+# reform template; IF only under the investment closure (IF_EQ).
+_ANCHORED_LEVEL_IDENTITIES = ("HHDI", "IF")
+
+
+def _anchor_published_levels(template, start: str, end: str) -> None:
+    """Hold the reform baseline's level-identity aggregates on the EFO path.
+
+    The anchoring residuals only reach behavioural (dlog/d/ratio) equations.
+    HHDI (and IF, under the investment closure) are level identities with no
+    residual. The standalone anchored baseline (baseline.build) pins HHDI by
+    deleting its equation; a reform template cannot — the household-costing
+    instrument (HHDI_ADDFACTOR) works through the live identity, and the
+    investment closure needs IF live to carry the investment response to
+    GDP — so the same anchor is imposed as a held LEVEL add-factor, the
+    device already used for OSHH:
+
+        af_t = X_EFO_t - RHS_X_t(anchored solution with X held at EFO)
+
+    With af_t added, X = EFO is a fixed point of the template's own solve,
+    i.e. the template reproduces the anchored path with X endogenous. Both
+    identities are plain sums of flows, so an additive add-factor drops out
+    of every base-vs-shock delta exactly: it re-levels and nothing else. The
+    household-costing instrument adds to the same HHDI key (``+=``), so the
+    two compose.
+
+    Mutates ``template.add_factors``; the fitting solve runs on a clone, so
+    the cached template stays unsolved.
+    """
+    targets = [v for v in _ANCHORED_LEVEL_IDENTITIES if v in template.eq_for_var]
+    if not targets:
+        return
+    t0, t1 = template.period_idx(start), template.period_idx(end)
+    fit = template.clone()
+    for var in targets:
+        fit.make_exogenous(var)
+    fit.solve(start, end)
+    for var in targets:
+        eq = template.eq_for_var[var]
+        for t in range(t0, t1 + 1):
+            published = template.baseline.iloc[t][var]
+            rhs = eval(fit._compiled(eq.python_expr), fit._build_context(t))
+            if not (np.isfinite(published) and np.isfinite(rhs)):
+                raise RuntimeError(
+                    f"cannot anchor {var} at {template.index[t]}: published "
+                    f"{published}, identity {rhs}. Refusing to score reforms "
+                    "around a partly anchored baseline."
+                )
+            key = (var, t)
+            template.add_factors[key] = template.add_factors.get(key, 0.0) + (
+                published - rhs
+            )
+
+
 # Cache of stabilised, unsolved reform templates keyed by structure
 # (var, start, end, investment_closure) — NOT the shock size. Building the
 # solver (~15s) and, for the investment closure, running the tracking pass
@@ -369,11 +432,21 @@ def _build_reform_template(var, start, end, investment_closure):
         baseline.swap_closure("IF", IF_EQ)
     if var != HOUSEHOLD_COSTING_VAR:
         baseline.make_exogenous(var)
+    # Score around the ANCHORED baseline: the anchoring residuals apply in the
+    # baseline and every shocked clone alike (freeze_anchoring), so they
+    # recentre the shared level onto the EFO and cancel in the delta. Before
+    # this, _shock_active=True below also switched the residuals off, and
+    # every reform was scored around the free-running model (GDP ~4.3% and
+    # consumption ~7.3% off the EFO path).
+    baseline.freeze_anchoring()
     if investment_closure:
         # Stabilise the reconstructed dlog(IBUSX) closure (breaks the spurious
         # MSGVA accelerator and anchors the level to the OBR path) before the
         # baseline/shock split, so both runs share the identical stabilisation.
         _stabilise_investment_closure(baseline, start, end)
+    _anchor_published_levels(baseline, start, end)
+    # Base-vs-shock pair mode. It no longer disables the residuals (they are
+    # frozen above); it marks that the template's data must not be re-fitted.
     baseline._shock_active = True
 
     _REFORM_TEMPLATE_CACHE[key] = baseline
