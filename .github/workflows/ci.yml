@@ -21,6 +21,7 @@ jobs:
   lint:
     name: Lint & format (Python)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -32,6 +33,7 @@ jobs:
   tests:
     name: Fast tests (hermetic)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -52,6 +54,7 @@ jobs:
     # checkout is what makes the check real: from inside it, imports would
     # resolve against the source tree and pass regardless.
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -107,6 +110,9 @@ jobs:
     # so no gated OBR download is needed.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    # Observed 2026-10-06..08: 32 to 81 minutes. Fail a hung solve instead of
+    # holding a shared org runner for the 6-hour default.
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -129,6 +135,7 @@ jobs:
     # and hard-fails if any computed MAPE worsens >20% vs pinned references.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
