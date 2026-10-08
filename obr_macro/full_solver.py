@@ -251,6 +251,13 @@ class FullOBRSolver:
         # for the measurement that motivated it).
         self.log_add_factors = {}
 
+        # Anchoring residuals in every solve, shocked runs included (see
+        # freeze_anchoring). Off by default: until a caller freezes them the
+        # residuals follow the legacy rule in solve_period (applied only while
+        # _shock_active is False).
+        self.anchor_residuals = False
+        self.anchor_terms = None
+
         # Anchor the OSHH level to the published ONS series (see method doc).
         self._anchor_oshh_to_ons()
 
@@ -978,8 +985,88 @@ class FullOBRSolver:
         new.data = self.data.copy()  # own data
         new.baseline = self.baseline
         new._shock_active = getattr(self, "_shock_active", False)
+        # Frozen anchoring (see freeze_anchoring): shared, never mutated.
+        new.anchor_residuals = getattr(self, "anchor_residuals", False)
+        new.anchor_terms = getattr(self, "anchor_terms", None)
         new._build_equation_index()
         return new
+
+    def freeze_anchoring(self) -> None:
+        """Apply the anchoring residuals in EVERY solve, shocked runs included.
+
+        ``_shock_active`` used to carry two meanings at once: "this run is part
+        of a base-vs-shock pair" and "do not apply the anchoring residuals".
+        So any reform pair ran both solves free — the reform baseline was the
+        raw model, not the anchored baseline every consumer was told it was
+        scored against. Freezing separates the two: the residuals become a
+        fixed property of the solver (shared by clone(), applied whatever
+        ``_shock_active`` says), so they appear identically in the baseline
+        and every shocked clone.
+
+        For that to be a re-levelling and not a change in the reform effect,
+        each residual is re-expressed in the units of its equation's own
+        transform (the EViews add-factor convention) rather than as an
+        additive term on the LEVEL:
+
+          dlog(X), log(X), X/X(-n)   multiplicative:  X *= exp(a),
+                                     a = log(actual / predicted)
+          d(X)/X(-n) = rhs + a       a = (actual - predicted) / X(-n)
+          d(X) = rhs + a, X = rhs + a  a = actual - predicted
+
+        At the anchoring point every form reproduces the published value
+        exactly, as the level residual did. They differ in how a shocked
+        run's deviation propagates. For the multiplicative forms the log
+        deviation then obeys exactly the published equation's recursion
+        (e.g. WYQC/WYQC(-1) = FYCPR/FYCPR(-1) makes WYQC's log deviation
+        track FYCPR's one-for-one), whereas a level residual r scales the
+        lagged deviation by 1 - r/X every quarter (the compounding measured
+        on the investment closure, see
+        reform_analysis._stabilise_investment_closure) and an additive term
+        on a ratio stops the deviations telescoping when it varies by
+        quarter. A multiplicative residual whose actual or predicted level is
+        non-positive cannot be expressed in logs; it falls back to the
+        additive equation-units form (ratio) or the level form (dlog/log),
+        counted in ``anchor_level_fallbacks``.
+        """
+        terms = {}
+        fallbacks = 0
+        kinds = {}
+        for eq in self.equations:
+            var, kind, lag_n = self._parse_lhs(eq.lhs)
+            kinds[var] = (kind, lag_n)
+        for (var, t), r in self.residuals.items():
+            if var not in kinds or not np.isfinite(r):
+                continue
+            kind, lag_n = kinds[var]
+            actual = self.baseline.iloc[t][var] if var in self.baseline else np.nan
+            pred = actual - r
+            if kind in ("dlog", "log", "ratio") and actual > 0 and pred > 0:
+                terms[(var, t)] = ("mul", float(np.log(actual / pred)))
+                continue
+            if kind in ("ratio", "growth"):
+                lag_val = (
+                    self.baseline.iloc[t - lag_n][var] if t - lag_n >= 0 else np.nan
+                )
+                if np.isfinite(lag_val) and abs(lag_val) > 0:
+                    terms[(var, t)] = ("rhs", float(r / lag_val))
+                    if kind == "ratio":
+                        fallbacks += 1
+                    continue
+            if kind in ("d", "level"):
+                # The level residual IS the equation residual here.
+                terms[(var, t)] = ("rhs", float(r))
+                continue
+            terms[(var, t)] = ("level", float(r))
+            fallbacks += 1
+        self.anchor_terms = terms
+        self.anchor_level_fallbacks = fallbacks
+        self.anchor_residuals = True
+
+    def _anchoring_applies(self) -> bool:
+        """Whether solve_period adds the anchoring residuals."""
+        if getattr(self, "anchor_residuals", False):
+            return True
+        return not getattr(self, "_shock_active", False)
 
     def swap_closure(self, remove_var: str, add_eq: ParsedEquation):
         """Swap model closure by removing one equation and adding another.
@@ -1067,7 +1154,8 @@ class FullOBRSolver:
 
         self.make_exogenous(var)
 
-        # Mark that we're in shock mode (disable residuals)
+        # Mark shock mode. This disables the legacy anchoring residuals unless
+        # they were frozen into the solver (freeze_anchoring, as run_reform does).
         self._shock_active = True
 
         for p, s in enumerate(values):
@@ -1131,6 +1219,8 @@ class FullOBRSolver:
                 "t": t,
             }
 
+            anchoring = self._anchoring_applies()
+            terms = getattr(self, "anchor_terms", None) if anchoring else None
             for eq in self.equations:
                 var, kind, lag_n = self._parse_lhs(eq.lhs)
                 try:
@@ -1138,18 +1228,38 @@ class FullOBRSolver:
 
                     rhs_val = eval(self._compiled(eq.python_expr), ctx)
 
+                    # Frozen anchoring residual in the equation's own units
+                    # (freeze_anchoring): it enters the RHS, so the LHS form
+                    # carries it exactly as the published equation would.
+                    level_resid = 0.0
+                    mul_resid = None
+                    if terms is not None:
+                        term = terms.get((var, t))
+                        if term is not None:
+                            if term[0] == "rhs":
+                                rhs_val = rhs_val + term[1]
+                            elif term[0] == "mul":
+                                mul_resid = term[1]
+                            else:
+                                level_resid = term[1]
+
                     # Compute new value based on equation form
                     new_val = self._lhs_new_value(var, kind, lag_n, rhs_val, t)
 
                     if np.isfinite(new_val):
-                        # Add residual adjustment for behavioral equations
-                        # But only if we're not in shock mode (baseline preserved)
-                        if not hasattr(self, "_shock_active") or not self._shock_active:
-                            residual = self.residuals.get((var, t), 0)
-                            new_val += residual
+                        # Legacy anchoring residual for behavioral equations,
+                        # additive on the level: applied only while
+                        # _shock_active is False (a standalone anchored
+                        # baseline), unless frozen anchoring is in use above.
+                        if anchoring and terms is None:
+                            new_val += self.residuals.get((var, t), 0)
+                        new_val += level_resid
+                        if mul_resid is not None:
+                            new_val *= np.exp(mul_resid)
 
-                        # Structural add-factors: unlike anchoring residuals
-                        # (above, disabled in shock mode), these are applied
+                        # Structural add-factors: unlike legacy anchoring
+                        # residuals (above, disabled in shock mode unless
+                        # frozen with freeze_anchoring), these are applied
                         # ALWAYS — in the baseline and every shocked clone alike.
                         # They therefore cancel in a base-vs-shock delta and
                         # only re-centre the shared level. Additive, so used

@@ -155,7 +155,13 @@ def test_government_consumption_multiplier_gap_vs_obr_is_pinned(spending_reforms
     )
     # 3. Consumption does not respond: the income->consumption chain is inert,
     #    so the "multiplier" contains no behaviour at all.
-    assert df["delta_cons_m"].abs().max() < 0.001 * 1250, (
+    # Bound: 0.2% of the shock. Around the anchored reform baseline (2026-10)
+    # consumption picks up a leak of at most GBP 1.46m by q12 on the
+    # GBP 1,250m shock (0.12%; it was 0.06% free-running), antisymmetric
+    # between +shock and -shock. That is a second-round trickle three orders
+    # of magnitude below a behavioural multiplier, so "pure passthrough"
+    # still holds; a real channel would blow through this immediately.
+    assert df["delta_cons_m"].abs().max() < 0.002 * 1250, (
         "consumption now responds to a spending shock — the multiplier is no "
         "longer pure passthrough and must be re-benchmarked"
     )
@@ -187,9 +193,21 @@ def test_government_investment_channel_is_dead_and_says_so():
         "CGIPS now reaches total investment — the channel is alive; delete "
         "this test and benchmark it against the OBR's 1.0 capital multiplier"
     )
-    # And the GDP residue is negligible next to the shock, so nobody can read
-    # it as a multiplier of either sign.
-    assert df["delta_gdp_bn"].abs().max() < 0.1 * 3.0
+    # The GDP residue is solver residue, not a channel, so pin its mechanism
+    # rather than only its size. All of it is consumption: a one-quarter
+    # FYCPR spike on a stalled Gauss-Seidel quarter is locked in by the ratio
+    # recursion WYQC/WYQC(-1) = FYCPR/FYCPR(-1) (WYQC ends ~5% low while
+    # FYCPR is back within 0.2%), and WYQC -> PIRHH -> HHDI -> CONS carries it
+    # to GDP. The same spike occurs when the reform baseline runs free; it is
+    # larger in GBP since 2026-10 only because WYQC now sits at its EFO-level
+    # ~GBP 20bn. Measured: -GBP 0.32bn at q12 (11% of the shock), up from
+    # -0.14bn. It is non-monotone in the shock (a GBP 1.5bn or 6bn shock
+    # leaves < GBP 0.02bn), which is what residue looks like.
+    np.testing.assert_allclose(
+        df["delta_gdp_m"].to_numpy(), df["delta_cons_m"].to_numpy(), atol=1e-6
+    )
+    assert df["delta_gdp_bn"].iloc[-1] < 0, "residue is no longer wrong-signed"
+    assert df["delta_gdp_bn"].abs().max() < 0.15 * 3.0
 
 
 def test_opposite_shocks_are_antisymmetric(spending_reforms):
@@ -507,8 +525,9 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
       swap, and CGG's dlog equation is driven by exogenous EFO nominal
       spending and pinned by its own residual. So the GDP fit is the
       consumption fit scaled by the consumption share, and it is measurably
-      exactly that: GDPM 0.1567%, CONS 0.2573%, ratio 0.6088 against a
-      consumption share of GDP of 0.6092.
+      exactly that: GDPM 0.300%, CONS 0.493%, ratio 0.609 against a
+      consumption share of GDP of 0.609 (March-2026 EFO, 355-series ONS
+      snapshot).
     - HHDI is not scored here at all. baseline.build(anchored=True) makes HHDI
       and RHHDI EXOGENOUS (_PUBLISHED_LEVEL_ANCHORS), so their "MAPE 0.00%" was
       the tautology "a series held at its EFO value equals its EFO value" — an
@@ -522,12 +541,22 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
     t1 = anchored.period_idx("2027Q4")
 
     mapes = {c: _mape(anchored.data, efo, c, t0, t1) for c in ("GDPM", "CONS")}
+    # Pinned near the measured fit (GDPM 0.300%, CONS 0.493%) with a 25%
+    # tolerance: the previous blanket "< 1%" gate let the fit roughly double
+    # (0.16% -> 0.30%) without anyone noticing. A change outside the band in
+    # either direction means the anchoring changed and the README and
+    # scorecard figures must be refreshed with it.
+    reference = {"GDPM": 0.300, "CONS": 0.493}
     for code, mape in mapes.items():
-        assert mape < 1.0, f"anchored {code} MAPE {mape:.2f}% — not reproducing EFO"
+        ref = reference[code]
+        assert 0.75 * ref < mape < 1.25 * ref, (
+            f"anchored {code} MAPE {mape:.3f}% vs reference {ref:.3f}% — the "
+            "anchored fit moved; re-measure and update the published figures"
+        )
 
     # The GDP fit is not independent evidence: it is the consumption fit
     # diluted by the exogenous expenditure components. Pin that so the headline
-    # "GDP reproduces the EFO to 0.16%" cannot be read as a second success.
+    # "GDP reproduces the EFO to 0.30%" cannot be read as a second success.
     for code in ("IF", "X", "M", "DINV", "VAL", "SDE"):
         assert code not in anchored.eq_for_var, (
             f"{code} became endogenous — the anchored GDP fit is no longer just "
@@ -560,7 +589,7 @@ def test_anchored_household_income_is_held_not_reproduced(anchored):
     This matters for the honesty of the anchored headline. It is legitimate
     anchoring — the EFO publishes HHDI, so this is anchoring to ground truth —
     but it means the anchored baseline demonstrates nothing whatsoever about
-    the model's household-income block, whose raw error is 6.27% MAPE.
+    the model's household-income block, whose raw error is 6.18% MAPE.
     """
     from obr_macro.baseline import _PUBLISHED_LEVEL_ANCHORS
     from obr_macro.data import load_obr_data
@@ -593,6 +622,51 @@ def test_anchored_household_income_is_held_not_reproduced(anchored):
         "raw HHDI error is now under 1% — the anchored 0.00% is no longer "
         "hiding anything and this test can be simplified"
     )
+
+
+@pytest.mark.parametrize(
+    "var,investment_closure",
+    [("HHDI_ADDFACTOR", False), ("CGG", False), ("TCPRO", True)],
+)
+def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
+    """Every reform is described as scored against the March-2026 EFO
+    anchored baseline; this pins that it is.
+
+    Until 2026-10 it was not: the reform template set _shock_active=True,
+    which also switched the anchoring residuals off, so the reform baseline
+    was the free-running model — measured 4.35% GDP, 7.26% consumption and
+    5.66% household income off the EFO. The residuals are now frozen into
+    the template (FullOBRSolver.freeze_anchoring) and HHDI (plus IF under the
+    investment closure) is held on the EFO by a level add-factor
+    (_anchor_published_levels), so the reform baseline must track the EFO as
+    closely as the standalone anchored baseline does (0.30% / 0.49%), and the
+    shocked clone must carry the same residuals.
+    """
+    from obr_macro import reform_analysis as ra
+    from obr_macro.data import load_obr_data
+
+    efo = load_obr_data()
+    tmpl = ra._build_reform_template(var, "2025Q1", "2027Q4", investment_closure)
+    base = tmpl.clone()
+    base.solve("2025Q1", "2027Q4")
+    t0, t1 = base.period_idx("2025Q1"), base.period_idx("2027Q4")
+    mape = {c: _mape(base.data, efo, c, t0, t1) for c in ("GDPM", "CONS", "HHDI")}
+    assert mape["GDPM"] < 0.45, f"reform baseline GDP {mape['GDPM']:.2f}% off EFO"
+    assert mape["CONS"] < 0.75, f"reform baseline CONS {mape['CONS']:.2f}% off EFO"
+    assert mape["HHDI"] < 0.10, f"reform baseline HHDI {mape['HHDI']:.2f}% off EFO"
+    if investment_closure:
+        assert _mape(base.data, efo, "IF", t0, t1) < 0.05
+
+    shocked = tmpl.clone()
+    if var == ra.HOUSEHOLD_COSTING_VAR:
+        ra._apply_household_costing(shocked, 100.0, "2025Q1", 4)
+    else:
+        shocked.apply_shock(var, 0.01 if var == "TCPRO" else 100.0, "2025Q1", 4)
+    assert shocked._shock_active and shocked._anchoring_applies(), (
+        "the shocked run dropped the anchoring residuals — the delta is again "
+        "measured around two different baselines"
+    )
+    assert shocked.anchor_terms is tmpl.anchor_terms
 
 
 def test_anchored_unemployment_divergence_is_bounded(anchored):
