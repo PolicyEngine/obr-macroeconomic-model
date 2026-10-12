@@ -3,7 +3,8 @@
 POST /api/chat  { "messages": [{role, content}, ...] }  ->  { "reply": "...", "messages": [...] }
 GET  /          serves the minimal chat UI.
 
-Run:  uv run uvicorn chat.server:app --reload --port 8000   (from the repo root)
+Run:  uv run --group chat uvicorn chat.server:app --reload --port 8000
+      (from the repo root)
 Uvicorn binds to 127.0.0.1 by default; pass --host explicitly to expose it.
 """
 
