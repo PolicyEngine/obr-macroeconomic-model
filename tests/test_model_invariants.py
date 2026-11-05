@@ -930,8 +930,8 @@ def test_raw_calibration_scorecard_does_not_regress():
         "RPI": ("pp", 1.71),
         "HHDI": ("lvl", 6.18),
         "RHHDI": ("lvl", 5.94),
-        # DELIBERATELY RAISED, 63.30 -> 82.78. Recovering OAHHx (household
-        # other income, ONS NNMY+NNOA+NNPM+MMW5 — absent only because the ONS
+        # DELIBERATELY RAISED, 63.30 -> 82.78. Recovering OAHHx (households'
+        # other financial assets, ONS NNMY+NNOA+NNPM+MMW5 — absent only because the ONS
         # pull was failing on TLS) improves GDP, consumption and the current
         # account, and fixes the first-year sign-flip defect in the household
         # costing channel. It also worsens the profits fit, which was already

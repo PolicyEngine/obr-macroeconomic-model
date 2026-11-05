@@ -34,7 +34,6 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
 | Unemployment rate | 0.51pp | within |
 | Real household income | — | **held at EFO (not forecast)** |
 | Household income | — | **held at EFO (not forecast)** |
-| Unemployment rate | 0.69pp | within |
 | Business investment | 13.32% | **over** |
 | Company profits | 14.86% | **over** |
 | Trade balance | 0.25% of GDP | within |

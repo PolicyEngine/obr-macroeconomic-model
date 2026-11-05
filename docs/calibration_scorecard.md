@@ -19,7 +19,7 @@ October-2025 model code is unchanged).
 > 2026-07-11 vintage; the other 347 values are untouched, deliberately, so this
 > is a data-completeness change and not a vintage bump.
 >
-> Only **`OAHHx`** (household other income, `NNMY+NNOA+NNPM+MMW5`) moves
+> Only **`OAHHx`** (households' other financial assets, a stock, `NNMY+NNOA+NNPM+MMW5`) moves
 > anything; the other seven are inert against this panel. It improves Real GDP
 > (4.48% → 4.32%), Consumption (7.49% → 7.22%) and the current account (3.60% →
 > 3.02% of GDP), and — the reason it was taken — it makes the household costing
@@ -124,7 +124,8 @@ The model computes `RPI` as the year-on-year RPI **inflation rate**
 (`RPI = PR/PR(-4)*100 - 100`), not the RPI price **index**. The scorecard used
 to compare that rate against the EFO `RPI` *index* (~400) as a level, which is a
 category error — it read a meaningless **99.58%** "off". Scored against the EFO
-`RPIGR` inflation series as a rate (pp), the honest error is **2.03pp** ("poor").
+`RPIGR` inflation series as a rate (pp), the honest error was **2.03pp** ("poor") when the metric was fixed; it is
+1.71pp on the current vintage (table above).
 The residual is real and traces to the RPI index itself: `PR` (≈ the exogenous
 `I7` normaliser) freezes once its unpublished history runs out around 2026Q2, so
 modelled inflation decays toward zero over the tail of the horizon. That decay is
@@ -148,6 +149,19 @@ is gated against *regression*, not chased to zero (the gate is
 `tests/test_model_invariants.py`, run in the hard-gating invariants CI job; the
 `calibration-report` CI job remains report-only).
 
+> **This floor no longer reaches the raw score (checked 2026-11-05, issue #42).**
+> `FullOBRSolver._anchor_oshh_to_ons` (`obr_macro/full_solver.py`) pins `OSHH`
+> to the published ONS series `CAEN` with a structural add-factor, and
+> structural add-factors apply in every solve, raw included (`solve_period`).
+> So the `12874`/`PRENT` gap described above is absorbed before it reaches
+> `FYCPR`, and it cannot explain the 82.77%. A static check with no solve —
+> the `OS` and `FYCPR` identities evaluated on the loaded EFO + ONS inputs over
+> 2025Q1–2027Q4 — gives 3.6% MAPE if `OS` is taken from the data, and 23.9%
+> if `OS` is built from its own identity (`GDPMPS − FYEMP − MI − BPAPS −
+> TPRODPS − SDI`, mixing EFO and ONS vintages, with the ONS components held
+> flat past the 2026Q1 snapshot edge). That is the identity-only floor; the
+> rest of the 82.77% comes from solved inputs, and which ones needs a run.
+
 - **Why the headline numbers improved vs earlier versions of this doc:** the
   large divergences the older table recorded (business investment 318%, household
   income ~932%, company profits ~375%, current account ~60% of GDP) were fixed by
@@ -164,7 +178,8 @@ OBR's own convention. Crucially it is now applied **consistently in both this
 scorecard and the forecast scorecard** (`forecast.py`) — previously it lived only
 in the forecast scorecard, which is the kind of selective metric that flatters a
 headline. Scored the same way everywhere, the trade balance is *fair*; the
-current account is *off* (4.17% of GDP) once de-seeded — driven by a net
+current account is *off* (4.17% of GDP when this was written; 3.02% on the
+current vintage, table above) once de-seeded — driven by a net
 investment-income (`NIPD`) overshoot, itself bounded by the overseas
 rate-of-return normalisers the OBR does not publish.
 
