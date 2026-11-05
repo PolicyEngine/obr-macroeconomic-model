@@ -279,3 +279,27 @@ def test_malformed_costings_raise_not_silently_coerced(bridge, bad, exc):
 def test_unknown_start_quarter_raises(bridge):
     with pytest.raises(KeyError):
         bridge.run_reform("bad", "CGG", [1.0], "1900Q1", "1900Q4")
+
+
+def test_shock_longer_than_horizon_is_flagged_not_silently_truncated(bridge):
+    """A shock path past ``end`` is applied but never solved or reported.
+
+    Downstream (the MCP obr_shock tool) passes periods up to 40 against the
+    default 12-quarter window and sums the reported rows as "the shocked
+    quarters", so the truncation must be visible on the frame.
+    """
+    with pytest.warns(UserWarning, match="not solved or reported"):
+        df = bridge.run_reform("r", "CGG", 100.0, "2025Q1", "2025Q4", periods=6)
+    assert len(df) == 4
+    assert df.attrs["shock_quarters"] == 6
+    assert df.attrs["shock_quarters_beyond_horizon"] == 2
+
+
+def test_shock_inside_horizon_reports_no_overflow(bridge):
+    import warnings as _w
+
+    with _w.catch_warnings():
+        _w.filterwarnings("error", message=".*not solved or reported.*")
+        df = bridge.run_reform("r", "CGG", 100.0, "2025Q1", "2025Q4", periods=4)
+    assert df.attrs["shock_quarters"] == 4
+    assert df.attrs["shock_quarters_beyond_horizon"] == 0
