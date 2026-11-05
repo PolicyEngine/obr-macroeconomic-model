@@ -505,15 +505,23 @@ class FullOBRSolver:
                     self.data.iloc[t, col_idx["GGVA"]] = gdpm * 0.20
 
             if np.isfinite(etlfs):
+                # Units: load_obr_data already converts the EFO's ETLFS
+                # (millions) to THOUSANDS, the unit the model's employment
+                # head-counts use (ECG, ELA, EGG, ES, WRGTP, EMS). The seeds
+                # below must stay in thousands. They used to multiply by 1000
+                # again, which put ET ~1000x above ECG/ELA: WFJ = ET + WRGTP
+                # came out ~34 billion jobs, and the public-employment
+                # deduction in dlog(EPS) = log((ET-ECG-ELA)/...) vanished.
+
                 # EMS (market sector employment) ≈ 80% of total employment
                 if np.isnan(self._get("EMS", t)):
-                    self.data.iloc[t, col_idx["EMS"]] = (
-                        etlfs * 0.80 * 1000
-                    )  # ETLFS in thousands
+                    self.data.iloc[t, col_idx["EMS"]] = etlfs * 0.80
 
-                # ET (total employment) from ETLFS
+                # ET (employed labour force, WFJ basis) seeded at the LFS
+                # level. Only ET's growth reaches ES/WRGTP (ratio forms), so
+                # the seed level matters for WFJ and EPS only.
                 if np.isnan(self._get("ET", t)):
-                    self.data.iloc[t, col_idx["ET"]] = etlfs * 1000
+                    self.data.iloc[t, col_idx["ET"]] = etlfs
 
             # Initialize corporation tax parameters
             # TCPRO = corporation tax rate (25% from April 2023)
