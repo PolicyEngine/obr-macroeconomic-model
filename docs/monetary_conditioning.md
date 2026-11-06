@@ -56,13 +56,12 @@ Round 3 found that moving retail rates 1:1 with Bank Rate cut real household inc
 
 ## The cost-of-capital seed (not closed)
 
-The chain R → RIC (l.576) → CDEBT (l.60) → RWACC (l.64) → COCU (l.68) → COC → KSTAR stops at COCU:
+The chain R → RIC (l.576) → CDEBT (l.60) → RWACC (l.64) → COCU (l.68) → COC → KSTAR is broken in two places.
 
-- COCU needs DELTA and RWACC, and RWACC needs DEBTW and NDIV. The OBR's variables workbook lists DELTA, DEBTW and NDIV as exogenous with no equation and no published data.
-- COCU is therefore held at its declared seed (`full_solver.UNPUBLISHED_COST_OF_CAPITAL_SEEDS`), so COC moves only with corporation tax.
-- Every Bank Rate run now carries `attrs["cost_of_capital_channel"]`, which says so.
-- Tests pin that, under the investment closure, RIC moves while COCU and COC do not.
-- Under the default (demand) closure the chain is broken one step earlier, because RIC itself is NaN throughout the solve window. The corporate-interest leg of the Bank Rate channel (RIC → DIRIC/DIPIC) therefore does not run by default either. A test pins this so that any change is noticed.
+- **RIC is NaN.** RIC, the effective rate on bank lending to PNFCs, is NaN over the whole solve window in both closures. CDEBT and RWACC are NaN with it. l.576 is an error-correction equation in RIC(−1), so a missing starting value carries through every quarter. Why the starting value is missing has not been traced yet. R therefore reaches neither the corporate interest flows (DIPIC, DIRIC) nor the cost of capital. This was measured on 6 Nov 2026 and corrects round 3's statement that "RIC moves".
+- **COCU is a seed.** COCU needs DELTA and RWACC, and RWACC needs DEBTW and NDIV. The OBR's variables workbook lists DELTA, DEBTW and NDIV as exogenous with no equation and no published data, so COCU is held at its declared seed (`full_solver.UNPUBLISHED_COST_OF_CAPITAL_SEEDS`).
+
+Every Bank Rate run carries `attrs["cost_of_capital_channel"]`, which says so. Tests pin both breaks. Under the investment closure, COCU, COC, KSTAR, IBUSX, DIPIC and DIRIC move by exactly 0 for +100bp.
 
 The OBR's own working file also has the business-investment equation (l.92) commented out.
 

@@ -267,9 +267,12 @@ def test_retail_rate_income_effect_is_the_published_cash_flow(run, request):
 
 @pytest.mark.slow
 def test_cost_of_capital_does_not_move_with_bank_rate():
-    """The COCU seed, under the investment closure (the only closure where the
-    cost-of-capital chain is evaluated): R moves RIC, but COCU and COC
-    (= TAF*COCU) do not, so KSTAR and IBUSX never see Bank Rate."""
+    """Under the investment closure (the only closure where the cost-of-capital
+    chain is evaluated) the chain is broken twice. RIC (l.576), CDEBT and RWACC
+    are NaN over the whole window (l.576 is error-correcting in RIC(-1), so a missing starting value propagates; cause not yet traced), so R
+    never reaches them, nor the corporate interest flows DIPIC/DIRIC. And COCU
+    is the fixed seed. Measured 6 Nov 2026: COCU, COC, KSTAR, IBUSX, DIPIC and
+    DIRIC deltas are exactly 0 for +100bp x 4q."""
     from obr_macro.reform_analysis import _build_reform_template
 
     tpl = _build_reform_template("R", START, END, True, False)
@@ -278,10 +281,11 @@ def test_cost_of_capital_does_not_move_with_bank_rate():
     k = tpl.clone()
     k.apply_shock("R", [1.0] * 4, START)
     k.solve(START, END)
-    run = (base, k, base.period_idx(START), base.period_idx(END))
-    d_ric = _delta(run, "RIC")
-    assert np.isfinite(d_ric).all() and np.abs(d_ric).max() > 0.5
-    for var in ("COCU", "COC"):
+    t0, t1 = base.period_idx(START), base.period_idx(END)
+    run = (base, k, t0, t1)
+    for var in ("RIC", "CDEBT", "RWACC"):
+        assert base.data[var].iloc[t0 : t1 + 1].isna().all(), var
+    for var in ("COCU", "COC", "KSTAR", "IBUSX", "DIPIC", "DIRIC"):
         d = _delta(run, var)
         assert np.isfinite(d).all() and np.all(d == 0), var
 
@@ -290,9 +294,9 @@ def test_cost_of_capital_does_not_move_with_bank_rate():
 def test_corporate_lending_rate_is_not_evaluated_under_the_default_closure(
     default_run,
 ):
-    """Under the default (demand) closure RIC is NaN in the solve window, so
-    the corporate-interest leg of the Bank Rate channel does not run there
-    either. Pinned so a change is noticed (round 4 finding, #50)."""
+    """Under the default (demand) closure RIC is NaN in the solve window too,
+    so the corporate-interest leg of the Bank Rate channel does not run in
+    either closure. Pinned so a fix is noticed (round 4 finding, #50)."""
     b, _, t0, t1 = default_run
     assert b.data["RIC"].iloc[t0 : t1 + 1].isna().all()
 

@@ -255,7 +255,8 @@ MONETARY_CONDITIONING_SCOPE_NOTE = (
     "and PGDP are exogenous, and LFSUR (l.165) has no demand or rate term. Any "
     "inflation or labour-market response must come from outside the model."
 )
-# R -> RIC -> CDEBT -> RWACC -> COCU -> COC -> KSTAR: the chain stops at COCU.
+# R -> RIC -> CDEBT -> RWACC -> COCU -> COC -> KSTAR: the chain is broken at
+# RIC, which is NaN over the solve window (no history), and again at COCU.
 # COCU's published equation (l.68) needs DELTA, DEBTW (via RWACC l.64) and NDIV
 # (via CEQUITY l.62), none of which the OBR publishes (variables workbook rows
 # 31, 32, 36: "No Equation", "Exogenous", no codes), so COCU is held at its
@@ -264,11 +265,15 @@ MONETARY_CONDITIONING_SCOPE_NOTE = (
 # DEBTW*d(RIC)/(DELTA+RWACC) — both factors unpublished — so it is not closed
 # here; every Bank Rate run is labelled instead (see run_reform).
 COST_OF_CAPITAL_RATE_CHANNEL_NOTE = (
-    "Bank Rate does not reach business investment: R moves RIC (l.576) and "
-    "CDEBT (l.60), but COCU (l.68) is a fixed seed because DELTA, DEBTW and "
-    "NDIV are unpublished, so COC, KSTAR and IBUSX do not respond to R even "
-    "under investment_closure=True. In the OBR's own working file the "
-    "investment equation (l.92) is commented out as well."
+    "Bank Rate does not reach corporate interest or business investment. RIC "
+    "(l.576), CDEBT (l.60) and RWACC (l.64) are NaN over the solve window in "
+    "both closures (l.576 is error-correcting in RIC(-1) and has no starting "
+    "value; cause not yet traced), so R reaches neither "
+    "the corporate interest flows (DIPIC, DIRIC) nor the cost of capital; and "
+    "COCU (l.68) is a fixed seed because DELTA, DEBTW and NDIV are "
+    "unpublished. COC, KSTAR and IBUSX do not respond to R even under "
+    "investment_closure=True. In the OBR's own working file the investment "
+    "equation (l.92) is commented out as well."
 )
 
 _INVESTMENT_CLOSURE_CREDIBLE_QUARTERS = 12
