@@ -61,7 +61,8 @@ The chain R → RIC (l.576) → CDEBT (l.60) → RWACC (l.64) → COCU (l.68) �
 - COCU needs DELTA and RWACC, and RWACC needs DEBTW and NDIV. The OBR's variables workbook lists DELTA, DEBTW and NDIV as exogenous with no equation and no published data.
 - COCU is therefore held at its declared seed (`full_solver.UNPUBLISHED_COST_OF_CAPITAL_SEEDS`), so COC moves only with corporation tax.
 - Every Bank Rate run now carries `attrs["cost_of_capital_channel"]`, which says so.
-- Tests pin that RIC moves while COCU and COC do not.
+- Tests pin that, under the investment closure, RIC moves while COCU and COC do not.
+- Under the default (demand) closure the chain is broken one step earlier, because RIC itself is NaN throughout the solve window. The corporate-interest leg of the Bank Rate channel (RIC → DIRIC/DIPIC) therefore does not run by default either. A test pins this so that any change is noticed.
 
 The OBR's own working file also has the business-investment equation (l.92) commented out.
 
