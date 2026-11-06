@@ -55,27 +55,33 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 
 | Variable | Error (3yr) | Status |
 |---|--:|---|
-| Real GDP | 4.32% | computed — fair |
-| Consumption | 7.22% | computed — fair |
-| Business investment | 15.28% | computed — poor |
-| Employment | 0.00% | computed — **trivial identity** |
-| Unemployment rate | 1.01pp | computed — poor |
-| RPI inflation | 1.71pp | computed — poor |
-| Household income | 6.18% | computed — fair |
-| Real household income | 5.94% | computed — fair |
-| Company profits | 82.77% | computed — **off** |
-| Current account | 3.02% of GDP | computed — **off** |
-| Trade balance | 0.69% of GDP | computed — fair |
-| Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) |
+| Variable | Error (3yr), default (nominal-GDP pin) | Status | Published closure |
+|---|--:|---|--:|
+| Real GDP | 4.16% | computed — fair | 4.32% |
+| Consumption | 6.96% | computed — fair | 7.22% |
+| Business investment | 8.38% | computed — fair | 15.28% (poor) |
+| Employment | 0.00% | computed — **trivial identity** | 0.00% |
+| Unemployment rate | 1.01pp | computed — poor | 1.01pp |
+| RPI inflation | 1.71pp | computed — poor | 1.71pp |
+| Household income | 4.66% | computed — fair | 6.18% |
+| Real household income | 4.42% | computed — fair | 5.94% |
+| Company profits | 18.04% | computed — poor | 82.77% (off) |
+| Current account | 2.19% of GDP | computed — poor | 3.02% of GDP (off) |
+| Trade balance | 0.68% of GDP | computed — fair | 0.69% of GDP |
+| Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) | 0.00% |
 
-> **Optional nominal-GDP pin (#42).** With `--nominal-gdp-pin` (the OBR's
-> commented-out l.690, `GDPMPS = PGDP*GDPM/100`), the same raw solve scores
-> Real GDP 4.16%, Consumption 6.96%, Business investment 8.38%, Household
-> income 4.66%, Real household income 4.42%, Company profits **18.04%**, the
-> current account 2.19% and the trade balance 0.68% of GDP; LFSUR and RPI do
-> not move. That is 7 of 11 within band, against 6. The default above is the
-> published closure. Why the pin exists, and how it differs from holding PIF,
-> is in [nominal_gdp_pin.md](nominal_gdp_pin.md).
+Within band: 7 of 11 under the default, 6 of 11 under the published closure.
+
+> **The nominal-GDP pin is the default (#42, 6 Nov 2026).** The scorecard
+> closes nominal GDP with the OBR's commented-out l.690,
+> `GDPMPS = PGDP*GDPM/100`. Under the published closure (l.688 live,
+> `--published-closure`), the investment deflator PIF has no equation of its
+> own: l.337 and l.688 are one identity written twice (G6). In this de-seeded
+> solve PIF random-walks, and company profits and the current account move
+> with it. The published-closure column is kept for comparison; its company
+> profits figure is drift, not calibration. The notes below that discuss the
+> 82.77% describe the published closure. Why the pin exists, and how it
+> differs from holding PIF, is in [nominal_gdp_pin.md](nominal_gdp_pin.md).
 
 > **This table had gone stale and overstated the model's error.** It previously
 > recorded Real GDP 5.75%, Consumption 9.56%, Household income 14.15%, Real
