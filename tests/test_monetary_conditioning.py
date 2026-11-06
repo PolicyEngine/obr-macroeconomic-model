@@ -295,3 +295,84 @@ def test_corporate_lending_rate_is_not_evaluated_under_the_default_closure(
     either. Pinned so a change is noticed (round 4 finding, #50)."""
     b, _, t0, t1 = default_run
     assert b.data["RIC"].iloc[t0 : t1 + 1].isna().all()
+
+
+# --- run_reform wiring (hermetic, with a solver double) -----------------------
+
+
+def _rate_double(monkeypatch):
+    """A run_reform template double carrying R and RMORT; solve() is a no-op,
+    so whatever the shocks wrote stays in each clone's frame."""
+    import copy
+
+    from obr_macro import reform_analysis
+    from obr_macro.full_solver import FullOBRSolver
+
+    index = pd.period_range("2025Q1", periods=8, freq="Q")
+    proto = FullOBRSolver.__new__(FullOBRSolver)
+    proto.verbose = False
+    proto.equations = []
+    proto._build_equation_index()
+    proto.data = pd.DataFrame(
+        {
+            "R": [4.0] * 8,
+            "RMORT": [4.5] * 8,
+            "GDPM": [1000.0] * 8,
+            "CONS": [600.0] * 8,
+            "IF": [100.0] * 8,
+        },
+        index=index,
+    )
+    proto.index = index
+    clones = []
+
+    class _Template:
+        def clone(self):
+            c = copy.copy(proto)
+            c.data = proto.data.copy()
+
+            def _solve(start, end, _c=c):
+                _c.data["GDPM"] = 1000.0 - 10.0 * (_c.data["RMORT"] - 4.5)
+
+            c.solve = _solve
+            clones.append(c)
+            return c
+
+    monkeypatch.setattr(
+        reform_analysis, "_build_reform_template", lambda *a, **k: _Template()
+    )
+    return reform_analysis, clones
+
+
+def test_run_reform_conditioning_moves_rmort_at_the_sourced_passthrough(monkeypatch):
+    """The flag itself: run_reform shifts RMORT by 0.9 x the R path in the
+    shocked run only, and labels the frame with what moved, what did not,
+    and why CPI and unemployment cannot respond."""
+    ra, clones = _rate_double(monkeypatch)
+    df = ra.run_reform(
+        "r", "R", [1.0, 1.0, 0.5], "2025Q1", "2025Q4", monetary_conditioning=True
+    )
+    base, shocked = clones
+    d_rmort = (shocked.data["RMORT"] - base.data["RMORT"]).iloc[:4].tolist()
+    assert d_rmort == pytest.approx([0.9, 0.9, 0.45, 0.0])
+    assert (shocked.data["R"] - base.data["R"]).iloc[:4].tolist() == pytest.approx(
+        [1.0, 1.0, 0.5, 0.0]
+    )
+    assert df.attrs["monetary_conditioning"] is True
+    assert df.attrs["monetary_conditioning_on"]["RMORT"]["passthrough"] == 0.9
+    assert "l.623" in df.attrs["monetary_conditioning_on"]["RMORT"]["source"]
+    assert set(df.attrs["monetary_conditioning_off"]) == {"RDEP", "RL", "RX", "APH"}
+    assert "by design" in df.attrs["inflation_unemployment_note"]
+    assert "COCU" in df.attrs["cost_of_capital_channel"]
+    assert df["delta_gdp_m"].tolist() == pytest.approx([-9.0, -9.0, -4.5, 0.0])
+
+
+def test_run_reform_default_leaves_rmort_alone(monkeypatch):
+    """Without the flag (the default) RMORT is untouched and the frame says so."""
+    ra, clones = _rate_double(monkeypatch)
+    df = ra.run_reform("r", "R", 1.0, "2025Q1", "2025Q4", periods=4)
+    base, shocked = clones
+    assert (shocked.data["RMORT"] == base.data["RMORT"]).all()
+    assert df.attrs["monetary_conditioning"] is False
+    assert "monetary_conditioning_on" not in df.attrs
+    assert "by design" in df.attrs["inflation_unemployment_note"]
