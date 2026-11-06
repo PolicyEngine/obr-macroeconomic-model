@@ -112,9 +112,11 @@ scored here.
   trivial employment identity. Business investment, the unemployment rate and
   RPI inflation are poor; Company profits and the current account are off.
 - **Company profits (FYCPR) and, on the March-2026 vintage, the current
-  account (CB) score "off".** FYCPR's raw error is dominated by an unpublished
-  OBR calibration constant rather than a live bug (see the OSHH floor below);
-  CB crossed from "poor" (2.76% of GDP on the November-2025 vintage) to "off"
+  account (CB) score "off".** FYCPR's raw error is solver drift, not the
+  unpublished OSHH constant this line used to blame: nominal GDP and the
+  investment deflator `PIF` are one identity written twice, so `PIF`
+  random-walks under the de-seeded solve and profits follow (see the 6 Nov
+  2026 note under the OSHH floor below, and issue #42). CB crossed from "poor" (2.76% of GDP on the November-2025 vintage) to "off"
   (3.60%) because the March EFO revised the current-account path while the
   `NIPD` overseas rate-of-return normalisers stay at their old unpublished
   levels.
@@ -160,7 +162,20 @@ is gated against *regression*, not chased to zero (the gate is
 > if `OS` is built from its own identity (`GDPMPS − FYEMP − MI − BPAPS −
 > TPRODPS − SDI`, mixing EFO and ONS vintages, with the ONS components held
 > flat past the 2026Q1 snapshot edge). That is the identity-only floor; the
-> rest of the 82.77% comes from solved inputs, and which ones needs a run.
+> rest of the 82.77% comes from solved inputs.
+>
+> **The run (6 Nov 2026, issue #42) names the input: the investment deflator.**
+> `PIF` (l.337) and `GDPMPS` (l.688) are the same identity, so the pair is
+> undetermined and Gauss-Seidel keeps whatever `PIF` it starts from. The
+> plain raw solve (EFO seed left in place) gives FYCPR 12.17%; the de-seeded
+> solve this scorecard reports reseeds each quarter from the last, `PIF`
+> random-walks (106.7 → −4.6 → 317.2 against an EFO of about 105), and FYCPR,
+> a residual of nominal GDP, follows: 82.77%. The FYCPR reference therefore
+> measures drift, not fit; any input change can move it by tens of points
+> (adding DEBTU, #43, moves it to 38.17%). Pinning nominal GDP with the OBR's
+> own commented-out l.690, `GDPMPS = PGDP·GDPM/100`, gives 18.04%, below the
+> static floor above. That closure is a decision for #42 and is not applied
+> here; no number in the table above changes.
 
 - **Why the headline numbers improved vs earlier versions of this doc:** the
   large divergences the older table recorded (business investment 318%, household
