@@ -162,22 +162,30 @@ def test_government_consumption_is_antisymmetric(respond):
     assert abs(up + down) / abs(up) < 0.01, f"not antisymmetric: {up} vs {down}"
 
 
-def test_government_consumption_multiplier_is_exactly_one(respond):
-    """DEFECT (pinned). The multiplier is 1.0000 because it is an identity.
+def test_government_consumption_multiplier_is_one_plus_the_income_channel(respond):
+    """DEFECT (pinned). The multiplier is about 1 because it is an identity.
 
-    The shock lands in the GDPM expenditure identity and no behavioural
-    equation responds, so GDP moves one-for-one with the shock and stays
-    flat. The OBR's published impact multiplier for day-to-day spending and
-    welfare is 0.6, tapering over five years (July 2015 EFO, Box 3.2).
+    The shock lands in the GDPM expenditure identity. Under the published
+    closure nothing else responds and the multiplier is 1.0000 and flat.
+    Under the default nominal-GDP pin (l.690, #42) nominal GDP rises at the
+    fixed deflator, wages are exogenous, so profits take the extra nominal
+    income and a small part reaches household income and consumption: the
+    multiplier is 1.013 on impact and drifts up (measured 6 Nov 2026,
+    2026Q1-2027Q4: mean 102.7% of the shock). The OBR's published impact
+    multiplier for day-to-day spending and welfare is 0.6, tapering over
+    five years (July 2015 EFO, Box 3.2).
 
     This is the largest published-vs-modelled gap of any lever in the model.
     It is pinned rather than skipped: if a real second round is ever wired up
     this test fails, which is the point.
     """
     r = respond("CGG", 1250.0)
-    assert share_of_shock(r, "GDPM", 1250.0) == pytest.approx(100.0, abs=0.5)
+    assert share_of_shock(r, "GDPM", 1250.0) == pytest.approx(102.7, abs=1.0)
     path = r["GDPM"]["path"]
-    assert max(path) - min(path) < 0.01 * abs(path[0]), "identity response is not flat"
+    assert all(b >= a for a, b in zip(path, path[1:])), (
+        f"the income channel should only add to the response: {path}"
+    )
+    assert max(path) - min(path) < 0.05 * abs(path[0]), "response is not near-flat"
 
 
 def test_government_consumption_response_scales_linearly(respond):
@@ -187,23 +195,29 @@ def test_government_consumption_response_scales_linearly(respond):
     assert two / one == pytest.approx(2.0, rel=0.01)
 
 
-def test_government_consumption_moves_nothing_but_gdp(respond):
-    """DEFECT (pinned). The spending second round is empty.
+def test_government_consumption_moves_little_but_gdp(respond):
+    """DEFECT (pinned). The spending second round is nearly empty.
 
-    Consumption moves by 0.002% of the shock and business investment by 0.09%
-    -- both far under the noise floor. A spending increase in this model does
-    not raise household income, employment or prices; it raises the GDP
-    identity and stops. This is what "multiplier ~1 by construction" means
-    mechanically.
+    Under the default nominal-GDP pin consumption moves by 2.7% of the shock
+    (6 Nov 2026), through profits -> household income; under the published
+    closure it moved by 0.002%. A spending increase does not change
+    employment or prices. Pinned at 1-5% of the shock: outside that band, a
+    channel changed.
+
+    Business investment (IBUSX) reads +17.5% of the shock under the pin
+    (0.09% under the published closure). That is deflator propagation, not
+    an investment response: under the demand closure IBUS is the residual
+    IF - GGI - ..., with IF exogenous, and a real-only CGG shock moves PIF
+    (l.337 absorbs the nominal gap, about +0.94), which raises GGIDEF and so
+    lowers real GGI. GDP is unaffected (IF is exogenous). Pinned at 10-25%
+    so the artefact cannot grow silently.
     """
     shock = 1250.0
     r = respond("CGG", shock)
-    for col in ("CONS", "IBUSX"):
-        assert not clears_noise(r, col, shock), (
-            f"{col} now responds to spending at "
-            f"{share_of_shock(r, col, shock):.3f}% of the shock -- the second "
-            "round may have been wired up; update this test"
-        )
+    cons = share_of_shock(r, "CONS", shock)
+    assert 1.0 <= cons <= 5.0, f"CONS responds at {cons:.3f}% of the shock"
+    ibusx = share_of_shock(r, "IBUSX", shock)
+    assert 10.0 <= ibusx <= 25.0, f"IBUSX responds at {ibusx:.3f}% of the shock"
 
 
 # ---------------------------------------------------------------------------
@@ -277,20 +291,21 @@ def test_household_shock_signs_are_opposite_in_the_two_directions(respond):
 
 
 def test_temporary_government_consumption_shock_ends_when_it_ends(respond):
-    """A four-quarter CGG rise moves GDP one-for-one for four quarters, then stops.
+    """A four-quarter CGG rise moves GDP about one-for-one for four quarters,
+    then stops.
 
-    CGG passes straight through the expenditure identity, so nothing should
-    linger once the shock ends. Measured on 6 Nov 2026 (2025Q1 start, 25
-    quarters): +1000m for q0-q3 to within 0.3m, then at most 1.0m (0.1%) up to
-    q24. The bounds are 0.5% of the shock in both phases.
+    Under the default nominal-GDP pin (6 Nov 2026, 2026Q1 start, 8 quarters):
+    +1266m to +1283m for q0-q3 (1.013-1.026 of the shock, the income
+    channel), then a tail of +22m falling to +17m. Bounds: 1.00-1.04 of the
+    shock in the window; after it, at most 2.5% of the shock and shrinking.
     """
     shock = 1250.0
     path = respond("CGG", shock, periods=4)["GDPM"]["path"]
-    for q, x in enumerate(path):
-        target = shock if q < 4 else 0.0
-        assert abs(x - target) <= 0.005 * shock, (
-            f"q{q}: GDP delta {x:.2f}, expected {target:.0f} (path {path})"
-        )
+    for q, x in enumerate(path[:4]):
+        assert shock <= x <= 1.04 * shock, f"q{q}: GDP delta {x:.2f} (path {path})"
+    tail = path[4:]
+    assert all(0 <= x <= 0.025 * shock for x in tail), f"tail {tail}"
+    assert all(b <= a for a, b in zip(tail, tail[1:])), f"tail not fading: {tail}"
 
 
 def _max_abs(xs):

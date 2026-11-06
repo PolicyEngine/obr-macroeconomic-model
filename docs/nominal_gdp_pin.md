@@ -45,6 +45,13 @@ regression gates now pin the right-hand column.
   corporation tax per £1.25bn of spending, which is an artefact of the
   exogenous wage bill, not an estimate of the profits response. Do not
   feed FYCPR deltas into fiscal scoring without re-deriving them.
+- **A real-only spending shock moves measured business investment.** Under
+  the demand closure IBUS is the residual `IF − GGI − …` with IF exogenous.
+  A real CGG shock with nominal CGGPS held makes l.337 absorb the nominal
+  gap in PIF (about +0.94), which raises GGIDEF and lowers real GGI, so IBUSX
+  reads +17.5% of the shock (2026Q1–2027Q4; 0.09% under the published
+  closure). This is deflator propagation, not an investment response. GDP
+  is unaffected. A nominal-consistent shock (CGGPS moved too) removes it.
 
 ## The problem it solves
 
