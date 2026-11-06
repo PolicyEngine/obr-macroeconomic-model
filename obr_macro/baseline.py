@@ -23,7 +23,7 @@ from __future__ import annotations
 
 
 from obr_macro.full_solver import FullOBRSolver
-from obr_macro.reform_analysis import GDPM_EQ
+from obr_macro.reform_analysis import GDPM_EQ, apply_nominal_gdp_pin
 from obr_macro.data import load_obr_data
 
 START, END = "2025Q1", "2031Q1"
@@ -51,9 +51,18 @@ CHECK = [
 _PUBLISHED_LEVEL_ANCHORS = ("HHDI", "RHHDI")
 
 
-def build(anchored=True):
+def build(anchored=True, nominal_gdp_pin=False):
+    """Baseline solver with the repo's GDP closure (DINV held, GDPM computed).
+
+    ``nominal_gdp_pin`` swaps the l.688 nominal-GDP identity for the OBR's
+    commented-out l.690 ``GDPMPS = PGDP*GDPM/100`` (see
+    reform_analysis.apply_nominal_gdp_pin). Default False: the published
+    closure.
+    """
     s = FullOBRSolver(verbose=False)
     s.swap_closure("DINV", GDPM_EQ)
+    if nominal_gdp_pin:
+        apply_nominal_gdp_pin(s)
     s._shock_active = not anchored
     if anchored:
         # Hold the published income aggregates at their EFO values: removing

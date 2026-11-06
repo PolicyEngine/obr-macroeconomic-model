@@ -50,6 +50,9 @@ EXPECTED_RUN_REFORM_KWARGS = [
     "periods",
     "investment_closure",
     "published_conventions",
+    # Added Nov 2026 (#42), last and defaulting to False, so existing callers
+    # are unaffected.
+    "nominal_gdp_pin",
 ]
 
 
@@ -87,6 +90,8 @@ def test_run_reform_defaults_are_stable():
     # The honest default is the raw model; the OBR-conventions override is
     # strictly opt-in.
     assert sig.parameters["published_conventions"].default is False
+    # The published closure stays the default until #42 is decided.
+    assert sig.parameters["nominal_gdp_pin"].default is False
 
 
 # --- Fake template: a solvable stand-in with a plausible shock response ------
