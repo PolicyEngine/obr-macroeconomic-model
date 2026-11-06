@@ -1,16 +1,57 @@
 # The nominal-GDP pin (l.690)
 
-`nominal_gdp_pin=True` (in `baseline.build`, `calibration_score.raw_solve` and
-`build_scorecard`, `forecast.forecast` and `run_reform`; `--nominal-gdp-pin` on
-the scorecard and forecast CLIs) swaps the l.688 nominal-GDP identity for the
-OBR's commented-out l.690:
+The nominal-GDP pin swaps the l.688 nominal-GDP identity for the OBR's
+commented-out l.690:
 
 ```
 GDPMPS = PGDP * GDPM / 100
 ```
 
-The default is the published closure. Issue #42 holds the decision on whether
-to make the pin the default.
+**It is the default since 6 Nov 2026 (#42).** `baseline.build`,
+`calibration_score.raw_solve` and `build_scorecard`, and `forecast.forecast`
+default to `nominal_gdp_pin=True`. `run_reform` defaults to
+`nominal_gdp_pin=None`, which means the pin under the demand closure and the
+published closure under `investment_closure=True` (corporation-tax runs). The
+investment closure holds PIF exogenous, so l.688 already determines nominal GDP
+there and the pin would remove both l.337 and l.688; an explicit
+`nominal_gdp_pin=True` with the investment closure is refused.
+
+The published closure stays available: pass `nominal_gdp_pin=False`, or
+`--published-closure` on the scorecard and forecast CLIs. Its numbers are
+kept below for comparison. The tables in this file that say "Published
+closure" vs "Nominal GDP pinned" were measured when the pin was opt-in; the
+regression gates now pin the right-hand column.
+
+## Caveats of the pin as the default
+
+- **PIF levels sit above the EFO over long horizons.** The pin determines
+  PIF, but in the 25-quarter reform baseline (2025Q1–2031Q1) it runs
+  +0.4% above the EFO in 2025Q1, up to +6.0% within the first 12 quarters
+  and +7.8% by 2031Q1 (121.7 against 112.9). Reform deltas are unaffected,
+  because the baseline and the shocked run share the path. PIF levels feed
+  PIBUS (l.124), sectoral nominal investment (IHHPS, ICCPS, IPCPS), VALPS
+  (l.106) and GGIDEF (l.100), so level readings of those series beyond
+  2027 carry this gap. It does not reach real business investment: COCU uses
+  a fixed seed. `test_pinned_reform_baseline_pif_stays_near_the_efo_over_25_quarters`
+  bounds it at 10% over the full horizon and 7.5% in the first 12 quarters.
+- **Company profits take more than the whole of a spending shock.** For
+  +£1.25bn a quarter of CGG, FYCPR rises £1.33bn to £1.46bn a quarter (nominal
+  GDP rises at the fixed PGDP while compensation is exogenous). In this model
+  corporation-tax receipts do not follow: `CT = NSCTP + NNSCTP` (l.408) and
+  neither component has an equation, so no in-model receipt or borrowing
+  figure moves. Nothing in this repo or in the hosted PolicyEngine/macro
+  scoring reads FYCPR. A downstream scorer that applied the 25% main rate to
+  the FYCPR delta would book about £0.33bn to £0.37bn a quarter of extra
+  corporation tax per £1.25bn of spending, which is an artefact of the
+  exogenous wage bill, not an estimate of the profits response. Do not
+  feed FYCPR deltas into fiscal scoring without re-deriving them.
+- **A real-only spending shock moves measured business investment.** Under
+  the demand closure IBUS is the residual `IF − GGI − …` with IF exogenous.
+  A real CGG shock with nominal CGGPS held makes l.337 absorb the nominal
+  gap in PIF (about +0.94), which raises GGIDEF and lowers real GGI, so IBUSX
+  reads +17.5% of the shock (2026Q1–2027Q4; 0.09% under the published
+  closure). This is deflator propagation, not an investment response. GDP
+  is unaffected. A nominal-consistent shock (CGGPS moved too) removes it.
 
 ## The problem it solves
 
@@ -176,9 +217,9 @@ income side, live for the first time, and not a PIF artifact. Under the
 published closure the same nominal-consistent shock is erratic: +£445m at
 q16, four quarters after the shock ends, with PIF −3.6.
 
-If the pin becomes the default, `test_temporary_government_consumption_shock_ends_when_it_ends`
-and the CGG multiplier gates, which expect exactly 1.000, will need
-re-pinning. A 4-quarter shock now leaves a +£19m tail (1.5%) that decays to
+With the pin as the default, `test_temporary_government_consumption_shock_ends_when_it_ends`
+and the CGG multiplier gates, which expected exactly 1.000, are re-pinned to
+the measured pinned profile. A 4-quarter shock now leaves a +£19m tail (1.5%) that decays to
 +£2.6m by q24.
 
 ### DEBTU (#43) on top of the pin

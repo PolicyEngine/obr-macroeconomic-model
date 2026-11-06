@@ -50,6 +50,27 @@ NOMINAL_GDP_PIN_EQ = ParsedEquation(
 )
 
 
+def resolve_nominal_gdp_pin(nominal_gdp_pin, investment_closure) -> bool:
+    """Resolve the ``nominal_gdp_pin`` default for a reform run.
+
+    ``None`` (the default) means "the pin wherever it applies": on under the
+    demand closure, off under the investment closure, which already
+    determines nominal GDP by holding PIF exogenous. An explicit True with the
+    investment closure is refused; an explicit False selects the published
+    closure.
+    """
+    if nominal_gdp_pin is None:
+        return not investment_closure
+    if nominal_gdp_pin and investment_closure:
+        raise ValueError(
+            "nominal_gdp_pin cannot be combined with investment_closure: the "
+            "investment closure holds PIF exogenous, which already determines "
+            "nominal GDP through l.688. Pinning GDPMPS as well would remove "
+            "both l.337 and l.688 and break the nominal expenditure identity."
+        )
+    return bool(nominal_gdp_pin)
+
+
 def apply_nominal_gdp_pin(solver) -> None:
     """Close nominal GDP with the OBR's commented-out l.690.
 
@@ -438,20 +459,14 @@ def _anchor_published_levels(template, start: str, end: str) -> None:
 _REFORM_TEMPLATE_CACHE = {}
 
 
-def _build_reform_template(var, start, end, investment_closure, nominal_gdp_pin=False):
+def _build_reform_template(var, start, end, investment_closure, nominal_gdp_pin=None):
     """Build (and cache) the stabilised, unsolved baseline template.
 
     The baseline and shocked runs must be structurally identical (same closures,
     same exogenous instrument, same starting data, same stabilisation) so the
     delta isolates the shock — hence a single shared template that both clone.
     """
-    if nominal_gdp_pin and investment_closure:
-        raise ValueError(
-            "nominal_gdp_pin cannot be combined with investment_closure: the "
-            "investment closure holds PIF exogenous, which already determines "
-            "nominal GDP through l.688. Pinning GDPMPS as well would remove "
-            "both l.337 and l.688 and break the nominal expenditure identity."
-        )
+    nominal_gdp_pin = resolve_nominal_gdp_pin(nominal_gdp_pin, investment_closure)
     key = (var, start, end, investment_closure, nominal_gdp_pin)
     cached = _REFORM_TEMPLATE_CACHE.get(key)
     if cached is not None:
@@ -663,7 +678,7 @@ def run_reform(
     periods: int = 12,
     investment_closure: bool = False,
     published_conventions: bool = False,
-    nominal_gdp_pin: bool = False,
+    nominal_gdp_pin: "bool | None" = None,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -699,9 +714,11 @@ def run_reform(
             l.688 expenditure identity, so the investment deflator PIF is
             determined (as its l.337 residual) rather than left free. Holds
             the GDP deflator PGDP at its EFO path, which it is anyway (PGDP is
-            exogenous). Default False keeps the published closure. Cannot be
-            combined with ``investment_closure`` (see apply_nominal_gdp_pin).
-            See docs/nominal_gdp_pin.md.
+            exogenous). Default None (since #42): the pin under the demand
+            closure, the published closure under ``investment_closure``
+            (which already determines nominal GDP by holding PIF). False
+            selects the published closure; True with ``investment_closure``
+            raises (see resolve_nominal_gdp_pin). See docs/nominal_gdp_pin.md.
     """
     if published_conventions and investment_closure:
         raise ValueError(
@@ -722,6 +739,7 @@ def run_reform(
     # Clone the shared (cached) template for both runs; the template is pristine
     # and unsolved, so the baseline and shocked clones are structurally
     # identical and the delta isolates the shock.
+    nominal_gdp_pin = resolve_nominal_gdp_pin(nominal_gdp_pin, investment_closure)
     template = _build_reform_template(
         var, start, end, investment_closure, nominal_gdp_pin
     )
@@ -797,6 +815,9 @@ def run_reform(
         )
 
     out = pd.DataFrame(results)
+    # Which nominal-GDP closure produced this frame (#42): True = l.690 pin
+    # (the default under the demand closure), False = published l.688.
+    out.attrs["nominal_gdp_pin"] = nominal_gdp_pin
 
     # A shock path longer than the [start, end] window is applied to the data
     # but never solved or reported, so a caller summing "the shocked quarters"
@@ -928,10 +949,13 @@ def run_reform(
         }
         out.attrs["multiplier_warning"] = (
             "Demand-closure shock: GDP delta is mechanical passthrough via the "
-            "expenditure identity (flat multiplier 1.0, no behavioural "
-            "second-round effects and no decay). Import leakage, income-driven "
-            "consumption and crowding-out channels are structurally inert in "
-            "the published model file/data. This does NOT match the OBR's "
+            "expenditure identity (multiplier 1.0 under the published closure; "
+            "under the default nominal-GDP pin about 1.01 on impact, drifting "
+            "up to about 1.05 by q12 because the extra nominal GDP lands in "
+            "profits and a small part reaches household income and "
+            "consumption; no decay). Import leakage and crowding-out channels "
+            "are structurally inert in the published model file/data. This "
+            "does NOT match the OBR's "
             "published impact multiplier for current spending (0.6, decaying "
             "to zero as the output gap closes) — it is ~67% too large on "
             "impact and stays flat where the OBR's decays. Do not read the "
