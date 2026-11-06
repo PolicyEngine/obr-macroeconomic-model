@@ -22,7 +22,13 @@ def test_scorecard_excludes_passthroughs_from_accuracy_denominator(monkeypatch):
     monkeypatch.setattr(
         calibration_score,
         "raw_solve",
-        lambda: (solver, {"GDPM", "CONS"}, {"CONS"}, 1, len(periods) - 1),
+        lambda nominal_gdp_pin=False: (
+            solver,
+            {"GDPM", "CONS"},
+            {"CONS"},
+            1,
+            len(periods) - 1,
+        ),
     )
 
     report = calibration_score.build_scorecard()
@@ -50,7 +56,13 @@ def test_scorecard_states_what_it_does_not_validate(monkeypatch):
     monkeypatch.setattr(
         calibration_score,
         "raw_solve",
-        lambda: (SimpleNamespace(data=data), set(columns), set(), 1, len(periods) - 1),
+        lambda nominal_gdp_pin=False: (
+            SimpleNamespace(data=data),
+            set(columns),
+            set(),
+            1,
+            len(periods) - 1,
+        ),
     )
 
     report = calibration_score.build_scorecard()

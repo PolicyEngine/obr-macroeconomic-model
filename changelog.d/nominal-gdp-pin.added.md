@@ -1,0 +1,1 @@
+Add an opt-in nominal-GDP closure, `nominal_gdp_pin=True` (`--nominal-gdp-pin` on the scorecard and forecast CLIs), that replaces the l.688 identity with the OBR's commented-out l.690 `GDPMPS = PGDP*GDPM/100`. This determines the investment deflator, which the published closure leaves free (#42). The default is unchanged.
