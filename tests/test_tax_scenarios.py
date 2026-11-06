@@ -62,7 +62,7 @@ DEAD = {
 # Measured: exactly 0 for all three over 25 quarters. £1m allows for solver
 # noise if a closure change ever reintroduces one.
 DEAD_GDP_NOISE_M = 1.0
-COLS = ("GDPM", "GDPMPS", "CONS", "CPI", "PCE", "LFSUR", "HHDI")
+COLS = ("GDPM", "GDPMPS", "CONS", "CPI", "PCE", "LFSUR", "HHDI", "PSCR", "CGNB")
 
 
 @pytest.fixture(scope="module")
@@ -197,3 +197,28 @@ def test_vat_corporation_tax_and_fuel_duty_have_no_gdp_channel(tax_runs):
             np.abs(r["GDPM"]).max(),
         )
         assert np.abs(r["HHDI"]).max() < DEAD_GDP_NOISE_M, name
+
+
+@pytest.mark.slow
+def test_employee_nics_reach_receipts_and_borrowing_one_for_one(tax_runs):
+    """EENIC enters PSCR directly (l.430): +£1 of NICs is +£1 of receipts and
+    -£1 of central government net borrowing."""
+    size = LIVE["employee_nics"][1]
+    r = tax_runs["employee_nics+1"]
+    np.testing.assert_allclose(r["PSCR"], size, atol=1e-6)
+    np.testing.assert_allclose(r["CGNB"], -size, atol=1e-6)
+
+
+@pytest.mark.slow
+@pytest.mark.xfail(
+    strict=True,
+    reason="#56: PUBSTIW (NaN PROV), PUBSTPD (NaN CIL/ENVLEVY/EUETS/RULC) and "
+    "CETAX (NaN CUST) are silently dropped, so these receipts never reach "
+    "PSCR or CGNB. Remove the xfail when #56 is fixed.",
+)
+@pytest.mark.parametrize("name", ["income_tax", "vat", "corporation_tax", "fuel_duty"])
+def test_tax_receipts_reach_receipts_and_borrowing(tax_runs, name):
+    var, size = {**LIVE, **DEAD}[name]
+    r = tax_runs[f"{name}+1"]
+    np.testing.assert_allclose(r["PSCR"][:PERIODS], size, rtol=1e-6)
+    np.testing.assert_allclose(r["CGNB"][:PERIODS], -size, rtol=1e-6)
