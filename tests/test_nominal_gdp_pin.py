@@ -167,3 +167,31 @@ def test_pinned_household_response_fades_after_the_shock(household_pinned):
     assert (up < 0).all(), up.round(0).tolist()
     assert abs(up[24]) < 0.25 * peak, up.round(0).tolist()
     assert all(abs(b) <= abs(a) + 0.02 * peak for a, b in zip(up[12:], up[13:]))
+
+
+@pytest.mark.slow
+def test_pinned_bank_rate_response_is_proportional_to_its_size():
+    """#50: under the pin, peak GDP per 100bp is the same for +25bp, +100bp
+    and +200bp, held for 4 quarters (measured 6 Nov 2026 over 2025Q1-2031Q1:
+    -0.0580%, -0.0574%, -0.0566%; within 2.5%). Under the published closure
+    the same runs give -0.138%, -0.061% and -0.076%, because of a late
+    PIF jump. Bound 10%, the #50 criterion. Every quarter converges to tol."""
+    from obr_macro.reform_analysis import _build_reform_template
+
+    start, end = "2025Q1", "2031Q1"
+    tpl = _build_reform_template("R", start, end, False, True)
+    base = tpl.clone()
+    base.solve(start, end)
+    t0, t1 = base.period_idx(start), base.period_idx(end)
+    b = base.data["GDPM"].iloc[t0 : t1 + 1].to_numpy(dtype=float)
+    per100 = {}
+    for size in (0.25, 1.0, 2.0):
+        k = tpl.clone()
+        k.apply_shock("R", size, start, periods=4)
+        k.solve(start, end)
+        d = k.data["GDPM"].iloc[t0 : t1 + 1].to_numpy(dtype=float) - b
+        per100[size] = np.abs(d / b * 100 / size).max()
+        status = set(k.last_solve_report["exit_status"].values())
+        assert status == {"tol"}, f"{size}pp: not every quarter converged: {status}"
+    lo, hi = min(per100.values()), max(per100.values())
+    assert hi <= 1.10 * lo, f"peak GDP per 100bp not proportional: {per100}"
