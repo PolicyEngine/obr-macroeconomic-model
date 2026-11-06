@@ -687,7 +687,7 @@ class FullOBRSolver:
     def _compute_residuals(self):
         """Compute residuals between OBR data and equation predictions.
 
-        For each behavioral equation (dlog, d, ratio), we compute what the
+        For each behavioral equation (dlog, d, log, ratio), we compute what the
         equation predicts and compare to the actual data. The residual is
         stored and added back during solve to ensure the model matches
         the OBR baseline exactly.
@@ -717,6 +717,10 @@ class FullOBRSolver:
                 "/" in eq.lhs
                 or eq.lhs.lower().startswith("dlog(")
                 or eq.lhs.lower().startswith("d(")
+                # log(X) = rhs (HHTFA, NDIVHH): behavioural, so anchored like
+                # the other forms. Both are dead on the current data (MAJGDP
+                # and CORP are absent), so this moves no number today.
+                or eq.lhs.lower().startswith("log(")
             )
             and "_recode(" not in eq.python_expr
             and "_trend(" not in eq.python_expr
