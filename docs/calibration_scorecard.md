@@ -68,6 +68,15 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 | Trade balance | 0.69% of GDP | computed — fair |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) |
 
+> **Optional nominal-GDP pin (#42).** With `--nominal-gdp-pin` (the OBR's
+> commented-out l.690, `GDPMPS = PGDP*GDPM/100`), the same raw solve scores
+> Real GDP 4.16%, Consumption 6.96%, Business investment 8.38%, Household
+> income 4.66%, Real household income 4.42%, Company profits **18.04%**, the
+> current account 2.19% and the trade balance 0.68% of GDP; LFSUR and RPI do
+> not move. That is 7 of 11 within band, against 6. The default above is the
+> published closure. Why the pin exists, and how it differs from holding PIF,
+> is in [nominal_gdp_pin.md](nominal_gdp_pin.md).
+
 > **This table had gone stale and overstated the model's error.** It previously
 > recorded Real GDP 5.75%, Consumption 9.56%, Household income 14.15%, Real
 > household income 13.86%, Company profits 79.80% and the current account 4.17%
