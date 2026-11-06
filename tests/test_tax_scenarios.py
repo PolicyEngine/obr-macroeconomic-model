@@ -11,12 +11,14 @@ uses for it:
 - corporation tax +1pp, £3.6bn/yr -> NNSCTP (CT, l.408)
 - fuel duty +5% (petrol + diesel), £1.2bn/yr -> TXFUEL (CETAX)
 
-All are exogenous receipts in this closure. Only the two that reach household
-disposable income move real GDP. VAT and fuel duty change basic-price
-taxes, but CPI (l.314) is commented out by the OBR, so there is no price
+All are exogenous receipts in this closure, and every one reaches PSCR and
+CGNB one for one (#56). Income tax and NICs reach household disposable
+income directly. VAT and fuel duty reach it only through profits: a live
+BPAPS lowers GVA at basic prices under the pin, so operating surplus and
+OSHH fall. CPI (l.314) is commented out by the OBR, so there is no price
 route to real consumption. Corporation tax reaches nothing but receipts; its
 live channel (TCPRO, investment closure) cannot be combined with the pin.
-The tests pin both facts so a change to either shows up.
+The tests pin these facts so a change to any of them shows up.
 
 The ratio checked is -dGDPMPS / revenue (nominal GDP per £ of nominal
 revenue). PGDP is exogenous, so this equals the real ratio. For reference,
@@ -59,7 +61,7 @@ DEAD = {
     "corporation_tax": ("NNSCTP", HMRC_CORPORATION_TAX_1PP / 4),
     "fuel_duty": ("TXFUEL", 5 * HMRC_FUEL_DUTY_1PCT / 4),
 }
-# Measured: exactly 0 for all three over 25 quarters. £1m allows for solver
+# Corporation tax GDP effect, measured: exactly 0. £1m allows for solver
 # noise if a closure change ever reintroduces one.
 DEAD_GDP_NOISE_M = 1.0
 COLS = ("GDPM", "GDPMPS", "CONS", "CPI", "PCE", "LFSUR", "HHDI", "PSCR", "CGNB")
@@ -185,22 +187,31 @@ def test_no_tax_moves_cpi_or_unemployment(tax_runs):
 
 
 @pytest.mark.slow
-def test_vat_corporation_tax_and_fuel_duty_have_no_gdp_channel(tax_runs):
-    """The OBR scores VAT at 0.35 (Box 3.2). Here VAT, fuel duty and
-    corporation tax raise revenue with no effect on real GDP or household
-    income, because their only routes (CPI, the cost of capital) are switched
-    off in this closure. Pinned as a documented gap, not a result.
+def test_corporation_tax_has_no_gdp_channel(tax_runs):
+    """NNSCTP reaches CT (l.408), PUBSTIW and PSCR but nothing that feeds
+    activity: the cost-of-capital route (TCPRO) is investment-closure only
+    and cannot be combined with the pin. Pinned as a documented gap."""
+    r = tax_runs["corporation_tax+1"]
+    assert np.abs(r["GDPM"]).max() < DEAD_GDP_NOISE_M, np.abs(r["GDPM"]).max()
+    assert np.abs(r["HHDI"]).max() < DEAD_GDP_NOISE_M
 
-    Expected to flip for VAT and fuel duty when #56 lands: a live BPAPS
-    lowers OS (l.719), and OSHH feeds HHDI (l.654). Re-pin with the
-    measured values then."""
-    for name in DEAD:
-        r = tax_runs[f"{name}+1"]
-        assert np.abs(r["GDPM"]).max() < DEAD_GDP_NOISE_M, (
-            name,
-            np.abs(r["GDPM"]).max(),
-        )
-        assert np.abs(r["HHDI"]).max() < DEAD_GDP_NOISE_M, name
+
+@pytest.mark.slow
+@pytest.mark.parametrize("name", ["vat", "fuel_duty"])
+def test_vat_and_fuel_duty_reach_gdp_through_profits(tax_runs, name):
+    """With BPAPS live (#56), VAT and fuel duty raise basic-price taxes;
+    under the nominal-GDP pin GVA at basic prices falls, so operating
+    surplus absorbs them (l.719), OSHH lowers HHDI (l.654) and consumption.
+    Measured -dGDPMPS / revenue: VAT 0.027 at q4, 0.046 at q12; fuel duty
+    0.026 / 0.044 (0 before #56). OBR Box 3.2 (EFO July 2015) scores VAT at
+    0.35: there is still no price route (CPI, l.314, is commented out), so
+    the model reaches about a tenth of it. Regression bands, not a claim of
+    agreement."""
+    size = DEAD[name][1]
+    r = tax_runs[f"{name}+1"]
+    assert 0.015 < _ratio(r, size, 3) < 0.04, _ratio(r, size, 3)
+    assert 0.03 < _ratio(r, size, 11) < 0.06, _ratio(r, size, 11)
+    assert (r["HHDI"][:PERIODS] < 0).all()
 
 
 @pytest.mark.slow
