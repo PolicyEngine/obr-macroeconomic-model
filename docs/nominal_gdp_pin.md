@@ -164,7 +164,8 @@ respond at all. CGGPS has no equation, so a real CGG shock with nominal
 spending held lowers the deflator GGFCD (l.383) instead. Under the pin,
 nominal GDP rises at the fixed PGDP. Wages are exogenous, so the extra
 nominal income goes almost entirely to company profits (FYCPR +£1.33bn per
-£1.25bn of CGG). It reaches households through property income, and the
+£1.25bn of CGG). Household income rises by about £170m a quarter,
+consumption follows (+£17m on impact, +£59m by q10), and the
 multiplier rises from 1.014 on impact to 1.049 by q11. When the shock ends, it
 drops to 0.039 and decays to 0.017 by q24. With the real-only shock, PIF
 absorbs the nominal gap (+0.94 index points per £1.25bn). Shocking CGGPS by
