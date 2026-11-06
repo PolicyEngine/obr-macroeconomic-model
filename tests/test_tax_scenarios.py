@@ -214,14 +214,11 @@ def test_employee_nics_reach_receipts_and_borrowing_one_for_one(tax_runs):
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True,
-    reason="#56: PUBSTIW (NaN PROV), PUBSTPD (NaN CIL/ENVLEVY/EUETS/RULC) and "
-    "CETAX (NaN CUST) are silently dropped, so these receipts never reach "
-    "PSCR or CGNB. Remove the xfail when #56 is fixed.",
-)
 @pytest.mark.parametrize("name", ["income_tax", "vat", "corporation_tax", "fuel_duty"])
 def test_tax_receipts_reach_receipts_and_borrowing(tax_runs, name):
+    """+£1 of any receipts line is +£1 of PSCR and -£1 of CGNB (#56: before
+    the fix PUBSTIW, PUBSTPD and CETAX were silently dropped, so these four
+    were exactly 0)."""
     var, size = {**LIVE, **DEAD}[name]
     r = tax_runs[f"{name}+1"]
     np.testing.assert_allclose(r["PSCR"][:PERIODS], size, rtol=1e-6)

@@ -17,7 +17,13 @@ from collections.abc import Iterable
 import numpy as np
 import pandas as pd
 
-from obr_macro.data import load_obr_data, ensure_model_code
+from obr_macro.data import (
+    load_obr_data,
+    ensure_model_code,
+    load_efo_receipt_components,
+    EFO_RECEIPT_COMPONENTS,
+    ZERO_RECEIPT_COMPONENTS,
+)
 from obr_macro.transpiler import parse_model_file, ParsedEquation, IDENT, RESERVED_WORDS
 
 # Cache of parsed LHS forms, keyed by the raw LHS string (parsing is
@@ -30,6 +36,106 @@ _LHS_CACHE: dict = {}
 # emits the same message dozens of times in a single run. Keyed by LHS var.
 _WARNED_UNPARSED_LHS: set = set()
 _WARNED_DUPLICATE_LHS: set = set()
+
+# Receipts identities closed on their data path (issue #56): the missing
+# components are seeded (data.EFO_RECEIPT_COMPONENTS / ZERO_RECEIPT_COMPONENTS)
+# and an additive identity residual (data minus the identity's RHS) is held in
+# add_factors, so each identity reproduces its data in the baseline and passes
+# a component shock through one for one.
+RECEIPTS_IDENTITIES = ("CETAX", "PUBSTIW", "PUBSTPD", "BPAPS", "TPRODPS")
+
+
+class DroppedEquationError(RuntimeError):
+    """An equation outside KNOWN_NONFINITE_EQUATIONS evaluated to NaN/inf (or
+    raised) during a solve, so solve_period would have dropped it silently."""
+
+
+# Equations known to be non-finite (or to raise) in the current databank, by
+# LHS variable. Each is missing published data the repo does not have (OBR
+# external assumptions, unpublished financial-account and cost blocks; see
+# _seed_constants for why they are not blanket-seeded). solve() raises
+# DroppedEquationError for any other equation that drops, so a new silent drop
+# (the #56 class of bug) fails loudly. Generated from diagnose_period over
+# 2016Q1-2031Q4 on the default and pinned templates; shrink it as blocks are
+# sourced, never grow it without the reason.
+KNOWN_NONFINITE_EQUATIONS = frozenset(
+    {
+        "BV",
+        "CCOST",
+        "CDEBT",
+        "CDUR",
+        "CGC",
+        "COCU",
+        "CPIH",
+        "CPIX",
+        "CPIXBASE",
+        "DB",
+        "DEBTU",
+        "DEPHHx",
+        "DINVCG",
+        "DIPHHx",
+        "DIPIC",
+        "DIPICf",
+        "DIRIC",
+        "DP",
+        "DV",
+        "EECOMPC",
+        "EQAROW",
+        "EQHH",
+        "EQLIC",
+        "EQLROW",
+        "FISIMPS",
+        "GAD",
+        "GAP",
+        "GMF",
+        "GTPFC",
+        "HHRES",
+        "HHTFA",
+        "HIMPROV",
+        "HSALL",
+        "ICOST",
+        "INV",
+        "LANB",
+        "MCOST",
+        "MKGW",
+        "MKR",
+        "MS",
+        "NADLROW",
+        "NAINSx",
+        "NAOLPE",
+        "NAOLPEx",
+        "NDIVHH",
+        "OLPEx",
+        "OSB",
+        "PCNB",
+        "PD",
+        "PIHH",
+        "PINV",
+        "PMGREL",
+        "PMSREL",
+        "POP16",
+        "PRMIP",
+        "PSFL",
+        "PSGI",
+        "PSTA",
+        "REXC",
+        "REXD",
+        "RHF",
+        "RIC",
+        "RPCOST",
+        "RWACC",
+        "SA",
+        "SCOST",
+        "TRGDP16",
+        "TRGDPAL",
+        "ULCMSBASE",
+        "ULCPSBASE",
+        "UTCOST",
+        "WFP",
+        "XGCOST",
+        "XSCOST",
+    }
+)
 
 
 # Constants the OBR PUBLISHES as level equations in the model file. They are
@@ -235,6 +341,9 @@ class FullOBRSolver:
         # appropriate for level identities (OSHH) and level instruments
         # (HHDI_ADDFACTOR).
         self.add_factors = {}
+
+        # Close the receipts identities on their data path (issue #56).
+        self._close_receipts_identities()
 
         # Structural LOG add-factors {(var, t): value}, applied as
         # new_val * exp(af). This is the EViews convention for add-factoring a
@@ -770,6 +879,62 @@ class FullOBRSolver:
                     "top: " + ", ".join(f"{v}({n})" for v, n in top) + ")"
                 )
 
+    def _eval_rhs(self, eq, t: int) -> float:
+        """Evaluate an equation's RHS at period t on the current data."""
+        row = self.data.iloc[t]
+        ctx = {
+            "np": np,
+            "__builtins__": {},
+            "v": {col: row[col] for col in self.data.columns},
+            "_lag": lambda var, lag: self._lag(var, lag, t),
+            "_lead": lambda var, lead: self._lead(var, lead, t),
+            "_recode": lambda t_arg, period, op, tv, fv: self._recode(
+                t, period, op, tv, fv
+            ),
+            "_trend": lambda t_arg, base: self._trend(t, base),
+            "_elem": self._elem,
+            "t": t,
+        }
+        return float(eval(self._compiled(eq.python_expr), ctx))
+
+    def _close_receipts_identities(self):
+        """Make the receipts identities live without moving the baseline (#56).
+
+        CETAX, PUBSTIW, PUBSTPD, BPAPS and TPRODPS each read a component the
+        databank lacks (CUST; PROV; CIL, ENVLEVY, EUETS, RULC; CCLACA; EUETS),
+        so they evaluated to NaN and solve_period dropped them: receipts shocks
+        to VREC, TXFUEL, TYEM, CT, ... never reached PSCR, CGNB or BPAPS. Seed
+        the components from the EFO receipts tables (zero where the EFO has no
+        line), then hold an additive identity residual, data minus RHS, in
+        add_factors. The baseline reproduces each identity's data path exactly
+        (the EFO BPAPS path, the ONS receipts aggregates) and a component shock
+        moves the identity one for one; the residual cancels in a
+        base-vs-shock delta like every other structural add-factor.
+        """
+        efo = load_efo_receipt_components(self.index)
+        for var in EFO_RECEIPT_COMPONENTS:
+            if var not in self.data.columns or self.data[var].isna().all():
+                self.data[var] = efo[var].to_numpy()
+        for var in ZERO_RECEIPT_COMPONENTS:
+            if var not in self.data.columns or self.data[var].isna().all():
+                self.data[var] = 0.0
+        eqs = {self._extract_lhs_var(eq.lhs): eq for eq in self.equations}
+        floor = self.period_idx(self._hist_floor) if self._hist_floor else 0
+        for var in RECEIPTS_IDENTITIES:
+            eq = eqs.get(var)
+            if eq is None or var not in self.data.columns:
+                continue
+            actual = self.data[var].to_numpy(dtype=float)
+            for t in range(max(floor, 0), len(self.index)):
+                if not np.isfinite(actual[t]):
+                    continue
+                try:
+                    rhs = self._eval_rhs(eq, t)
+                except Exception:
+                    continue
+                if np.isfinite(rhs):
+                    self.add_factors[(var, t)] = actual[t] - rhs
+
     def _anchor_oshh_to_ons(self):
         """Wire the published ONS households' operating surplus into OSHH.
 
@@ -1212,6 +1377,7 @@ class FullOBRSolver:
         self._last_period_exit = "max_iter"
         for iteration in range(max_iter):
             max_change = 0.0
+            iter_dropped = set()
 
             # Build context once per iteration, use mutable v dict
             row = self.data.iloc[t]
@@ -1320,10 +1486,18 @@ class FullOBRSolver:
                             # NaN -> finite transition is a change; the period
                             # must not report converged while values appear.
                             max_change = max(max_change, 1.0)
+                    else:
+                        # Dropped: the variable keeps its data value. Record
+                        # it so solve() can refuse unexpected drops (#56).
+                        iter_dropped.add(var)
                 except Exception:
                     # Skip equations that can't be evaluated, but count them
                     # so dead equations are visible in the solve report.
                     self.eq_failures[var] += 1
+                    iter_dropped.add(var)
+
+            # Drops in the final iteration are the ones that stick.
+            self._last_dropped = iter_dropped
 
             if max_change < tol:
                 self._last_period_exit = "tol"
@@ -1421,6 +1595,7 @@ class FullOBRSolver:
         t_end = self.period_idx(end)
 
         self.eq_failures = Counter()
+        self._dropped = set()
         exit_status = {}
         nonconverged = []
 
@@ -1436,6 +1611,7 @@ class FullOBRSolver:
         results = {}
         for t in range(t_start, t_end + 1):
             iters = self.solve_period(t, max_iter=max_iter)
+            self._dropped |= getattr(self, "_last_dropped", set())
             period = str(self.index[t])
             results[period] = iters
             status = getattr(self, "_last_period_exit", "unknown")
@@ -1445,12 +1621,23 @@ class FullOBRSolver:
             if self.verbose:
                 print(f"  {period}: {iters} iterations ({status})")
 
+        allowed = getattr(self, "allowed_nonfinite", KNOWN_NONFINITE_EQUATIONS)
+        unexpected = sorted(v for v in self._dropped if v not in allowed)
         self.last_solve_report = {
             "periods": t_end - t_start + 1,
             "eq_failures": dict(self.eq_failures),
             "exit_status": exit_status,
             "nonconverged": nonconverged,
+            "dropped": sorted(self._dropped),
         }
+        if unexpected:
+            raise DroppedEquationError(
+                f"{len(unexpected)} equation(s) evaluated to NaN/inf or raised "
+                f"over {start}-{end} and would be dropped silently: "
+                + ", ".join(unexpected)
+                + ". Source the missing input, or add the variable to "
+                "KNOWN_NONFINITE_EQUATIONS with the reason (see issue #56)."
+            )
 
         if self.verbose:
             total_failures = sum(self.eq_failures.values())
