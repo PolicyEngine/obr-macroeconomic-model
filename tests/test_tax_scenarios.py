@@ -189,7 +189,11 @@ def test_vat_corporation_tax_and_fuel_duty_have_no_gdp_channel(tax_runs):
     """The OBR scores VAT at 0.35 (Box 3.2). Here VAT, fuel duty and
     corporation tax raise revenue with no effect on real GDP or household
     income, because their only routes (CPI, the cost of capital) are switched
-    off in this closure. Pinned as a documented gap, not a result."""
+    off in this closure. Pinned as a documented gap, not a result.
+
+    Expected to flip for VAT and fuel duty when #56 lands: a live BPAPS
+    lowers OS (l.719), and OSHH feeds HHDI (l.654). Re-pin with the
+    measured values then."""
     for name in DEAD:
         r = tax_runs[f"{name}+1"]
         assert np.abs(r["GDPM"]).max() < DEAD_GDP_NOISE_M, (
