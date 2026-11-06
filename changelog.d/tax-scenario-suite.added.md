@@ -1,0 +1,1 @@
+Add a tax-scenario regression suite under the nominal-GDP pin (`tests/test_tax_scenarios.py`): income tax, employee NICs, VAT, corporation tax and fuel duty, sized with the HMRC ready reckoner, checking convergence, signs, symmetry, linearity and GDP per £ raised, and pinning that VAT, fuel duty and corporation tax have no GDP channel in this closure.
