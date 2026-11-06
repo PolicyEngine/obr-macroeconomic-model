@@ -208,6 +208,69 @@ _DEAD_UNDER_DEMAND_CLOSURE = {
 # about stability, hence no warning for it; the divergence warning is kept
 # and fires only if the deviation ever overshoots its own steady-state target
 # while still growing (the pre-fix signature).
+# --- Monetary conditioning (#50) -------------------------------------------
+# In the OBR's October 2025 listing, Bank Rate R reaches only the real-rate term
+# in consumption (l.4) and the interest flows in household and corporate income
+# (DIPHH l.623, DIPHHmf l.619, DIRHHf l.627, RIC l.576). Retail rates (RMORT,
+# RDEP), gilt yields (RL), sterling (RX) and house prices (APH) have no
+# equation: they are the OBR's conditioning assumptions, held at the EFO path
+# unless the user moves them. ``monetary_conditioning=True`` moves those inputs
+# with R, but ONLY where a pass-through coefficient has a citable source. It is
+# a judgement overlay, like published_conventions, not model dynamics.
+#
+# Each entry: input -> (coefficient on the R shock in pp, source). Channels
+# with no sourced coefficient are listed in MONETARY_CONDITIONING_OFF and are
+# NOT moved; inventing a number for them would put a judgement in the model's
+# mouth.
+MONETARY_CONDITIONING = {
+    "RMORT": (
+        0.9,
+        "OBR model code (Oct 2025) l.623: DIPHH = (LHP(-1)+OLPE(-1))*"
+        "((1+(0.9*R+0.2)/100)^0.25-1), i.e. the OBR's own effective rate on "
+        "the household loan stock moves 0.9pp per 1pp of Bank Rate, in the "
+        "same quarter. This is the OBR's modelling assumption for the "
+        "effective rate on the loan stock, not a BoE estimate of new-mortgage "
+        "pass-through. Applied to RMORT so the mortgage spread term DIPHHmf "
+        "l.619 (RMORT-R) agrees with it.",
+    ),
+}
+MONETARY_CONDITIONING_OFF = {
+    "RDEP": (
+        "No point estimate: BoE (Saunders speech, Mar 2019) reports sight-deposit "
+        "pass-through of over 80% on average in earlier tightening cycles but "
+        "around 40% in 2017-18, a range too wide to pick from. RDEP reaches "
+        "deposit FISIM (DIRHHf l.627) and deposit holdings (l.779), not HHDI "
+        "directly; round 3 measured it as a minor channel."
+    ),
+    "RL": "No sourced Bank Rate -> 10-year gilt coefficient in BoE/OBR documentation found.",
+    "RX": (
+        "No sourced coefficient; and X, M have no equation, so sterling cannot "
+        "move trade volumes in this model (it only moves PXNOG/PMNOG prices)."
+    ),
+    "APH": "No sourced Bank Rate -> house price coefficient in BoE/OBR documentation found.",
+}
+MONETARY_CONDITIONING_SCOPE_NOTE = (
+    "CPI and unemployment do not respond to Bank Rate in this model by design: "
+    "the OBR's CPI identity (l.314) and PGDP (l.713) are commented out, so CPI "
+    "and PGDP are exogenous, and LFSUR (l.165) has no demand or rate term. Any "
+    "inflation or labour-market response must come from outside the model."
+)
+# R -> RIC -> CDEBT -> RWACC -> COCU -> COC -> KSTAR: the chain stops at COCU.
+# COCU's published equation (l.68) needs DELTA, DEBTW (via RWACC l.64) and NDIV
+# (via CEQUITY l.62), none of which the OBR publishes (variables workbook rows
+# 31, 32, 36: "No Equation", "Exogenous", no codes), so COCU is held at its
+# declared seed (full_solver.UNPUBLISHED_COST_OF_CAPITAL_SEEDS) and COC moves
+# only through TAF (corporation tax). The deviation of COCU after a d(RIC) is
+# DEBTW*d(RIC)/(DELTA+RWACC) — both factors unpublished — so it is not closed
+# here; every Bank Rate run is labelled instead (see run_reform).
+COST_OF_CAPITAL_RATE_CHANNEL_NOTE = (
+    "Bank Rate does not reach business investment: R moves RIC (l.576) and "
+    "CDEBT (l.60), but COCU (l.68) is a fixed seed because DELTA, DEBTW and "
+    "NDIV are unpublished, so COC, KSTAR and IBUSX do not respond to R even "
+    "under investment_closure=True. In the OBR's own working file the "
+    "investment equation (l.92) is commented out as well."
+)
+
 _INVESTMENT_CLOSURE_CREDIBLE_QUARTERS = 12
 # Quarter-on-quarter growth of |delta_IF| above which the tail has not yet
 # settled. A converging error-correction response approaches 1.0 from above;
@@ -679,6 +742,7 @@ def run_reform(
     investment_closure: bool = False,
     published_conventions: bool = False,
     nominal_gdp_pin: "bool | None" = None,
+    monetary_conditioning: bool = False,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -719,7 +783,20 @@ def run_reform(
             (which already determines nominal GDP by holding PIF). False
             selects the published closure; True with ``investment_closure``
             raises (see resolve_nominal_gdp_pin). See docs/nominal_gdp_pin.md.
+        monetary_conditioning: Only for ``var="R"`` (Bank Rate). If True, also
+            move the OBR's conditioning inputs that a Bank Rate change would
+            move in practice, using only SOURCED pass-throughs
+            (MONETARY_CONDITIONING; currently RMORT at 0.9, from the OBR's own
+            l.623). Inputs without a sourced coefficient (RDEP, RL, RX, APH)
+            are left at the EFO path and listed in ``df.attrs``. A labelled
+            judgement overlay, not model dynamics. Default False (unchanged).
+            CPI and unemployment do not respond in either mode, by design.
     """
+    if monetary_conditioning and var != "R":
+        raise ValueError(
+            "monetary_conditioning applies only to a Bank Rate shock (var='R'); "
+            f"got var={var!r}."
+        )
     if published_conventions and investment_closure:
         raise ValueError(
             "published_conventions covers only instruments whose model channel "
@@ -751,6 +828,10 @@ def run_reform(
         _apply_household_costing(shocked, shock, start, periods)
     else:
         shocked.apply_shock(var, shock, start, periods=periods)
+    if monetary_conditioning:
+        r_path = shock_path(shock, periods)
+        for _input, (_coef, _src) in MONETARY_CONDITIONING.items():
+            shocked.apply_shock(_input, [_coef * float(x) for x in r_path], start)
 
     baseline.solve(start, end)
     # getattr, not attribute access: solve() always sets this, but the
@@ -1026,6 +1107,21 @@ def run_reform(
         out.attrs["delta_rhhdi_m"] = (
             shocked_data.iloc[window]["RHHDI"] - baseline_data.iloc[window]["RHHDI"]
         ).tolist()
+    if var == "R":
+        out.attrs["cost_of_capital_channel"] = COST_OF_CAPITAL_RATE_CHANNEL_NOTE
+        out.attrs["inflation_unemployment_note"] = MONETARY_CONDITIONING_SCOPE_NOTE
+    out.attrs["monetary_conditioning"] = bool(monetary_conditioning)
+    if monetary_conditioning:
+        out.attrs["monetary_conditioning_on"] = {
+            k: {"passthrough": c, "source": src}
+            for k, (c, src) in MONETARY_CONDITIONING.items()
+        }
+        out.attrs["monetary_conditioning_off"] = dict(MONETARY_CONDITIONING_OFF)
+        out.attrs["monetary_conditioning_note"] = (
+            "Judgement overlay, not model dynamics: Bank Rate's pass-through to "
+            "the listed conditioning inputs is imposed from the cited sources; "
+            "channels without a sourced coefficient stay at the EFO path."
+        )
     return out
 
 
