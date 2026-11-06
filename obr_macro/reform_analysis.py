@@ -743,6 +743,24 @@ def run_reform(
 
     out = pd.DataFrame(results)
 
+    # A shock path longer than the [start, end] window is applied to the data
+    # but never solved or reported, so a caller summing "the shocked quarters"
+    # silently sums only the first len(out) of them. The MCP obr_shock tool
+    # allows periods up to 40 but always solves the default 12-quarter window,
+    # so periods=20 returned 12 rows while echoing periods=20. Say so.
+    n_shock = len(shock_path(shock, periods))
+    out.attrs["shock_quarters"] = n_shock
+    out.attrs["shock_quarters_beyond_horizon"] = max(0, n_shock - len(out))
+    if n_shock > len(out):
+        msg = (
+            f"shock runs for {n_shock} quarters but the solve window "
+            f"{start}..{end} has {len(out)}: the last {n_shock - len(out)} "
+            "shocked quarters are not solved or reported. Pass a later `end` "
+            "to see them."
+        )
+        out.attrs["horizon_warning"] = msg
+        warnings.warn(msg, stacklevel=2)
+
     # Solver convergence, carried on the frame. solve() already computes a
     # per-period exit status and a non-converged list, but until now it was
     # left on the solver and dropped here, so a caller -- and every MCP

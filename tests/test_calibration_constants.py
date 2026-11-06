@@ -179,3 +179,46 @@ def test_invented_seeds_survive_a_solve_while_published_ones_are_overwritten():
         assert np.isfinite(got) and got == pytest.approx(published_value), (
             f"{name} solved to {got}, not the published {published_value}"
         )
+
+
+def test_employment_seeds_stay_in_thousands():
+    """ET and EMS seeds must be in the same unit as ETLFS (thousands).
+
+    load_obr_data converts the EFO's ETLFS from millions to thousands, the
+    unit of every other head-count in the model (ECG, ELA, EGG, ES, WRGTP).
+    The seeds used to multiply by 1000 again, so ET sat ~1000x above ECG/ELA
+    and WFJ = ET + WRGTP read ~34 billion jobs. Hermetic: a bare solver on a
+    three-quarter frame with no equations, so _initialize_historical runs
+    only its seeding loop.
+    """
+    import numpy as np
+    import pandas as pd
+
+    from obr_macro.full_solver import FullOBRSolver
+
+    index = pd.period_range("2025Q1", periods=3, freq="Q")
+    s = FullOBRSolver.__new__(FullOBRSolver)
+    s.verbose = False
+    s.equations = []
+    s._code_cache = {}
+    s._hist_floor = "2025Q1"
+    s.index = index
+    s.data = pd.DataFrame(
+        {
+            "GDPM": [700000.0] * 3,
+            "ETLFS": [33975.0, 34000.0, 34025.0],  # thousands, as loaded
+            "ECG": [4024.0] * 3,  # thousands
+            "ELA": [1977.0] * 3,
+            "BPA": [np.nan] * 3,
+            "GGVA": [np.nan] * 3,
+            "EMS": [np.nan] * 3,
+            "ET": [np.nan] * 3,
+        },
+        index=index,
+    )
+    s._initialize_historical()
+    assert np.allclose(s.data["ET"], s.data["ETLFS"])
+    assert np.allclose(s.data["EMS"], 0.80 * s.data["ETLFS"])
+    # Same order of magnitude as the public-sector head-counts it nets.
+    assert (s.data["ET"] > s.data["ECG"] + s.data["ELA"]).all()
+    assert (s.data["ET"] < 100 * (s.data["ECG"] + s.data["ELA"])).all()

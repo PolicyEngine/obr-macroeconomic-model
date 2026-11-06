@@ -42,6 +42,8 @@ MANIFEST = SEEDS / "snapshot_manifest.json"
 CDID_RE = re.compile(r"\b[A-Z][A-Z0-9]{3}\b")
 # Compound glossary formulas may only contain CDIDs and simple arithmetic.
 FORMULA_RE = re.compile(r"[A-Za-z0-9_ +\-*/().]+")
+# A lagged component in glossary (EViews) notation: CDID(-n), e.g. CT9E(-1).
+LAG_RE = re.compile(r"\b([A-Z][A-Z0-9]{3})\(\s*-\s*(\d+)\s*\)")
 
 
 def _lhs_var(lhs):
@@ -121,9 +123,21 @@ def eval_compound(formula):
     Returns (series, error, component_metas). The formula is validated against
     a strict allowlist (CDIDs, digits, whitespace and + - * / parentheses,
     no '**') before it is eval'd with builtins stripped.
+
+    Lagged components in EViews notation, ``CDID(-n)``, are supported: each is
+    rewritten to a plain identifier bound to the component lagged by ``n``
+    quarters, so the eval'd text stays identifiers and arithmetic. The lag
+    shifts the PeriodIndex labels (value at t-n is placed at t), not array
+    positions, because cached series are stored with gaps dropped. Lags add
+    leading NaNs, which the final ``dropna`` removes. Any other call-like
+    ``CDID(...)`` is rejected rather than eval'd.
     """
     if not FORMULA_RE.fullmatch(formula) or "**" in formula:
         return None, f"formula rejected by allowlist: {formula!r}", []
+    lags = sorted({(c, int(n)) for c, n in LAG_RE.findall(formula)})
+    expr = LAG_RE.sub(lambda m: f"{m.group(1)}_L{int(m.group(2))}", formula)
+    if re.search(r"\b[A-Z][A-Z0-9]{3}\s*\(", expr):
+        return None, f"unsupported call or lead in formula: {formula!r}", []
     cdids = sorted(set(CDID_RE.findall(formula)))
     ns = {}
     metas = []
@@ -136,8 +150,12 @@ def eval_compound(formula):
             return None, f"missing component {c}", metas
         ns[c] = s
         metas.append(meta)
+    for c, n in lags:
+        lagged = ns[c].copy()
+        lagged.index = lagged.index + n
+        ns[f"{c}_L{n}"] = lagged
     try:
-        result = eval(formula, {"__builtins__": {}}, ns)  # series arithmetic
+        result = eval(expr, {"__builtins__": {}}, ns)  # series arithmetic
         return result.dropna(), None, metas
     except Exception as e:
         return None, f"{type(e).__name__}: {e}", metas

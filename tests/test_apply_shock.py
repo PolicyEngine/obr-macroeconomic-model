@@ -349,3 +349,31 @@ def test_log_lhs_no_longer_unparsed():
 
     assert s.unparsed_lhs == {}
     assert set(s.eq_for_var) == {"HHTFA", "NDIVHH"}
+
+
+def test_log_lhs_equations_get_anchoring_residuals():
+    """The published file has two `log(X) = ...` equations (HHTFA, NDIVHH).
+    _compute_residuals used to keep only ratio, dlog and d forms, so those two
+    would run raw inside every anchored solve, and freeze_anchoring's "log"
+    branch was dead code. A log equation must get a residual like any other
+    behavioural form: actual minus exp(rhs)."""
+    from obr_macro.transpiler import ParsedEquation
+
+    s = _bare_solver()
+    s.data["X"] = 10.0
+    s.data["Z"] = 8.0
+    s.equations = [
+        ParsedEquation(
+            lhs="log(X)",
+            rhs="log(Z)",
+            original="log(X) = log(Z)",
+            equation_type="estimated",
+            python_expr="np.log(v['Z'])",
+        )
+    ]
+    s._build_equation_index()
+    s._code_cache = {}
+    s._compute_residuals()
+    assert s.residuals, "log(X) equation got no anchoring residual"
+    assert all(k[0] == "X" for k in s.residuals)
+    assert all(abs(r - 2.0) < 1e-12 for r in s.residuals.values())
