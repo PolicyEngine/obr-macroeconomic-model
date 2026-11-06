@@ -15,6 +15,7 @@ from obr_macro.reform_analysis import (
     IF_EQ,
     IBUSX_EQ,
     _ensure_ibusx_inputs,
+    apply_nominal_gdp_pin,
 )
 
 START, END = "2025Q1", "2027Q4"
@@ -97,6 +98,10 @@ VARS = [
 def build(closure):
     s = FullOBRSolver(verbose=False)
     s.swap_closure("DINV", GDPM_EQ)
+    if not closure:
+        # The repo default since #42: close nominal GDP with the OBR's l.690.
+        # The investment closure holds PIF instead, so it keeps l.688.
+        apply_nominal_gdp_pin(s)
     if closure:
         _ensure_ibusx_inputs(s)
         s.swap_closure("IBUSX", IBUSX_EQ)

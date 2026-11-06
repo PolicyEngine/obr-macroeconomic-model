@@ -51,13 +51,13 @@ CHECK = [
 _PUBLISHED_LEVEL_ANCHORS = ("HHDI", "RHHDI")
 
 
-def build(anchored=True, nominal_gdp_pin=False):
+def build(anchored=True, nominal_gdp_pin=True):
     """Baseline solver with the repo's GDP closure (DINV held, GDPM computed).
 
     ``nominal_gdp_pin`` swaps the l.688 nominal-GDP identity for the OBR's
     commented-out l.690 ``GDPMPS = PGDP*GDPM/100`` (see
-    reform_analysis.apply_nominal_gdp_pin). Default False: the published
-    closure.
+    reform_analysis.apply_nominal_gdp_pin). Default True since #42; pass
+    False for the published closure (l.688 live, PIF free).
     """
     s = FullOBRSolver(verbose=False)
     s.swap_closure("DINV", GDPM_EQ)
