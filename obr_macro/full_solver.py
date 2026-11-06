@@ -55,9 +55,11 @@ class DroppedEquationError(RuntimeError):
 # external assumptions, unpublished financial-account and cost blocks; see
 # _seed_constants for why they are not blanket-seeded). solve() raises
 # DroppedEquationError for any other equation that drops, so a new silent drop
-# (the #56 class of bug) fails loudly. Generated from diagnose_period over
-# 2016Q1-2031Q4 on the default and pinned templates; shrink it as blocks are
-# sourced, never grow it without the reason.
+# (the #56 class of bug) fails loudly. Generated on 6 Nov 2026 from
+# diagnose_period (pinned template, 2025) and from the drops recorded by solves
+# on the pinned, demand and investment-closure templates (2025Q1-2031Q1) and a
+# plain 2016Q1-2024Q4 history solve. Shrink it as blocks are sourced; never
+# grow it without the reason.
 KNOWN_NONFINITE_EQUATIONS = frozenset(
     {
         "BV",
@@ -66,6 +68,7 @@ KNOWN_NONFINITE_EQUATIONS = frozenset(
         "CDUR",
         "CGC",
         "COCU",
+        "COIN",
         "CPIH",
         "CPIX",
         "CPIXBASE",
@@ -80,21 +83,30 @@ KNOWN_NONFINITE_EQUATIONS = frozenset(
         "DP",
         "DV",
         "EECOMPC",
+        "EMS",
+        "EPS",
         "EQAROW",
         "EQHH",
         "EQLIC",
         "EQLROW",
+        "EQPR",
+        "ES",
+        "ET",
         "FISIMPS",
         "GAD",
         "GAP",
+        "GGGD",
+        "GGVA",
         "GMF",
         "GTPFC",
+        "HD",
         "HHRES",
         "HHTFA",
         "HIMPROV",
         "HSALL",
         "ICOST",
         "INV",
+        "KMSXH",
         "LANB",
         "MCOST",
         "MKGW",
@@ -105,6 +117,7 @@ KNOWN_NONFINITE_EQUATIONS = frozenset(
         "NAOLPE",
         "NAOLPEx",
         "NDIVHH",
+        "NIIP",
         "OLPEx",
         "OSB",
         "PCNB",
@@ -115,14 +128,17 @@ KNOWN_NONFINITE_EQUATIONS = frozenset(
         "PMSREL",
         "POP16",
         "PRMIP",
+        "PSAVEI",
         "PSFL",
         "PSGI",
+        "PSND",
         "PSTA",
         "REXC",
         "REXD",
         "RHF",
         "RIC",
         "RPCOST",
+        "RPRICE",
         "RWACC",
         "SA",
         "SCOST",
@@ -132,6 +148,7 @@ KNOWN_NONFINITE_EQUATIONS = frozenset(
         "ULCPSBASE",
         "UTCOST",
         "WFP",
+        "WRGTP",
         "XGCOST",
         "XSCOST",
     }
