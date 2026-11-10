@@ -930,14 +930,17 @@ def test_raw_calibration_scorecard_does_not_regress():
         "RPI": ("pp", 1.71),
         "HHDI": ("lvl", 6.18),
         "RHHDI": ("lvl", 5.94),
-        # DELIBERATELY RAISED, 63.30 -> 82.78. Recovering OAHHx (household
-        # other income, ONS NNMY+NNOA+NNPM+MMW5 — absent only because the ONS
+        # DELIBERATELY RAISED, 63.30 -> 82.78. Recovering OAHHx (households'
+        # other financial assets, ONS NNMY+NNOA+NNPM+MMW5 — absent only because the ONS
         # pull was failing on TLS) improves GDP, consumption and the current
         # account, and fixes the first-year sign-flip defect in the household
         # costing channel. It also worsens the profits fit, which was already
-        # the worst line in the model and is documented below as dominated by
-        # an unpublished OBR calibration constant rather than a live bug. The
-        # trade was taken knowingly; see issue on the FYCPR/OSHH identity.
+        # the worst line in the model. Not the OSHH constant (its ONS anchor
+        # applies in raw solves too): in this de-seeded solve the investment
+        # deflator PIF and nominal GDP are one identity written twice (model
+        # l.337 and l.688, published_model_review.md G6), so PIF drifts and
+        # FYCPR, a residual of nominal GDP, swings with it. Any input change
+        # moves this figure along a different drift path. See issue #42.
         "FYCPR": ("lvl", 82.78),
         "CB": ("gdp", 3.02),  # % of GDP
         "TB": ("gdp", 0.69),

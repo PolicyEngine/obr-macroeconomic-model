@@ -31,7 +31,6 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
 | Real GDP | 0.27% | within |
 | Consumption | 0.19% | within |
 | Employment | 0.00% | **trivial identity** |
-| Unemployment rate | 0.51pp | within |
 | Real household income | — | **held at EFO (not forecast)** |
 | Household income | — | **held at EFO (not forecast)** |
 | Unemployment rate | 0.69pp | within |

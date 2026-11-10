@@ -1,0 +1,1 @@
+Flag a shock path that runs past the solve window: `run_reform` now records `shock_quarters` and `shock_quarters_beyond_horizon` on the frame and warns, instead of silently dropping the unsolved quarters.

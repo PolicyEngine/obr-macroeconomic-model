@@ -78,7 +78,7 @@ PANEL = {
 }
 
 
-def raw_solve():
+def raw_solve(nominal_gdp_pin=False):
     """Raw solve (residuals off) with the EFO seed removed from the horizon.
 
     The solver's data frame is pre-filled with the EFO path, so a period whose
@@ -89,14 +89,14 @@ def raw_solve():
     previous-period value before solving that period, so no computed variable
     can score well merely by inheriting the EFO seed.
     """
-    probe = build(anchored=False)
+    probe = build(anchored=False, nominal_gdp_pin=nominal_gdp_pin)
     t0, t1 = probe.period_idx(START), probe.period_idx(END)
     probe.solve(START, END)
     has_eq = {probe._extract_lhs_var(eq.lhs) for eq in probe.equations}
     skipped = {d["var"] for d in probe.diagnose_period(t1)}
     live = sorted(has_eq - skipped)
 
-    s = build(anchored=False)
+    s = build(anchored=False, nominal_gdp_pin=nominal_gdp_pin)
     col_locs = [s.data.columns.get_loc(c) for c in live if c in s.data.columns]
     for t in range(t0, t1 + 1):
         if t > 0:
@@ -105,7 +105,7 @@ def raw_solve():
     return s, has_eq, skipped, t0, t1
 
 
-def build_scorecard() -> dict:
+def build_scorecard(nominal_gdp_pin=False) -> dict:
     """Return the calibration evidence as structured, machine-readable data.
 
     Passthroughs are retained in the inventory but excluded from the computed
@@ -113,7 +113,9 @@ def build_scorecard() -> dict:
     value into apparent forecast accuracy by averaging all rows together.
     """
     efo = load_obr_data()
-    s, has_eq, skipped, t0, t1 = raw_solve()  # raw model: no add-factor residuals
+    s, has_eq, skipped, t0, t1 = raw_solve(
+        nominal_gdp_pin
+    )  # raw model: no add-factor residuals
     raw = s.data
 
     def status(code):
@@ -166,6 +168,7 @@ def build_scorecard() -> dict:
     return {
         "model": "obr-macro",
         "evaluation": "raw de-seeded model versus published OBR baseline",
+        "closure": "nominal GDP pinned (l.690)" if nominal_gdp_pin else "published",
         "period": {"start": START, "end": END},
         "blocks": blocks,
         "summary": {
@@ -187,13 +190,22 @@ def build_scorecard() -> dict:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="emit structured JSON")
+    parser.add_argument(
+        "--nominal-gdp-pin",
+        action="store_true",
+        help="close nominal GDP with the OBR's commented-out l.690 "
+        "(GDPMPS = PGDP*GDPM/100); see docs/nominal_gdp_pin.md",
+    )
     args = parser.parse_args(argv)
-    report = build_scorecard()
+    report = build_scorecard(nominal_gdp_pin=args.nominal_gdp_pin)
     if args.json:
         print(json.dumps(report, indent=2))
         return
 
-    print(f"Calibration scorecard — raw model vs OBR baseline, {START}..{END}\n")
+    print(
+        f"Calibration scorecard — raw model vs OBR baseline, {START}..{END}"
+        f" (closure: {report['closure']})\n"
+    )
     for block in report["blocks"]:
         print(f"  {block['block']}")
         for row in block["rows"]:

@@ -276,6 +276,82 @@ def test_household_shock_signs_are_opposite_in_the_two_directions(respond):
     assert up < 0 < down, f"tax rise {up} and cut {down} do not have opposite signs"
 
 
+def test_temporary_government_consumption_shock_ends_when_it_ends(respond):
+    """A four-quarter CGG rise moves GDP one-for-one for four quarters, then stops.
+
+    CGG passes straight through the expenditure identity, so nothing should
+    linger once the shock ends. Measured on 6 Nov 2026 (2025Q1 start, 25
+    quarters): +1000m for q0-q3 to within 0.3m, then at most 1.0m (0.1%) up to
+    q24. The bounds are 0.5% of the shock in both phases.
+    """
+    shock = 1250.0
+    path = respond("CGG", shock, periods=4)["GDPM"]["path"]
+    for q, x in enumerate(path):
+        target = shock if q < 4 else 0.0
+        assert abs(x - target) <= 0.005 * shock, (
+            f"q{q}: GDP delta {x:.2f}, expected {target:.0f} (path {path})"
+        )
+
+
+def _max_abs(xs):
+    return max(abs(x) for x in xs)
+
+
+def test_household_response_scales_linearly_with_shock_size(respond):
+    """Four times the tax rise gives about four times the GDP response.
+
+    dlog(CONS) is log-linear, so the response is not exactly linear, and every
+    path carries stall residue (#38). Measured on 6 Nov 2026 (2025Q1 start,
+    12 shocked quarters): the 4x path deviates from 4 times the 1x path by at
+    most 10.3% of its peak. The bound is 15%. A break here means the household
+    channel has picked up a threshold or a regime switch.
+    """
+    one = respond("HHDI_ADDFACTOR", TAX_RISE_M)["GDPM"]["path"]
+    four = respond("HHDI_ADDFACTOR", 4 * TAX_RISE_M)["GDPM"]["path"]
+    gap = _max_abs([f - 4 * o for f, o in zip(four, one)])
+    assert gap <= 0.15 * _max_abs([4 * o for o in one]), (
+        f"4x response is not ~4x the 1x response: {four} vs 4 x {one}"
+    )
+
+
+def test_household_response_is_antisymmetric_in_magnitude(respond):
+    """A cut moves GDP by about as much as an equal rise, the other way.
+
+    The sign test above checks the signs only. Here the cumulative effects
+    must match in size. Measured on 6 Nov 2026 in this file's 8-quarter
+    window: rise -2,458m, cut +2,287m, a gap of 7.0% of the rise. The bound is
+    15%. Per quarter, stall residue (#38) is larger: one quarter of the rise
+    path dips out of line (q6, -364m between -392m and -455m), so the
+    quarter-by-quarter gap reaches 21% of the peak. That is why the test uses
+    the sum and not the path. (Over a 12-quarter window from 2025Q1 the
+    per-quarter gap was 10.5%.)
+    """
+    up = sum(respond("HHDI_ADDFACTOR", TAX_RISE_M)["GDPM"]["path"])
+    down = sum(respond("HHDI_ADDFACTOR", -TAX_RISE_M)["GDPM"]["path"])
+    assert abs(up + down) <= 0.15 * abs(up), (
+        f"cumulative rise {up:.0f} and cut {down:.0f} are not mirror images"
+    )
+
+
+def test_one_quarter_household_shock_decays_without_changing_sign(respond):
+    """A one-quarter tax rise: GDP dips on impact, then recovers slowly.
+
+    The fall never turns into a boom, and it shrinks quarter on quarter. It
+    does not return to zero within the window: lower income lowers household
+    wealth, and the wealth term keeps consumption lower. Measured on 6 Nov 2026
+    (2025Q1 start): -148m on impact, -50m by q3, -39m by q7 and -28m by q24, so
+    the decay is real but very slow. The bounds are loose on purpose (below
+    half of impact by q3, magnitude never rising by more than 5% of impact).
+    """
+    path = respond("HHDI_ADDFACTOR", TAX_RISE_M, periods=1)["GDPM"]["path"]
+    impact = path[0]
+    assert impact < 0, f"a one-quarter tax rise did not lower GDP on impact: {path}"
+    assert all(x < 0 for x in path), f"the dip turned into a rise: {path}"
+    assert abs(path[3]) < 0.5 * abs(impact), f"no decay by q3: {path}"
+    for a, b in zip(path, path[1:]):
+        assert abs(b) <= abs(a) + 0.05 * abs(impact), f"the response grew back: {path}"
+
+
 # ---------------------------------------------------------------------------
 # Corporation tax: signs right, through a real channel
 # ---------------------------------------------------------------------------

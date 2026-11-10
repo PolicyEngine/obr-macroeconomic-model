@@ -27,6 +27,41 @@ GDPM_EQ = ParsedEquation(
     python_expr="v['CGG'] + v['CONS'] + v['IF'] + v['DINV'] + v['VAL'] + v['X'] - v['M'] + v['SDE']",
 )
 
+# Nominal-GDP pin (optional closure). The published code determines nominal
+# GDP and the investment deflator with one identity written twice: l.337
+# `PIF = (GDPMPS - CGGPS - ... - SDEPS)*100/IF` is l.688
+# `GDPMPS = TFEPS - MPS + SDEPS` rearranged (IFPS = IF*PIF/100, l.114), so the
+# pair (GDPMPS, PIF) is one equation short and an iterative solve leaves PIF
+# wherever its starting value puts it (docs/published_model_review.md, G6).
+# The OBR's own alternative, l.690 `GDPMPS = PGDP*GDPM/100`, is commented out.
+# In the OBR's "indirect T2 fix" configuration GDPM (dict 530) and PGDP
+# (dict 534; l.711 "exogenised to enable indirect T2 fix") are both inputs,
+# so nominal GDP is fixed by them and PIF is the residual that absorbs it.
+# Swapping l.688 for l.690 restores that determination. PGDP is exogenous in
+# this model either way (held at the EFO path), so the pin adds no new
+# assumption about the deflator; it removes the free PIF. See
+# docs/nominal_gdp_pin.md.
+NOMINAL_GDP_PIN_EQ = ParsedEquation(
+    lhs="GDPMPS",
+    rhs="PGDP * GDPM / 100",
+    original="GDPMPS = PGDP * GDPM / 100",
+    equation_type="identity",
+    python_expr="v['PGDP'] * v['GDPM'] / 100",
+)
+
+
+def apply_nominal_gdp_pin(solver) -> None:
+    """Close nominal GDP with the OBR's commented-out l.690.
+
+    Replaces the l.688 expenditure identity for GDPMPS with
+    ``GDPMPS = PGDP * GDPM / 100``. The expenditure identity still holds after
+    the solve, because l.337 makes PIF its residual. Do not combine with a
+    closure that also holds PIF exogenous: with l.337 and l.688 both removed,
+    nothing would tie nominal GDP to its components.
+    """
+    solver.swap_closure("GDPMPS", NOMINAL_GDP_PIN_EQ)
+
+
 IBUS_EQ = ParsedEquation(
     lhs="IBUS",
     rhs="IBUSX + adjustment",
@@ -403,20 +438,29 @@ def _anchor_published_levels(template, start: str, end: str) -> None:
 _REFORM_TEMPLATE_CACHE = {}
 
 
-def _build_reform_template(var, start, end, investment_closure):
+def _build_reform_template(var, start, end, investment_closure, nominal_gdp_pin=False):
     """Build (and cache) the stabilised, unsolved baseline template.
 
     The baseline and shocked runs must be structurally identical (same closures,
     same exogenous instrument, same starting data, same stabilisation) so the
     delta isolates the shock — hence a single shared template that both clone.
     """
-    key = (var, start, end, investment_closure)
+    if nominal_gdp_pin and investment_closure:
+        raise ValueError(
+            "nominal_gdp_pin cannot be combined with investment_closure: the "
+            "investment closure holds PIF exogenous, which already determines "
+            "nominal GDP through l.688. Pinning GDPMPS as well would remove "
+            "both l.337 and l.688 and break the nominal expenditure identity."
+        )
+    key = (var, start, end, investment_closure, nominal_gdp_pin)
     cached = _REFORM_TEMPLATE_CACHE.get(key)
     if cached is not None:
         return cached
 
     baseline = FullOBRSolver(verbose=False)
     baseline.swap_closure("DINV", GDPM_EQ)
+    if nominal_gdp_pin:
+        apply_nominal_gdp_pin(baseline)
     if investment_closure:
         _ensure_ibusx_inputs(baseline)
         baseline.swap_closure("IBUSX", IBUSX_EQ)
@@ -619,6 +663,7 @@ def run_reform(
     periods: int = 12,
     investment_closure: bool = False,
     published_conventions: bool = False,
+    nominal_gdp_pin: bool = False,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -649,6 +694,14 @@ def run_reform(
             household channel is left alone with an attrs note, and combining
             the flag with ``investment_closure=True`` raises. Default False —
             the honest default is the raw model.
+        nominal_gdp_pin: If True, close nominal GDP with the OBR's
+            commented-out l.690 ``GDPMPS = PGDP*GDPM/100`` instead of the
+            l.688 expenditure identity, so the investment deflator PIF is
+            determined (as its l.337 residual) rather than left free. Holds
+            the GDP deflator PGDP at its EFO path, which it is anyway (PGDP is
+            exogenous). Default False keeps the published closure. Cannot be
+            combined with ``investment_closure`` (see apply_nominal_gdp_pin).
+            See docs/nominal_gdp_pin.md.
     """
     if published_conventions and investment_closure:
         raise ValueError(
@@ -669,7 +722,9 @@ def run_reform(
     # Clone the shared (cached) template for both runs; the template is pristine
     # and unsolved, so the baseline and shocked clones are structurally
     # identical and the delta isolates the shock.
-    template = _build_reform_template(var, start, end, investment_closure)
+    template = _build_reform_template(
+        var, start, end, investment_closure, nominal_gdp_pin
+    )
     if var != HOUSEHOLD_COSTING_VAR:
         _check_instrument_domain(template, var, shock_path(shock, periods), start)
     baseline = template.clone()
@@ -742,6 +797,24 @@ def run_reform(
         )
 
     out = pd.DataFrame(results)
+
+    # A shock path longer than the [start, end] window is applied to the data
+    # but never solved or reported, so a caller summing "the shocked quarters"
+    # silently sums only the first len(out) of them. The MCP obr_shock tool
+    # allows periods up to 40 but always solves the default 12-quarter window,
+    # so periods=20 returned 12 rows while echoing periods=20. Say so.
+    n_shock = len(shock_path(shock, periods))
+    out.attrs["shock_quarters"] = n_shock
+    out.attrs["shock_quarters_beyond_horizon"] = max(0, n_shock - len(out))
+    if n_shock > len(out):
+        msg = (
+            f"shock runs for {n_shock} quarters but the solve window "
+            f"{start}..{end} has {len(out)}: the last {n_shock - len(out)} "
+            "shocked quarters are not solved or reported. Pass a later `end` "
+            "to see them."
+        )
+        out.attrs["horizon_warning"] = msg
+        warnings.warn(msg, stacklevel=2)
 
     # Solver convergence, carried on the frame. solve() already computes a
     # per-period exit status and a non-converged list, but until now it was

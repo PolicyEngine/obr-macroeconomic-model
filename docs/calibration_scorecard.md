@@ -19,7 +19,7 @@ October-2025 model code is unchanged).
 > 2026-07-11 vintage; the other 347 values are untouched, deliberately, so this
 > is a data-completeness change and not a vintage bump.
 >
-> Only **`OAHHx`** (household other income, `NNMY+NNOA+NNPM+MMW5`) moves
+> Only **`OAHHx`** (households' other financial assets, a stock, `NNMY+NNOA+NNPM+MMW5`) moves
 > anything; the other seven are inert against this panel. It improves Real GDP
 > (4.48% → 4.32%), Consumption (7.49% → 7.22%) and the current account (3.60% →
 > 3.02% of GDP), and — the reason it was taken — it makes the household costing
@@ -68,6 +68,15 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 | Trade balance | 0.69% of GDP | computed — fair |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) |
 
+> **Optional nominal-GDP pin (#42).** With `--nominal-gdp-pin` (the OBR's
+> commented-out l.690, `GDPMPS = PGDP*GDPM/100`), the same raw solve scores
+> Real GDP 4.16%, Consumption 6.96%, Business investment 8.38%, Household
+> income 4.66%, Real household income 4.42%, Company profits **18.04%**, the
+> current account 2.19% and the trade balance 0.68% of GDP; LFSUR and RPI do
+> not move. That is 7 of 11 within band, against 6. The default above is the
+> published closure. Why the pin exists, and how it differs from holding PIF,
+> is in [nominal_gdp_pin.md](nominal_gdp_pin.md).
+
 > **This table had gone stale and overstated the model's error.** It previously
 > recorded Real GDP 5.75%, Consumption 9.56%, Household income 14.15%, Real
 > household income 13.86%, Company profits 79.80% and the current account 4.17%
@@ -112,9 +121,11 @@ scored here.
   trivial employment identity. Business investment, the unemployment rate and
   RPI inflation are poor; Company profits and the current account are off.
 - **Company profits (FYCPR) and, on the March-2026 vintage, the current
-  account (CB) score "off".** FYCPR's raw error is dominated by an unpublished
-  OBR calibration constant rather than a live bug (see the OSHH floor below);
-  CB crossed from "poor" (2.76% of GDP on the November-2025 vintage) to "off"
+  account (CB) score "off".** FYCPR's raw error is solver drift, not the
+  unpublished OSHH constant this line used to blame: nominal GDP and the
+  investment deflator `PIF` are one identity written twice, so `PIF`
+  random-walks under the de-seeded solve and profits follow (see the 6 Nov
+  2026 note under the OSHH floor below, and issue #42). CB crossed from "poor" (2.76% of GDP on the November-2025 vintage) to "off"
   (3.60%) because the March EFO revised the current-account path while the
   `NIPD` overseas rate-of-return normalisers stay at their old unpublished
   levels.
@@ -124,7 +135,8 @@ The model computes `RPI` as the year-on-year RPI **inflation rate**
 (`RPI = PR/PR(-4)*100 - 100`), not the RPI price **index**. The scorecard used
 to compare that rate against the EFO `RPI` *index* (~400) as a level, which is a
 category error — it read a meaningless **99.58%** "off". Scored against the EFO
-`RPIGR` inflation series as a rate (pp), the honest error is **2.03pp** ("poor").
+`RPIGR` inflation series as a rate (pp), the honest error was **2.03pp** ("poor") when the metric was fixed; it is
+1.71pp on the current vintage (table above).
 The residual is real and traces to the RPI index itself: `PR` (≈ the exogenous
 `I7` normaliser) freezes once its unpublished history runs out around 2026Q2, so
 modelled inflation decays toward zero over the tail of the horizon. That decay is
@@ -148,6 +160,32 @@ is gated against *regression*, not chased to zero (the gate is
 `tests/test_model_invariants.py`, run in the hard-gating invariants CI job; the
 `calibration-report` CI job remains report-only).
 
+> **This floor no longer reaches the raw score (checked 2026-11-05, issue #42).**
+> `FullOBRSolver._anchor_oshh_to_ons` (`obr_macro/full_solver.py`) pins `OSHH`
+> to the published ONS series `CAEN` with a structural add-factor, and
+> structural add-factors apply in every solve, raw included (`solve_period`).
+> So the `12874`/`PRENT` gap described above is absorbed before it reaches
+> `FYCPR`, and it cannot explain the 82.77%. A static check with no solve —
+> the `OS` and `FYCPR` identities evaluated on the loaded EFO + ONS inputs over
+> 2025Q1–2027Q4 — gives 3.6% MAPE if `OS` is taken from the data, and 23.9%
+> if `OS` is built from its own identity (`GDPMPS − FYEMP − MI − BPAPS −
+> TPRODPS − SDI`, mixing EFO and ONS vintages, with the ONS components held
+> flat past the 2026Q1 snapshot edge). That is the identity-only floor; the
+> rest of the 82.77% comes from solved inputs.
+>
+> **The run (6 Nov 2026, issue #42) names the input: the investment deflator.**
+> `PIF` (l.337) and `GDPMPS` (l.688) are the same identity, so the pair is
+> undetermined and Gauss-Seidel keeps whatever `PIF` it starts from. The
+> plain raw solve (EFO seed left in place) gives FYCPR 12.17%; the de-seeded
+> solve this scorecard reports reseeds each quarter from the last, `PIF`
+> random-walks (106.7 → −4.6 → 317.2 against an EFO of about 105), and FYCPR,
+> a residual of nominal GDP, follows: 82.77%. The FYCPR reference therefore
+> measures drift, not fit; any input change can move it by tens of points
+> (adding DEBTU, #43, moves it to 38.17%). Pinning nominal GDP with the OBR's
+> own commented-out l.690, `GDPMPS = PGDP·GDPM/100`, gives 18.04%, below the
+> static floor above. That closure is a decision for #42 and is not applied
+> here; no number in the table above changes.
+
 - **Why the headline numbers improved vs earlier versions of this doc:** the
   large divergences the older table recorded (business investment 318%, household
   income ~932%, company profits ~375%, current account ~60% of GDP) were fixed by
@@ -164,7 +202,8 @@ OBR's own convention. Crucially it is now applied **consistently in both this
 scorecard and the forecast scorecard** (`forecast.py`) — previously it lived only
 in the forecast scorecard, which is the kind of selective metric that flatters a
 headline. Scored the same way everywhere, the trade balance is *fair*; the
-current account is *off* (4.17% of GDP) once de-seeded — driven by a net
+current account is *off* (4.17% of GDP when this was written; 3.02% on the
+current vintage, table above) once de-seeded — driven by a net
 investment-income (`NIPD`) overshoot, itself bounded by the overseas
 rate-of-return normalisers the OBR does not publish.
 
