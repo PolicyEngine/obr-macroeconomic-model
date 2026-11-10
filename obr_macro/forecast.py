@@ -49,10 +49,20 @@ PANEL = [
 
 
 def forecast(
-    base_start=BASE_START, base_end=BASE_END, fc_start=FC_START, fc_end=FC_END
+    base_start=BASE_START,
+    base_end=BASE_END,
+    fc_start=FC_START,
+    fc_end=FC_END,
+    nominal_gdp_pin=False,
 ):
-    """Project the model forward with add-factors held from the base window."""
-    s = build(anchored=True)  # residuals computed over 2024Q1+
+    """Project the model forward with add-factors held from the base window.
+
+    ``nominal_gdp_pin`` selects the l.690 nominal-GDP closure (see
+    docs/nominal_gdp_pin.md); default False is the published closure.
+    """
+    s = build(
+        anchored=True, nominal_gdp_pin=nominal_gdp_pin
+    )  # residuals computed over 2024Q1+
     bt0, bt1 = s.period_idx(base_start), s.period_idx(base_end)
 
     held = {}
@@ -73,9 +83,18 @@ def forecast(
     return s, held
 
 
-def main():
+def main(argv=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--nominal-gdp-pin",
+        action="store_true",
+        help="close nominal GDP with the OBR's commented-out l.690",
+    )
+    args = parser.parse_args(argv)
     efo = load_obr_data()
-    s, held = forecast()
+    s, held = forecast(nominal_gdp_pin=args.nominal_gdp_pin)
     has_eq = {s._extract_lhs_var(eq.lhs) for eq in s.equations}
     t1 = s.period_idx(FC_END)
     skipped = {d["var"] for d in s.diagnose_period(t1)}
