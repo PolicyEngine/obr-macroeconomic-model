@@ -1,1 +1,0 @@
-Drop the unsourced 0.2 corporation-tax entry from `run_reform`'s `obr_published_impact_multiplier` attribute, the README and the dashboard generator comments. The multiplier table the repo encodes (`published_conventions.py`, EFO July 2015 Box 3.2) has no corporation-tax row.

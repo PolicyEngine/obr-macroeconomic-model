@@ -48,10 +48,9 @@ VARS = [
 # against the held baseline are kept; corporation tax is excluded because its
 # business-investment-to-GDP transmission is dead in this model (a rise and a
 # cut move GDP the same way under the demand closure; the cost-of-capital
-# closure's old divergence was fixed 2026-08, but its magnitude has no
-# sourced benchmark: the multiplier table this repo encodes from EFO July 2015
-# Box 3.2, obr_macro/published_conventions.py, has no corporation-tax row) — it needs one before it can be shown
-# honestly.
+# closure's old divergence was fixed 2026-08, but its magnitude has not been
+# benchmarked against the OBR's 0.2 multiplier) — it needs that before it can
+# be shown honestly.
 LEVERS = [
     dict(
         id="CGG",
