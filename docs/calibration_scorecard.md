@@ -57,20 +57,34 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 |---|--:|---|
 | Variable | Error (3yr), default (nominal-GDP pin) | Status | Published closure |
 |---|--:|---|--:|
-| Real GDP | 4.16% | computed — fair | 4.32% |
-| Consumption | 6.96% | computed — fair | 7.22% |
-| Business investment | 8.38% | computed — fair | 15.28% (poor) |
+| Real GDP | 4.16% | computed — fair | 4.16% |
+| Consumption | 6.95% | computed — fair | 6.96% |
+| Business investment | 8.38% | computed — fair | 16.90% (poor) |
 | Employment | 0.00% | computed — **trivial identity** | 0.00% |
 | Unemployment rate | 1.01pp | computed — poor | 1.01pp |
 | RPI inflation | 1.71pp | computed — poor | 1.71pp |
-| Household income | 4.66% | computed — fair | 6.18% |
-| Real household income | 4.42% | computed — fair | 5.94% |
-| Company profits | 18.04% | computed — poor | 82.77% (off) |
-| Current account | 2.19% of GDP | computed — poor | 3.02% of GDP (off) |
-| Trade balance | 0.68% of GDP | computed — fair | 0.69% of GDP |
+| Household income | 4.65% | computed — fair | 6.00% |
+| Real household income | 4.41% | computed — fair | 5.76% |
+| Company profits | 17.90% | computed — poor | 41.71% (off) |
+| Current account | 2.19% of GDP | computed — poor | 2.99% of GDP (poor) |
+| Trade balance | 0.68% of GDP | computed — fair | 0.68% of GDP |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) | 0.00% |
 
 Within band: 7 of 11 under the default, 6 of 11 under the published closure.
+
+> **Re-measured 11 Nov 2026 with the receipts identities live (#56).** The
+> fiscal identities now read the model's own solved components instead of
+> staying frozen at data, which moves BPAPS and, through it, operating
+> surplus and profits. Default closure: consumption 6.96% → 6.95%, household
+> income 4.66% → 4.65%, real household income 4.42% → 4.41%, company profits
+> 18.04% → 17.90%. Published closure: real GDP 4.32% → 4.16%, consumption
+> 7.22% → 6.96%, business investment 15.28% → 16.90%, household income
+> 6.18% → 6.00%, real household income 5.94% → 5.76%, company profits
+> 82.77% → 41.71%, current account 3.02% → 2.99% of GDP, trade balance
+> 0.69% → 0.68%. The size of the published-closure moves is one more sign
+> that its profits figure is drift: a change of a few £bn in BPAPS halves
+> it. Notes further down that quote 82.77%, 15.28% or 18.04% describe the
+> scorecard before this change.
 
 > **The nominal-GDP pin is the default (#42, 6 Nov 2026).** The scorecard
 > closes nominal GDP with the OBR's commented-out l.690,
