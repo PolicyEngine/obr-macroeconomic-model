@@ -1,0 +1,1 @@
+Add `scripts/site_figures.py`, which regenerates the OBR emulator figures quoted on the PolicyEngine Macro site and writes them, with solver convergence, model commit and ONS snapshot, to `results/site_figures.json`. No model code changes.
