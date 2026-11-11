@@ -576,6 +576,16 @@ def _label_investment_closure_divergence(
         warnings.warn(msg, stacklevel=3)
 
 
+# Imposing a published convention (see _impose_published_convention): the
+# reported GDP delta must be within this many £m of multiplier x shock in every
+# quarter, and the add-factor is corrected for at most this many solves.
+# Measured under the nominal-GDP pin: the first solve misses by about 1.4% of
+# the add-factor (£7m on a £1.25bn CGG shock), the second by about 1.4% of
+# that. Six leaves a wide margin and bounds the cost.
+_CONVENTION_TOL_M = 0.5
+_CONVENTION_MAX_PASSES = 6
+
+
 def _impose_published_convention(
     template,
     baseline_data,
@@ -609,10 +619,26 @@ def _impose_published_convention(
     applied to the baseline AND every shocked clone alike so they cancel in the
     delta; here they are applied to the shocked run ONLY, deliberately, so they
     do NOT cancel — the non-cancelling difference IS the convention. The
-    add-factor for each quarter is (convention target - measured raw delta), so
-    the imposed run lands on the target exactly, including the removal of the
-    raw run's deflator noise (the wrong-signed residue a dead CGIPS shock
-    leaves in GDP is part of what is being overridden).
+    add-factor for each quarter starts at (convention target - measured raw
+    delta) and is then corrected until the imposed run lands on the target,
+    including the removal of the raw run's deflator noise (the wrong-signed
+    residue a dead CGIPS shock leaves in GDP is part of what is being
+    overridden).
+
+    Why the correction passes. The one-shot add-factor is exact only when the
+    GDPM add-factor has no feedback onto GDPM. That holds under the published
+    closure (l.688), where real GDP reaches nothing behavioural. Under the
+    nominal-GDP pin (the OBR's commented-out l.690, GDPMPS = PGDP*GDPM/100)
+    it does not: real GDP sets nominal GDP, the income side books the change
+    in profits, part of it reaches household income (OSHH -> HHDI) and
+    consumption responds through the RHHDI terms of dlog(CONS) (l.4), which
+    is itself a component of GDPM. Each £1 of add-factor therefore moved GDP
+    by about £1.014, and a one-shot imposition delivered 0.594 where the
+    convention says 0.6 (#54). The add-factor is the fixed point of
+    af <- af + (target - delta); the loop below iterates it until every
+    quarter is within ``_CONVENTION_TOL_M`` of the target, and raises rather
+    than report a multiplier it did not impose. Under the published closure
+    the first solve is already on target, so no extra solve is run.
 
     Units: the OBR multipliers map real spending to real GDP. Nominal
     instruments (CGIPS/LAIPS/GGIPS, £m current prices) are converted to real
@@ -636,18 +662,46 @@ def _impose_published_convention(
         real_shock.append(float(s))
     target = target_gdp_delta(convention.channel, real_shock)
 
-    conv = template.clone()
-    conv.apply_shock(var, shock, start, periods=periods)
-    for q in range(horizon):
-        t = t_start + q
-        raw_delta = float(
-            raw_shocked_data.iloc[t]["GDPM"] - baseline_data.iloc[t]["GDPM"]
-        )
-        key = ("GDPM", t)
-        # += so the structural add-factors already on the template (e.g. the
-        # OSHH anchor) are preserved, not clobbered.
-        conv.add_factors[key] = conv.add_factors.get(key, 0.0) + (target[q] - raw_delta)
-    conv.solve(start, end)
+    base_gdp = [float(baseline_data.iloc[t_start + q]["GDPM"]) for q in range(horizon)]
+    # First guess: (target - raw delta), exact when the add-factor has no
+    # feedback onto GDPM (the published closure).
+    add = [
+        target[q] - (float(raw_shocked_data.iloc[t_start + q]["GDPM"]) - base_gdp[q])
+        for q in range(horizon)
+    ]
+    passes = 0
+    while True:
+        passes += 1
+        # A fresh clone each pass: every pass is the same solve from the same
+        # start, differing only in the add-factor path.
+        conv = template.clone()
+        conv.apply_shock(var, shock, start, periods=periods)
+        for q in range(horizon):
+            key = ("GDPM", t_start + q)
+            # += so the structural add-factors already on the template (e.g.
+            # the OSHH anchor) are preserved, not clobbered.
+            conv.add_factors[key] = conv.add_factors.get(key, 0.0) + add[q]
+        conv.solve(start, end)
+        miss = [
+            target[q] - (float(conv.data.iloc[t_start + q]["GDPM"]) - base_gdp[q])
+            for q in range(horizon)
+        ]
+        worst = max((abs(m) for m in miss), default=0.0)
+        if not np.isfinite(worst):
+            raise RuntimeError(
+                "published-convention solve produced a non-finite GDPM; the "
+                "convention cannot be imposed"
+            )
+        if worst <= _CONVENTION_TOL_M:
+            break
+        if passes >= _CONVENTION_MAX_PASSES:
+            raise RuntimeError(
+                f"published convention not imposed: after {passes} solves the "
+                f"GDP delta is still £{worst:.2f}m from the convention path "
+                f"(tolerance £{_CONVENTION_TOL_M}m). Refusing to report a "
+                "multiplier the run does not deliver."
+            )
+        add = [a + m for a, m in zip(add, miss)]
 
     entry = PUBLISHED_MULTIPLIERS[convention.channel]
     detail = {
@@ -665,6 +719,18 @@ def _impose_published_convention(
         "deflator": convention.deflator,
         "real_shock_m": real_shock,
         "target_delta_gdp_m": target,
+        # How the imposition landed: solves used (1 = the one-shot add-factor
+        # was already on target, i.e. no feedback) and the largest remaining
+        # distance from the convention path, £m.
+        "imposition_solves": passes,
+        "max_abs_miss_m": worst,
+        # Per-quarter exit status of the imposed solve (None for a solver
+        # double that reports nothing), so a reader can see whether the
+        # reported path is a converged solve.
+        "solver_exit_status": dict(
+            (getattr(conv, "last_solve_report", None) or {}).get("exit_status", {})
+        )
+        or None,
     }
     return conv.data.copy(), detail
 
