@@ -125,6 +125,7 @@ jobs:
           tests/test_stress.py
           tests/test_solver.py
           tests/test_nominal_gdp_pin.py
+          tests/test_tax_scenarios.py
 
   calibration-report:
     name: Calibration scorecard (report only — never gates)
