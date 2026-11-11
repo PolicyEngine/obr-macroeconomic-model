@@ -876,9 +876,11 @@ def run_reform(
     # being dressed up as a validated multiplier profile.
     #
     # AGAINST THE PUBLISHED RANGE. The OBR's own impact multipliers are 1.0 for
-    # CAPITAL spending, 0.6 for CURRENT spending, 0.6 for welfare, 0.3 for
-    # personal tax and NICs and 0.2 for corporation tax, and all of them decay
-    # to zero as the output gap closes. This model returns 1.00 flat for a
+    # CAPITAL spending, 0.6 for CURRENT spending, 0.6 for welfare and 0.3 for
+    # personal tax and NICs (published_conventions.py, EFO July 2015 Box 3.2),
+    # and all of them decay to zero as the output gap closes. (A 0.2
+    # corporation-tax figure used to be listed here and in df.attrs; it had no
+    # source in this repo and was dropped, #58.) This model returns 1.00 flat for a
     # government-CONSUMPTION shock — measured impact 1.0000, quarter 12 0.9995,
     # linear in shock size from GBP 0.1bn to GBP 10bn. So it overstates the
     # OBR's current-spending multiplier by ~67% on impact and by more at every
@@ -924,7 +926,6 @@ def run_reform(
             "current_spending": 0.6,
             "capital_spending": 1.0,
             "personal_tax_and_nics": 0.3,
-            "corporation_tax": 0.2,
         }
         out.attrs["multiplier_warning"] = (
             "Demand-closure shock: GDP delta is mechanical passthrough via the "

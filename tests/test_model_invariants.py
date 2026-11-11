@@ -128,6 +128,9 @@ def test_demand_closure_results_carry_passthrough_warning(spending_reforms):
     # "the OBR's ~1.0 multiplier for government consumption"; 1.0 is the OBR's
     # CAPITAL-spending multiplier — its current-spending one is 0.6.)
     assert df.attrs["obr_published_impact_multiplier"]["current_spending"] == 0.6
+    # Only multipliers with a source in published_conventions.py may be quoted
+    # as the OBR's. The unsourced 0.2 corporation-tax entry was dropped (#58).
+    assert "corporation_tax" not in df.attrs["obr_published_impact_multiplier"]
     assert "0.6" in df.attrs["multiplier_warning"]
 
 
