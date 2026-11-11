@@ -119,6 +119,120 @@ def test_conventions_refused_with_investment_closure():
         )
 
 
+# --- The imposition loop, on a solver double (fast, no model build) ---------
+
+
+class _FeedbackSolver:
+    """A solver double whose GDPM responds to its own add-factor.
+
+    GDPM_t = base + passthrough*shock + gain*af_t + lag_gain*af_(t-1). With
+    gain = 1 and lag_gain = 0 the add-factor has no feedback (the published
+    closure, l.688). gain = 1.0137 is the feedback measured under the
+    nominal-GDP pin (l.690): nominal GDP -> profits -> household income ->
+    consumption -> GDPM.
+    """
+
+    BASE = 600_000.0
+
+    def __init__(self, gain, lag_gain=0.0, passthrough=1.0, n=12):
+        import pandas as pd
+
+        self.gain, self.lag_gain, self.passthrough, self.n = (
+            gain,
+            lag_gain,
+            passthrough,
+            n,
+        )
+        self.add_factors = {}
+        self.shock = [0.0] * n
+        self.solves = 0
+        self.data = pd.DataFrame({"GDPM": [self.BASE] * n, "GGIDEF": [120.0] * n})
+
+    def clone(self):
+        twin = _FeedbackSolver(self.gain, self.lag_gain, self.passthrough, self.n)
+        twin.add_factors = dict(self.add_factors)
+        twin.counter = getattr(self, "counter", self)
+        return twin
+
+    def apply_shock(self, var, shock, start, periods=None):
+        self.shock = [float(shock)] * self.n
+
+    def solve(self, start, end):
+        root = getattr(self, "counter", self)
+        root.solves += 1
+        for t in range(self.n):
+            af = self.add_factors.get(("GDPM", t), 0.0)
+            af_lag = self.add_factors.get(("GDPM", t - 1), 0.0)
+            self.data.loc[t, "GDPM"] = (
+                self.BASE
+                + self.passthrough * self.shock[t]
+                + self.gain * af
+                + self.lag_gain * af_lag
+            )
+
+
+def _impose_on_double(template, shock=1250.0):
+    from obr_macro.reform_analysis import _impose_published_convention
+
+    n = template.n
+    baseline = template.clone()
+    baseline.solve("s", "e")
+    raw = template.clone()
+    raw.apply_shock("CGG", shock, "s", periods=n)
+    raw.solve("s", "e")
+    template.solves = 0  # count only the imposition's own solves
+    data, detail = _impose_published_convention(
+        template,
+        baseline.data.copy(),
+        raw.data.copy(),
+        INSTRUMENT_CONVENTIONS["CGG"],
+        "CGG",
+        shock,
+        "s",
+        "e",
+        n,
+        0,
+        n - 1,
+    )
+    delta = (data["GDPM"] - baseline.data["GDPM"]).to_numpy(dtype=float)
+    return delta, detail
+
+
+def test_imposition_lands_on_the_convention_when_the_add_factor_feeds_back():
+    """The bug behind #54's red slow suite. Under the nominal-GDP pin each £1
+    of GDPM add-factor moves GDP by about £1.0137, so the one-shot add-factor
+    (target - raw delta) delivered 742.9 where 0.6 x 1250 = 750: a multiplier
+    of 0.594 reported as the OBR's 0.6. The imposition must correct the
+    add-factor until the delta IS multiplier x shock."""
+    template = _FeedbackSolver(gain=1.0137, lag_gain=0.004, passthrough=1.0137)
+    delta, detail = _impose_on_double(template)
+    target = np.array(target_gdp_delta("current_spending", [1250.0] * 12))
+    assert np.abs(delta - target).max() < 0.5
+    assert delta[0] / 1250.0 == pytest.approx(0.6, abs=0.0005)
+    assert detail["imposition_solves"] > 1  # the one-shot guess was not enough
+    assert detail["imposition_solves"] == template.solves
+    assert detail["max_abs_miss_m"] < 0.5
+
+
+def test_imposition_costs_one_solve_when_there_is_no_feedback():
+    """Under the published closure (l.688) the GDPM add-factor reaches nothing
+    behavioural, so the first solve is already on the convention path and no
+    correction solve may be spent."""
+    template = _FeedbackSolver(gain=1.0)
+    delta, detail = _impose_on_double(template)
+    target = np.array(target_gdp_delta("current_spending", [1250.0] * 12))
+    assert np.abs(delta - target).max() < 1e-6
+    assert detail["imposition_solves"] == 1 == template.solves
+
+
+def test_imposition_raises_instead_of_reporting_a_multiplier_it_missed():
+    """If the correction does not converge the run must fail: a frame labelled
+    'the OBR's 0.6' that delivers something else is the defect being fixed."""
+    template = _FeedbackSolver(gain=2.5)  # |1 - gain| > 1: correction diverges
+    with pytest.raises(RuntimeError, match="published convention not imposed"):
+        _impose_on_double(template)
+
+
 # --- Imposition on the model (slow: needs OBR download + solver build) ------
 
 
@@ -147,18 +261,35 @@ def test_cgg_conventions_follows_published_profile(cgg_conventions):
     shock = 1250.0
     target = [0.6 * (1 - q / TAPER_QUARTERS) * shock for q in range(len(df))]
     got = df["delta_gdp_m"].to_numpy(dtype=float)
-    # 5 £m absolute tolerance: the GDPM add-factor has no live feedback path
-    # under the demand closure, so the only slack is second-order solver noise
-    # (measured well under 1 £m). The quarterly fade step is 37.5 £m, so the
-    # profile is resolved far beyond the tolerance.
+    # 1 £m absolute tolerance (was 5). Under the default nominal-GDP pin the
+    # GDPM add-factor feeds back on GDP (about 1.014 per £1), so the
+    # imposition iterates the add-factor until every quarter is within
+    # £0.5m; measured 11 Nov 2026: 3 solves, worst quarter £0.04m off, q0
+    # 749.999 against 750. The one-shot add-factor gave 742.9 (0.594). The
+    # quarterly fade step is 37.5 £m, so the profile is resolved far beyond
+    # the tolerance.
     for q, (g, t) in enumerate(zip(got, target)):
-        assert abs(g - t) < 5.0, f"quarter {q}: delta {g:.1f} vs convention {t:.1f}"
+        assert abs(g - t) < 1.0, f"quarter {q}: delta {g:.1f} vs convention {t:.1f}"
     # Explicitly: impact 0.6 and strictly fading thereafter.
-    assert got[0] / shock == pytest.approx(0.6, abs=0.005)
+    assert got[0] / shock == pytest.approx(0.6, abs=0.001)
     assert (np.diff(got) < 0).all(), "conventions path must fade, not stay flat"
-    # Components are NOT overridden: consumption stays inert exactly as in the
-    # raw model, so nobody can read behaviour into the imposed number.
-    assert df["delta_cons_m"].abs().max() < 0.001 * shock
+    conv = df.attrs["convention"]
+    assert conv["max_abs_miss_m"] <= 0.5
+    assert set(conv["solver_exit_status"].values()) == {"tol"}
+    # Components are NOT overridden; they are what the model's own equations
+    # give in the imposed run. Convention stated (#42, #54): under the
+    # default closure, the OBR's commented-out l.690 GDPMPS = PGDP*GDPM/100,
+    # the imposed real GDP sets nominal GDP, the income side books it in
+    # profits, part reaches household income, and consumption responds through
+    # the RHHDI terms of dlog(CONS) (l.4). So consumption is no longer inert
+    # (it was, to under 0.1% of the shock, when the published l.688 closure
+    # was the default). Measured 11 Nov 2026: +10.1m in q0 rising to +23.3m
+    # by q9, i.e. 0.8% to 1.9% of the shock and 1.3% to 6.8% of the imposed
+    # GDP delta. The GDP total is still exactly the convention: the
+    # add-factor absorbs the consumption response.
+    cons = df["delta_cons_m"].to_numpy(dtype=float)
+    assert (cons > 0).all(), f"income channel should add to consumption: {cons}"
+    assert cons.max() < 0.03 * shock, f"consumption response {cons.max():.1f}m"
 
 
 @pytest.mark.slow
@@ -210,7 +341,9 @@ def test_cgips_conventions_imposes_capital_multiplier_of_one():
     assert got[0] / real_shock[0] == pytest.approx(1.0, abs=0.01)
     for q in range(len(df)):
         target = 1.0 * (1 - q / TAPER_QUARTERS) * real_shock[q]
-        assert abs(got[q] - target) < 5.0, f"quarter {q}: {got[q]:.1f} vs {target:.1f}"
+        # 1 £m (was 5): the add-factor is iterated to within £0.5m. Measured
+        # 11 Nov 2026 under the default pin: 3 solves, worst quarter £0.14m.
+        assert abs(got[q] - target) < 1.0, f"quarter {q}: {got[q]:.1f} vs {target:.1f}"
     # The channel itself is still dead and recorded as such.
     assert df.attrs["dead_channel"] is True
     assert (df["delta_if_m"] == 0.0).all()
@@ -234,14 +367,27 @@ def test_dead_channel_warning_still_fires_when_conventions_off():
 @pytest.mark.slow
 def test_cgg_default_run_is_unchanged_raw_passthrough():
     """Default (conventions off) must still be the raw model with its raw
-    labels: flat 1.0 passthrough, mechanical_passthrough True, and the
-    multiplier warning naming the published 0.6 it fails to match."""
+    labels: the identity passthrough, mechanical_passthrough True, and the
+    multiplier warning naming the published 0.6 it fails to match.
+
+    Convention stated (#42, #54). The default closure is the nominal-GDP pin,
+    the OBR's commented-out l.690. Under it the raw passthrough is 1.0136 on
+    impact and drifts up to 1.0493 by q11 (measured 11 Nov 2026), because the
+    extra nominal GDP lands in profits and a small part reaches household
+    income and consumption. Under the published l.688 closure it is 1.000 and
+    flat (0.9988 at q11), which is what this test pinned before the default
+    changed. The bands are the ones the invariants gate
+    (test_government_consumption_multiplier_gap_vs_obr_is_pinned) uses:
+    impact 1.00 to 1.03, drift +0.02 to +0.06. It still does not fade, which
+    is the property that matters against the OBR's tapering 0.6."""
     from obr_macro.reform_analysis import run_reform
 
     df = run_reform("cgg raw", "CGG", 1250.0, periods=12)
+    assert df.attrs["nominal_gdp_pin"] is True  # the default closure
     mult = df["delta_gdp_m"].to_numpy(dtype=float) / 1250.0
-    assert abs(mult[0] - 1.0) < 1e-3
-    assert abs(mult[-1] - mult[0]) < 0.01  # flat, no fade
+    assert 1.00 <= mult[0] <= 1.03, f"impact passthrough {mult[0]:.4f}"
+    drift = mult[-1] - mult[0]
+    assert 0.02 <= drift <= 0.06, f"drift to q11 {drift:+.4f}"  # no fade
     assert df.attrs["published_conventions"] is False
     assert df.attrs["mechanical_passthrough"] is True
     assert "0.6" in df.attrs["multiplier_warning"]

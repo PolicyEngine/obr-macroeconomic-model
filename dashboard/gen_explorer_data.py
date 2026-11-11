@@ -15,6 +15,7 @@ from obr_macro.reform_analysis import (
     IF_EQ,
     IBUSX_EQ,
     _ensure_ibusx_inputs,
+    apply_nominal_gdp_pin,
 )
 
 START, END = "2025Q1", "2027Q4"
@@ -23,8 +24,9 @@ START, END = "2025Q1", "2027Q4"
 # deviation diverged (~x2 per quarter, reaching tens of £bn); that was fixed
 # 2026-08 (log-space anchoring gives it a steady state — see
 # reform_analysis._stabilise_investment_closure), but the scenarios stay out
-# until the re-estimated response is benchmarked against the OBR's published
-# 0.2 corporation-tax multiplier — the same status as gen_reform_grid's TCPRO
+# until the re-estimated response has a sourced benchmark to be checked
+# against (the multiplier table this repo encodes from EFO July 2015 Box 3.2,
+# obr_macro/published_conventions.py, has no corporation-tax row) — the same status as gen_reform_grid's TCPRO
 # lever. The £10bn-government-investment scenario is excluded because
 # under the standard closure IF is a given input (CGIPS -> GGIPS -> GGI never
 # reaches GDP), so it is structurally unable to move anything.
@@ -97,6 +99,10 @@ VARS = [
 def build(closure):
     s = FullOBRSolver(verbose=False)
     s.swap_closure("DINV", GDPM_EQ)
+    if not closure:
+        # The repo default since #42: close nominal GDP with the OBR's l.690.
+        # The investment closure holds PIF instead, so it keeps l.688.
+        apply_nominal_gdp_pin(s)
     if closure:
         _ensure_ibusx_inputs(s)
         s.swap_closure("IBUSX", IBUSX_EQ)

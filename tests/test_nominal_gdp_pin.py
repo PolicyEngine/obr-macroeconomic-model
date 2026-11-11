@@ -52,14 +52,60 @@ def test_pin_with_investment_closure_is_refused_before_any_build():
         _build_reform_template("TCPRO", "2025Q1", "2027Q4", True, True)
 
 
+def test_pin_default_resolves_by_closure():
+    """#42: the pin is the default wherever it applies. None means on under
+    the demand closure and off under the investment closure (which holds PIF
+    and so already determines nominal GDP); an explicit False keeps the
+    published closure available."""
+    from obr_macro.reform_analysis import resolve_nominal_gdp_pin
+
+    assert resolve_nominal_gdp_pin(None, False) is True
+    assert resolve_nominal_gdp_pin(None, True) is False
+    assert resolve_nominal_gdp_pin(False, False) is False
+    assert resolve_nominal_gdp_pin(False, True) is False
+    assert resolve_nominal_gdp_pin(True, False) is True
+    with pytest.raises(ValueError, match="investment_closure"):
+        resolve_nominal_gdp_pin(True, True)
+
+
+def test_builders_default_to_the_pin_and_keep_the_published_closure():
+    """baseline.build, raw_solve, build_scorecard and forecast default to the
+    pin; nominal_gdp_pin=False still gives the published l.688 closure."""
+    import inspect
+
+    from obr_macro import baseline, calibration_score, forecast
+    from obr_macro.reform_analysis import NOMINAL_GDP_PIN_EQ
+
+    for fn in (
+        baseline.build,
+        calibration_score.raw_solve,
+        calibration_score.build_scorecard,
+        forecast.forecast,
+    ):
+        assert inspect.signature(fn).parameters["nominal_gdp_pin"].default is True
+
+    def gdpmps_rhs(s):
+        return s.eq_for_var["GDPMPS"].python_expr
+
+    assert gdpmps_rhs(baseline.build()) == NOMINAL_GDP_PIN_EQ.python_expr
+    published = gdpmps_rhs(baseline.build(nominal_gdp_pin=False))
+    assert published != NOMINAL_GDP_PIN_EQ.python_expr
+    assert "TFEPS" in published and "SDEPS" in published
+
+
 def test_efo_satisfies_the_pin():
     """The OBR's own forecast obeys l.690: nominal GDP is the deflator times
-    real GDP to rounding (max 0.05% over 2021Q1-2031Q1)."""
+    real GDP to rounding. Measured 6 Nov 2026: max 0.049% over 2021Q1-2031Q1,
+    all of it in outturn quarters (2022Q2); every forecast quarter
+    (2025Q4-2031Q1) is exactly 0. The outturn bound is 0.1%, about twice the
+    measured gap, so an ONS revision to outturn cannot flip a data-only test;
+    the forecast quarters, which are what the pin imposes, are held to 1e-6."""
     from obr_macro.data import load_obr_data
 
     e = load_obr_data().loc["2021Q1":"2031Q1"]
-    gap = (e["PGDP"] * e["GDPM"] / 100 / e["GDPMPS"] - 1).abs().max()
-    assert gap < 5e-4, f"EFO breaks GDPMPS = PGDP*GDPM/100 by {gap:.2%}"
+    gap = (e["PGDP"] * e["GDPM"] / 100 / e["GDPMPS"] - 1).abs()
+    assert gap.max() < 1e-3, f"EFO breaks GDPMPS = PGDP*GDPM/100 by {gap.max():.2%}"
+    assert gap.loc["2025Q4":].max() < 1e-6, gap.loc["2025Q4":].max()
 
 
 # --- Full solves --------------------------------------------------------------
@@ -101,9 +147,10 @@ def test_pinned_raw_solve_stops_pif_drifting(raw_pinned):
 
 @pytest.mark.slow
 def test_pinned_profits_error_is_pinned():
-    """Company profits under the pin: 18.04% raw MAPE (6 Nov 2026), against
-    82.78% under the published closure. Same 20% + 0.05 slack as the
-    scorecard gate in test_model_invariants.py."""
+    """Company profits under the pin: 17.90% raw MAPE (11 Nov 2026, receipts
+    identities live, #56; 18.04% before), against 41.71% under the published
+    closure (82.78% before). Same 20% + 0.05 slack as the scorecard gate in
+    test_model_invariants.py."""
     from obr_macro.calibration_score import build_scorecard
 
     rows = {
@@ -113,7 +160,7 @@ def test_pinned_profits_error_is_pinned():
     }
     row = rows["FYCPR"]
     assert row["status"] == "computed"
-    assert row["error"] <= 18.04 * 1.20 + 0.05, row
+    assert row["error"] <= 17.90 * 1.20 + 0.05, row
 
 
 @pytest.fixture(scope="module")
@@ -130,7 +177,7 @@ def household_pinned():
     base = tpl.clone()
     base.solve(start, end)
     t0, t1 = base.period_idx(start), base.period_idx(end)
-    out = {}
+    out = {"base_pif": base.data["PIF"].iloc[t0 : t1 + 1].copy()}
     for label, shock in (("up", 1615.75), ("down", -1615.75), ("up4", 4 * 1615.75)):
         k = tpl.clone()
         _apply_household_costing(k, shock, start, 12)
@@ -139,6 +186,27 @@ def household_pinned():
             k.data["GDPM"].iloc[t0 : t1 + 1] - base.data["GDPM"].iloc[t0 : t1 + 1]
         ).to_numpy(dtype=float)
     return out
+
+
+@pytest.mark.slow
+def test_pinned_reform_baseline_pif_stays_near_the_efo_over_25_quarters(
+    household_pinned,
+):
+    """The pin determines PIF, but over the 25-quarter reform baseline it
+    sits above the EFO path: +0.4% in 2025Q1, up to +6.0% within the first
+    12 quarters (2027Q4) and +7.8% by 2031Q1 (6 Nov 2026; PIF 121.7 against
+    an EFO of 112.9). Deltas are unaffected (base and shocked share it), but
+    PIF levels feed PIBUS, sectoral nominal investment, VALPS and GGIDEF.
+    Bounds: 10% over the full horizon, 7.5% in the first 12 quarters (the
+    default scoring window), about 1.25-1.3x the measured gaps."""
+    from obr_macro.data import load_obr_data
+
+    pif = household_pinned["base_pif"]
+    efo = load_obr_data()["PIF"].reindex(pif.index)
+    dev = (pif / efo - 1).to_numpy(dtype=float)
+    assert np.isfinite(dev).all()
+    assert np.abs(dev).max() < 0.10, (100 * dev).round(1).tolist()
+    assert np.abs(dev[:12]).max() < 0.075, (100 * dev[:12]).round(1).tolist()
 
 
 @pytest.mark.slow

@@ -128,6 +128,9 @@ def test_demand_closure_results_carry_passthrough_warning(spending_reforms):
     # "the OBR's ~1.0 multiplier for government consumption"; 1.0 is the OBR's
     # CAPITAL-spending multiplier — its current-spending one is 0.6.)
     assert df.attrs["obr_published_impact_multiplier"]["current_spending"] == 0.6
+    # Only multipliers with a source in published_conventions.py may be quoted
+    # as the OBR's. The unsourced 0.2 corporation-tax entry was dropped (#54).
+    assert "corporation_tax" not in df.attrs["obr_published_impact_multiplier"]
     assert "0.6" in df.attrs["multiplier_warning"]
 
 
@@ -145,25 +148,28 @@ def test_government_consumption_multiplier_gap_vs_obr_is_pinned(spending_reforms
     shock_bn = 1.25
     mult = (df["delta_gdp_bn"] / shock_bn).to_numpy()
 
-    # 1. It is passthrough: 1.0 on impact, to well within a tenth of a percent.
-    assert abs(mult[0] - 1.0) < 1e-3, f"impact multiplier {mult[0]:.4f} is not 1.0"
-    # 2. It is FLAT: no decay anywhere on a 12-quarter horizon (the OBR's
-    #    would be materially below its impact value by the end).
-    assert abs(mult[-1] - mult[0]) < 0.01, (
+    # Re-pinned 6 Nov 2026 for the default nominal-GDP pin (l.690, #42).
+    # Under the published closure this was 1.000 on impact, flat to 0.01 and
+    # a consumption leak under GBP 2.5m. Under the pin nominal GDP rises with
+    # real GDP at the fixed deflator, wages are exogenous, so profits take the
+    # extra nominal income (FYCPR +GBP 1.33bn per GBP 1.25bn), household
+    # income rises by about GBP 170m a quarter and consumption follows.
+    # Measured on +GBP 1,250m x 12q (2025Q1-2027Q4): GDP multiplier 1.0136 on
+    # impact rising to 1.0496 by q12; consumption +GBP 17m to +GBP 62m.
+    # 1. Still essentially passthrough on impact: 1.00-1.03.
+    assert 1.0 <= mult[0] < 1.03, f"impact multiplier {mult[0]:.4f} left 1.00-1.03"
+    # 2. It does NOT decay: it drifts UP by the income channel (measured
+    #    +0.036 over 12 quarters). A decay, or a much faster rise, means a new
+    #    channel is live; re-benchmark against the OBR profile.
+    assert 0.02 < mult[-1] - mult[0] < 0.06, (
         f"multiplier moved from {mult[0]:.4f} to {mult[-1]:.4f} — if a decay "
         "channel is now live, re-benchmark against the OBR profile"
     )
-    # 3. Consumption does not respond: the income->consumption chain is inert,
-    #    so the "multiplier" contains no behaviour at all.
-    # Bound: 0.2% of the shock. Around the anchored reform baseline (2026-10)
-    # consumption picks up a leak of at most GBP 1.46m by q12 on the
-    # GBP 1,250m shock (0.12%; it was 0.06% free-running), antisymmetric
-    # between +shock and -shock. That is a second-round trickle three orders
-    # of magnitude below a behavioural multiplier, so "pure passthrough"
-    # still holds; a real channel would blow through this immediately.
-    assert df["delta_cons_m"].abs().max() < 0.002 * 1250, (
-        "consumption now responds to a spending shock — the multiplier is no "
-        "longer pure passthrough and must be re-benchmarked"
+    # 3. Consumption responds only through the profits -> household income
+    #    trickle: at most GBP 62m on GBP 1,250m (4.9%). Bound 6% of the shock.
+    assert df["delta_cons_m"].abs().max() < 0.06 * 1250, (
+        "consumption responds to a spending shock more than the measured "
+        "income channel — re-benchmark the multiplier"
     )
     # 4. The gap against the published OBR figure, stated as a number.
     obr_current_spending = df.attrs["obr_published_impact_multiplier"][
@@ -910,8 +916,8 @@ def test_basic_rate_costing_path_moves_hhdi_by_the_static_yield():
 def test_raw_calibration_scorecard_does_not_regress():
     """docs/calibration_scorecard.md promises the raw MAPEs are 'gated against
     regression'; this is that gate. The reference values below are the
-    scorecard as of the March-2026 EFO vintage (August 2026 run of
-    `obr_macro.calibration_score`). Each computed variable may not worsen by
+    scorecard as of the March-2026 EFO vintage, re-measured on 6 Nov 2026
+    under the default nominal-GDP pin (`obr_macro.calibration_score`). Each computed variable may not worsen by
     more than 20% relative (plus a small absolute slack for near-zero
     values). Improvements are always allowed — tighten the reference when
     they land.
@@ -922,28 +928,33 @@ def test_raw_calibration_scorecard_does_not_regress():
     from obr_macro.calibration_score import build_scorecard
 
     reference = {
-        # code: (kind, reference error)
-        "GDPM": ("lvl", 4.32),  # % MAPE
-        "CONS": ("lvl", 7.22),
-        "IBUS": ("lvl", 15.28),
+        # code: (kind, reference error). Re-pinned 6 Nov 2026 when the
+        # nominal-GDP pin (l.690, #42) became the default closure. Published
+        # closure values, for the record: GDPM 4.32, CONS 7.22, IBUS 15.28,
+        # HHDI 6.18, RHHDI 5.94, FYCPR 82.78, CB 3.02, TB 0.69 (LFSUR and RPI
+        # unchanged). Under the published closure the investment deflator PIF
+        # is undetermined (l.337 and l.688 are one identity written twice,
+        # published_model_review.md G6), so it random-walked in this de-seeded
+        # solve and FYCPR, a residual of nominal GDP, swung with it. The pin
+        # determines PIF, so these values no longer move along a drift path.
+        # Re-pinned 11 Nov 2026 with the receipts identities live (#56, CI run
+        # 43021726382): CONS 6.96 -> 6.95, HHDI 4.66 -> 4.65, RHHDI 4.42 ->
+        # 4.41, FYCPR 18.04 -> 17.90. The identities now read the model's own
+        # solved components (BPAPS, and through it OS and FYCPR) instead of
+        # staying frozen at data. Published closure, same run: IBUS 16.90,
+        # HHDI 6.00, RHHDI 5.76, FYCPR 41.71, CB 2.99 (FYCPR was 82.78 there:
+        # that closure's profits are a residual of the wandering PIF, so they
+        # move with any perturbation).
+        "GDPM": ("lvl", 4.16),  # % MAPE
+        "CONS": ("lvl", 6.95),
+        "IBUS": ("lvl", 8.38),
         "LFSUR": ("pp", 1.01),  # mean abs pp
         "RPI": ("pp", 1.71),
-        "HHDI": ("lvl", 6.18),
-        "RHHDI": ("lvl", 5.94),
-        # DELIBERATELY RAISED, 63.30 -> 82.78. Recovering OAHHx (households'
-        # other financial assets, ONS NNMY+NNOA+NNPM+MMW5 — absent only because the ONS
-        # pull was failing on TLS) improves GDP, consumption and the current
-        # account, and fixes the first-year sign-flip defect in the household
-        # costing channel. It also worsens the profits fit, which was already
-        # the worst line in the model. Not the OSHH constant (its ONS anchor
-        # applies in raw solves too): in this de-seeded solve the investment
-        # deflator PIF and nominal GDP are one identity written twice (model
-        # l.337 and l.688, published_model_review.md G6), so PIF drifts and
-        # FYCPR, a residual of nominal GDP, swings with it. Any input change
-        # moves this figure along a different drift path. See issue #42.
-        "FYCPR": ("lvl", 82.78),
-        "CB": ("gdp", 3.02),  # % of GDP
-        "TB": ("gdp", 0.69),
+        "HHDI": ("lvl", 4.65),
+        "RHHDI": ("lvl", 4.41),
+        "FYCPR": ("lvl", 17.90),
+        "CB": ("gdp", 2.19),  # % of GDP
+        "TB": ("gdp", 0.68),
     }
     report = build_scorecard()
     scored = {
