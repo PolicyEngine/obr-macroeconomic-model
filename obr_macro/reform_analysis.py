@@ -638,7 +638,9 @@ def _impose_published_convention(
     af <- af + (target - delta); the loop below iterates it until every
     quarter is within ``_CONVENTION_TOL_M`` of the target, and raises rather
     than report a multiplier it did not impose. Under the published closure
-    the first solve is already on target, so no extra solve is run.
+    there is no such feedback: the first solve misses only by stall residue
+    (up to about £1.5m on a £1.25bn CGG shock, measured 11 Nov 2026), which
+    one correction solve removes.
 
     Units: the OBR multipliers map real spending to real GDP. Nominal
     instruments (CGIPS/LAIPS/GGIPS, £m current prices) are converted to real
@@ -999,10 +1001,19 @@ def run_reform(
                 else "an accounting identity (1.0-flat passthrough)"
             )
             + " and cannot produce this profile. Component deltas "
-            "(delta_cons_m, delta_if_m) are NOT overridden — they remain the "
-            "raw model's values, so e.g. delta_if_m stays exactly zero for a "
-            "capital-spending shock even though delta_gdp follows the "
-            "convention."
+            "(delta_cons_m, delta_if_m) are NOT overridden — they are what "
+            "the model's own equations give in the imposed run, so e.g. "
+            "delta_if_m stays exactly zero for a capital-spending shock even "
+            "though delta_gdp follows the convention."
+            + (
+                " Under the nominal-GDP pin (l.690) delta_cons_m is the "
+                "income channel's response to the imposed GDP path (nominal "
+                "GDP -> profits -> household income -> consumption), a few "
+                "per cent of the GDP delta; the add-factor absorbs it, so "
+                "the GDP total is still exactly the convention."
+                if nominal_gdp_pin
+                else ""
+            )
         )
     elif not investment_closure:
         out.attrs["published_conventions"] = False
