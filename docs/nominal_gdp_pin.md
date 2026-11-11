@@ -180,6 +180,27 @@ investment moves into band, the current account moves just out of it).
 
 Every quarter of every pinned run exits on the convergence tolerance. Under
 the published closure every quarter exits on the stall break (#38).
+Re-measured on 11 Nov 2026 (Actions run 43015054425, 2025Q1–2031Q1): 25 of
+25 quarters exit on tolerance in the baseline and the shocked solve for CGG
++£1.25bn, the household tax, Bank Rate +1pp and CGIPS +£3bn, and in the
+published-conventions solve. The tolerance covers the equations that
+evaluate; equations with missing inputs are dropped and keep their data
+values.
+
+### Published conventions under the pin
+
+`run_reform(..., published_conventions=True)` imposes the OBR's multiplier as
+an add-factor on the GDPM identity. Under the published closure that
+add-factor has no feedback. Under the pin it does: real GDP sets nominal GDP
+(l.690), profits take the change, part reaches household income and
+consumption responds (l.4), and consumption is in GDPM. Each £1 of add-factor
+moved GDP by about £1.014, so the one-shot add-factor delivered 0.594 where
+the convention says 0.6 (742.9 against 750 in the first quarter of a
++£1.25bn CGG shock). The add-factor is now iterated until every quarter is
+within £0.5m of multiplier × shock (3 solves; 749.999 against 750), and the
+run raises if it cannot get there. Consumption is not overridden: under the
+pin it moves by +£10m to +£23m in that run (0.8% to 1.9% of the shock),
+where under the published closure it stayed under £1m.
 
 | | Published closure | Nominal GDP pinned |
 |---|--:|--:|
