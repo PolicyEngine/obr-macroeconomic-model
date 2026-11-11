@@ -90,8 +90,10 @@ def test_run_reform_defaults_are_stable():
     # The honest default is the raw model; the OBR-conventions override is
     # strictly opt-in.
     assert sig.parameters["published_conventions"].default is False
-    # The published closure stays the default until #42 is decided.
-    assert sig.parameters["nominal_gdp_pin"].default is False
+    # Since #42 the nominal-GDP pin is the default wherever it applies: None
+    # resolves to True under the demand closure and False under the
+    # investment closure (reform_analysis.resolve_nominal_gdp_pin).
+    assert sig.parameters["nominal_gdp_pin"].default is None
 
 
 # --- Fake template: a solvable stand-in with a plausible shock response ------

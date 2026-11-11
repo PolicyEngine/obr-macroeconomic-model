@@ -144,11 +144,11 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - name: Install
         run: uv sync
-      - name: Run calibration scorecard
+      - name: Run calibration scorecard (default closure, nominal-GDP pin)
         run: uv run python -m obr_macro.calibration_score | tee calibration_scorecard.txt
         continue-on-error: true
-      - name: Run calibration scorecard with the nominal-GDP pin (l.690, #42)
-        run: uv run python -m obr_macro.calibration_score --nominal-gdp-pin | tee -a calibration_scorecard.txt
+      - name: Run calibration scorecard under the published closure (l.688, for comparison; #42)
+        run: uv run python -m obr_macro.calibration_score --published-closure | tee -a calibration_scorecard.txt
         continue-on-error: true
       - name: Publish scorecard to job summary
         if: always()
