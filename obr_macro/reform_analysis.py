@@ -93,9 +93,10 @@ IF_EQ = ParsedEquation(
 # dummies and the constant sit outside it. That is how the OBR prints the
 # same equation in Briefing paper No. 5, "The macroeconomic model" (October
 # 2013), equation 2.38: "- 0.08*(log(IBUSX(-1)) - log(KMS(-2)*1000) +
-# KGAP(-2)) + 0.05*(ifeq(201004)-ifeq(201101)) - 0.11*(...) - 0.26", and how
-# every other error-correction equation in the listing is laid out (l.145,
-# l.323, l.327). Until 2026-11 the ')' was put at the end of the line, which
+# KGAP(-2)) + 0.05*(ifeq(201004)-ifeq(201101)) - 0.11*(...) - 0.26", and
+# where the listing's other error-correction equations put impulse dummies
+# and the constant (l.102, l.145, l.323, l.327; l.223 keeps step dummies
+# inside its bracket but its constant outside). Until 2026-11 the ')' was put at the end of the line, which
 # multiplied the dummies and the constant by -0.0418036: the constant
 # contributed +0.0037 a quarter instead of -0.0884. Reform deltas were not
 # affected (the log add-factor anchor absorbs a constant), but the raw
