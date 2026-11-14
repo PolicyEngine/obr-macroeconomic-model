@@ -87,11 +87,25 @@ IF_EQ = ParsedEquation(
 # cost-of-capital channel TCPRO -> TAF -> COC -> KSTAR -> KGAP -> IBUSX; without
 # it, business investment is a pure residual and corporation-tax shocks have no
 # effect on investment.
+#
+# Where the ')' goes: after KGAP(-2), so the error-correction bracket holds
+# only log(IBUSX(-1)) - log(KMSXH(-2)*1000) + KGAP(-2), and the two impulse
+# dummies and the constant sit outside it. That is how the OBR prints the
+# same equation in Briefing paper No. 5, "The macroeconomic model" (October
+# 2013), equation 2.38: "- 0.08*(log(IBUSX(-1)) - log(KMS(-2)*1000) +
+# KGAP(-2)) + 0.05*(ifeq(201004)-ifeq(201101)) - 0.11*(...) - 0.26", and
+# where the listing's other error-correction equations put impulse dummies
+# and the constant (l.102, l.145, l.323, l.327; l.223 keeps step dummies
+# inside its bracket but its constant outside). Until 2026-11 the ')' was put at the end of the line, which
+# multiplied the dummies and the constant by -0.0418036: the constant
+# contributed +0.0037 a quarter instead of -0.0884. Reform deltas were not
+# affected (the log add-factor anchor absorbs a constant), but the raw
+# equation over-predicted dlog(IBUSX) by a further 0.092 a quarter.
 _IBUSX_SRC = (
     "dlog(IBUSX) = 0.1992007 * dlog(IBUSX(-3)) + 1.00573 * dlog(MSGVA(-1)) "
     "- 0.0012369*CBIUD - 0.0418036*(log(IBUSX(-1)) - log(KMSXH(-2) * 1000) "
-    '+ KGAP(-2) + 0.0544706 * @recode(@date = @dateval("1998:01") , 1 , 0) '
-    '+ 0.0597525 * @recode(@date = @dateval("2005:02") , 1 , 0) - 0.0884031)'
+    '+ KGAP(-2)) + 0.0544706 * @recode(@date = @dateval("1998:01") , 1 , 0) '
+    '+ 0.0597525 * @recode(@date = @dateval("2005:02") , 1 , 0) - 0.0884031'
 )
 IBUSX_EQ = EViewsTranspiler().parse_equation(_IBUSX_SRC)
 
@@ -256,7 +270,8 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     Here the market-sector supply block that would discipline MSGVA is not
     populated (see docs/stage1c_data_scope.md), so MSGVA is a ~1:1 mirror of
     investment-driven demand and the closed loop's eigenvalue exceeds 1 (the raw
-    baseline runs IBUSX ~94,000 -> ~7,000,000 over 12 quarters). Two coupled
+    baseline runs IBUSX ~86,000 -> ~572,000 over 2025Q1-2027Q4; ~94,000 ->
+    ~16,000,000 before the bracket fix, #59). Two coupled
     defects: (a) that spurious accelerator feedback, and (b) a mis-scaled KSTAR
     level (desired capital ~=GBP 12.5tn vs a capital stock ~=GBP 2.5tn, because
     MSGVA/COC/deflators are off the OBR's calibrated scale), which puts the
@@ -319,8 +334,8 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     # what gives the closure a steady state in deviation space. Until 2026-08
     # the anchor was a LEVEL add-factor (actual - predicted level); because
     # the reconstructed equation persistently over-predicts IBUSX by ~20-25%
-    # a quarter on this data-starved model, those add-factors were ~ -0.2 to
-    # -0.27 of the level, and a level add-factor af turns the base-vs-shock
+    # a quarter on this data-starved model (~8-17% since the bracket fix,
+    # #59), those add-factors were ~ -0.2 to -0.27 of the level, and a level add-factor af turns the base-vs-shock
     # deviation recursion into exp(x_t) = rho*exp(x_{t-1}+delta) + (1-rho)
     # with rho = 1 - af/level ~ 1.18-1.28 — measured deviation compounding of
     # 1.21-1.27x per quarter, which exactly matched the divergence this
