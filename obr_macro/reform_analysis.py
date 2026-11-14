@@ -87,11 +87,24 @@ IF_EQ = ParsedEquation(
 # cost-of-capital channel TCPRO -> TAF -> COC -> KSTAR -> KGAP -> IBUSX; without
 # it, business investment is a pure residual and corporation-tax shocks have no
 # effect on investment.
+#
+# Where the ')' goes: after KGAP(-2), so the error-correction bracket holds
+# only log(IBUSX(-1)) - log(KMSXH(-2)*1000) + KGAP(-2), and the two impulse
+# dummies and the constant sit outside it. That is how the OBR prints the
+# same equation in Briefing paper No. 5, "The macroeconomic model" (October
+# 2013), equation 2.38: "- 0.08*(log(IBUSX(-1)) - log(KMS(-2)*1000) +
+# KGAP(-2)) + 0.05*(ifeq(201004)-ifeq(201101)) - 0.11*(...) - 0.26", and how
+# every other error-correction equation in the listing is laid out (l.145,
+# l.323, l.327). Until 2026-11 the ')' was put at the end of the line, which
+# multiplied the dummies and the constant by -0.0418036: the constant
+# contributed +0.0037 a quarter instead of -0.0884. Reform deltas were not
+# affected (the log add-factor anchor absorbs a constant), but the raw
+# equation over-predicted dlog(IBUSX) by a further 0.092 a quarter.
 _IBUSX_SRC = (
     "dlog(IBUSX) = 0.1992007 * dlog(IBUSX(-3)) + 1.00573 * dlog(MSGVA(-1)) "
     "- 0.0012369*CBIUD - 0.0418036*(log(IBUSX(-1)) - log(KMSXH(-2) * 1000) "
-    '+ KGAP(-2) + 0.0544706 * @recode(@date = @dateval("1998:01") , 1 , 0) '
-    '+ 0.0597525 * @recode(@date = @dateval("2005:02") , 1 , 0) - 0.0884031)'
+    '+ KGAP(-2)) + 0.0544706 * @recode(@date = @dateval("1998:01") , 1 , 0) '
+    '+ 0.0597525 * @recode(@date = @dateval("2005:02") , 1 , 0) - 0.0884031'
 )
 IBUSX_EQ = EViewsTranspiler().parse_equation(_IBUSX_SRC)
 
