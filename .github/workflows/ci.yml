@@ -169,8 +169,8 @@ jobs:
   extended-validation:
     name: Extended validation (weekly — Python matrix, full slow suite)
     # The nightly gate proves the model holds on ONE Python. The package claims
-    # requires-python >=3.10, and nothing verified that claim: a 3.11+ syntax or
-    # a version-dependent numpy/pandas behaviour would ship broken to 3.10 users
+    # requires-python >=3.11, and nothing verified that claim: a 3.12+ syntax or
+    # a version-dependent numpy/pandas behaviour would ship broken to 3.11 users
     # and pass every other job. Solving the 372-equation model on each supported
     # interpreter is far too slow for the nightly gate, so it runs weekly.
     #
@@ -183,7 +183,7 @@ jobs:
     strategy:
       fail-fast: false # report every broken interpreter, not just the first
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
