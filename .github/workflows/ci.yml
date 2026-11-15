@@ -181,6 +181,10 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.schedule == '0 4 * * 1'
     runs-on: ubuntu-latest
+    # Observed 15 Nov 2026 over five runs: 3.10 about 1h, 3.11 1h45-2h52 (the
+    # slowest), 3.12/3.13 up to 2h55. Fail a hung solve instead of holding a
+    # runner for the 6-hour default.
+    timeout-minutes: 240
     strategy:
       fail-fast: false # report every broken interpreter, not just the first
       matrix:
