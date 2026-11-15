@@ -55,20 +55,34 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 
 | Variable | Error (3yr), default (nominal-GDP pin) | Status | Published closure |
 |---|--:|---|--:|
-| Real GDP | 4.16% | computed — fair | 4.16% |
-| Consumption | 6.95% | computed — fair | 6.96% |
-| Business investment | 8.38% | computed — fair | 16.90% (poor) |
+| Real GDP | 4.12% | computed — fair | 4.14% |
+| Consumption | 6.90% | computed — fair | 6.92% |
+| Business investment | 8.38% | computed — fair | 17.19% (poor) |
 | Employment | 0.00% | computed — **trivial identity** | 0.00% |
 | Unemployment rate | 1.01pp | computed — poor | 1.01pp |
 | RPI inflation | 1.71pp | computed — poor | 1.71pp |
-| Household income | 4.65% | computed — fair | 6.00% |
-| Real household income | 4.41% | computed — fair | 5.76% |
-| Company profits | 17.90% | computed — poor | 41.71% (off) |
-| Current account | 2.19% of GDP | computed — poor | 2.99% of GDP (poor) |
+| Household income | 4.50% | computed — fair | 5.97% |
+| Real household income | 4.26% | computed — fair | 5.73% |
+| Company profits | 12.45% | computed — poor | 43.64% (off) |
+| Current account | 1.19% of GDP | computed — fair | 2.11% of GDP (poor) |
 | Trade balance | 0.68% of GDP | computed — fair | 0.68% of GDP |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) | 0.00% |
 
-Within band: 7 of 11 under the default, 6 of 11 under the published closure.
+Within band: 8 of 11 under the default, 6 of 11 under the published closure.
+
+> **Re-measured 15 Nov 2026 with the ended EU payments held at zero (#62,
+> CI run 43710220541).** `GNP4` (l.469) and `EUVAT` (l.471) used to
+> regenerate about £7.8bn a quarter of EU budget payments that stopped in
+> 2021, booked in transfer debits, the current balance and the subsidy
+> residual. Default closure: real GDP 4.16% → 4.12%, consumption 6.95% →
+> 6.90%, household income 4.65% → 4.50%, real household income 4.41% →
+> 4.26%, company profits 17.90% → 12.45%, current account 2.19% → 1.19% of
+> GDP (poor → fair). Published closure: real GDP 4.16% → 4.14%, consumption
+> 6.96% → 6.92%, business investment 16.90% → 17.19%, household income
+> 6.00% → 5.97%, real household income 5.76% → 5.73%, company profits
+> 41.71% → 43.64%, current account 2.99% → 2.11%. About 1pp of the
+> current-account miss was these two lines, not solver drift. Notes further
+> down that quote 17.90% or 2.19% describe the scorecard before this change.
 
 > **Re-measured 11 Nov 2026 with the receipts identities live (#56).** The
 > fiscal identities now read the model's own solved components instead of
