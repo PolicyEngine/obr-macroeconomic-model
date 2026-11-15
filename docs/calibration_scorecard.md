@@ -53,8 +53,6 @@ equation is dead or exogenous (*passthrough*). Only variables the model actually
 **computes** measure calibration. And **Employment scores 0.00% as a trivial
 identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural win.
 
-| Variable | Error (3yr) | Status |
-|---|--:|---|
 | Variable | Error (3yr), default (nominal-GDP pin) | Status | Published closure |
 |---|--:|---|--:|
 | Real GDP | 4.16% | computed — fair | 4.32% |
