@@ -165,6 +165,15 @@ in the round-2 session notes (`r2.py`, `score.json`, `forecast.json`,
 | `GDPMPS − PGDP·GDPM/100`, max | £337bn | 0 | £10.3bn |
 | Expenditure identity gap, max | 0 | 0 | 0 |
 
+This table was measured on 6 Nov 2026, before the receipts identities went
+live (#56). Re-measured on 11 Nov 2026 with them live, the pinned column
+reads consumption 6.95%, household income 4.65%, real household income
+4.41% and company profits 17.90% (the rest unchanged); the published
+closure reads real GDP 4.16%, consumption 6.96%, business investment
+16.90%, household income 6.00%, real household income 5.76%, company
+profits 41.71%, current account 2.99% and trade balance 0.68% of GDP. The
+PIF-held column was not re-run.
+
 Employment (a trivial identity) scores 0.00% in all three. Under the pin PIF
 runs 3–6% above the EFO path, because real GDP does (the closure artifact).
 

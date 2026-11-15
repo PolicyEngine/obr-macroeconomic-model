@@ -3,6 +3,7 @@
 from pathlib import Path
 import urllib.request
 import json
+import re
 
 import numpy as np
 import pandas as pd
@@ -654,3 +655,73 @@ def _derive_variables(df: pd.DataFrame) -> pd.DataFrame:
         df["CBPCNT"] = 100 * df["CB"] / df["GDPMPS"]
 
     return df
+
+
+# Receipts components the published model's fiscal identities need but neither
+# the EFO quarterly tables nor the ONS snapshot carry (the OBR variable list
+# gives them "No Codes"). Without them the identities CETAX (l.410), PUBSTIW
+# (l.426), PUBSTPD (l.428), BPAPS (l.695) and TPRODPS (l.715) evaluate to NaN
+# and are dropped at solve time, so receipts shocks never reach PSCR/CGNB
+# (issue #56). Sourced from the EFO receipts detailed tables (fiscal-year
+# £bn, spread evenly over the four quarters of each fiscal year) where the EFO
+# publishes the line; set to zero where it does not (see notes).
+EFO_RECEIPT_COMPONENTS = {
+    # var: (sheet, row label, note)
+    "CUST": ("3.8", "Customs Duties", "EFO table 3.8"),
+    "EUETS": ("3.8", "Emission Trading Scheme", "EFO table 3.8 (UK ETS)"),
+    "CIL": ("3.2", "Community infrastructure levy", "EFO table 3.2"),
+    "RULC": ("3.2", "Lorry road user levy", "EFO table 3.2"),
+}
+# Not published as a separate EFO line. PROV (allowance for tax litigation
+# losses) and CCLACA (climate change and aggregates levies accruals adjustment)
+# are OBR-internal adjustments; ENVLEVY in the model is the carbon reduction
+# commitment (abolished 2019) plus feed-in tariffs, which the EFO folds into
+# its environmental-levies total alongside lines the model holds elsewhere
+# (ROCS). Zero is the honest seed: the identity residuals in
+# FullOBRSolver._close_receipts_identities keep each identity on its data path.
+ZERO_RECEIPT_COMPONENTS = ("PROV", "CCLACA", "ENVLEVY")
+
+
+def load_efo_receipt_components(index: pd.PeriodIndex) -> dict[str, pd.Series]:
+    """Quarterly £m paths for the receipts components in EFO_RECEIPT_COMPONENTS.
+
+    Fiscal year Y-(Y+1) covers Y Q2 to (Y+1) Q1; each quarter gets a quarter of
+    the fiscal-year total. Periods before the first published fiscal year take
+    the first year's value and periods after the last take the last year's
+    (the level only splits the identity between component and residual; the
+    residual keeps the identity on its data path). Raises if a row is missing,
+    so a re-laid-out workbook fails loudly.
+    """
+    files = ensure_downloaded()
+    wb = openpyxl.load_workbook(str(files["receipts"]), read_only=True, data_only=True)
+    fy = re.compile(r"^(\d{4})-(\d{2})$")
+    out = {}
+    try:
+        for var, (sheet, label, _note) in EFO_RECEIPT_COMPONENTS.items():
+            rows = list(wb[sheet].iter_rows(values_only=True))
+            years = {}
+            for row in rows[:10]:
+                for j, c in enumerate(row):
+                    m = fy.match(str(c).strip()) if c is not None else None
+                    if m:
+                        years[j] = int(m.group(1))
+                if years:
+                    break
+            hit = [r for r in rows if any(str(c).strip() == label for c in r[:3] if c)]
+            if not years or not hit:
+                raise ValueError(f"EFO receipts {sheet}: row {label!r} not found")
+            row = hit[0]
+            vals = {
+                y: float(row[j]) * 1000.0 / 4.0
+                for j, y in years.items()
+                if isinstance(row[j], (int, float))
+            }
+            y0, y1 = min(vals), max(vals)
+            q = []
+            for p in index:
+                fy_start = p.year if p.quarter >= 2 else p.year - 1
+                q.append(vals[min(max(fy_start, y0), y1)])
+            out[var] = pd.Series(q, index=index, dtype=float)
+    finally:
+        wb.close()
+    return out

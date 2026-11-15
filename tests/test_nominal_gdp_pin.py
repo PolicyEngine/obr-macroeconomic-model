@@ -147,9 +147,10 @@ def test_pinned_raw_solve_stops_pif_drifting(raw_pinned):
 
 @pytest.mark.slow
 def test_pinned_profits_error_is_pinned():
-    """Company profits under the pin: 18.04% raw MAPE (6 Nov 2026), against
-    82.78% under the published closure. Same 20% + 0.05 slack as the
-    scorecard gate in test_model_invariants.py."""
+    """Company profits under the pin: 17.90% raw MAPE (11 Nov 2026, receipts
+    identities live, #56; 18.04% before), against 41.71% under the published
+    closure (82.78% before). Same 20% + 0.05 slack as the scorecard gate in
+    test_model_invariants.py."""
     from obr_macro.calibration_score import build_scorecard
 
     rows = {
@@ -159,7 +160,7 @@ def test_pinned_profits_error_is_pinned():
     }
     row = rows["FYCPR"]
     assert row["status"] == "computed"
-    assert row["error"] <= 18.04 * 1.20 + 0.05, row
+    assert row["error"] <= 17.90 * 1.20 + 0.05, row
 
 
 @pytest.fixture(scope="module")

@@ -937,14 +937,22 @@ def test_raw_calibration_scorecard_does_not_regress():
         # published_model_review.md G6), so it random-walked in this de-seeded
         # solve and FYCPR, a residual of nominal GDP, swung with it. The pin
         # determines PIF, so these values no longer move along a drift path.
+        # Re-pinned 11 Nov 2026 with the receipts identities live (#56, CI run
+        # 43021726382): CONS 6.96 -> 6.95, HHDI 4.66 -> 4.65, RHHDI 4.42 ->
+        # 4.41, FYCPR 18.04 -> 17.90. The identities now read the model's own
+        # solved components (BPAPS, and through it OS and FYCPR) instead of
+        # staying frozen at data. Published closure, same run: IBUS 16.90,
+        # HHDI 6.00, RHHDI 5.76, FYCPR 41.71, CB 2.99 (FYCPR was 82.78 there:
+        # that closure's profits are a residual of the wandering PIF, so they
+        # move with any perturbation).
         "GDPM": ("lvl", 4.16),  # % MAPE
-        "CONS": ("lvl", 6.96),
+        "CONS": ("lvl", 6.95),
         "IBUS": ("lvl", 8.38),
         "LFSUR": ("pp", 1.01),  # mean abs pp
         "RPI": ("pp", 1.71),
-        "HHDI": ("lvl", 4.66),
-        "RHHDI": ("lvl", 4.42),
-        "FYCPR": ("lvl", 18.04),
+        "HHDI": ("lvl", 4.65),
+        "RHHDI": ("lvl", 4.41),
+        "FYCPR": ("lvl", 17.90),
         "CB": ("gdp", 2.19),  # % of GDP
         "TB": ("gdp", 0.68),
     }
