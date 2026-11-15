@@ -10,10 +10,12 @@ on:
     paths:
       - scripts/demo_shocks.py
       - .github/workflows/demo.yml
+      - scripts/time_hosted_score_path.py
 
 jobs:
   demo-shocks:
     name: Demo shock battery
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[timing-only]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -28,6 +30,7 @@ jobs:
 
   readme-cli:
     name: README "run all reforms" CLI
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[timing-only]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -45,6 +48,7 @@ jobs:
 
   site-figures:
     name: Recompute site figures
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[timing-only]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -56,3 +60,31 @@ jobs:
         with:
           name: site-figures
           path: results/site_figures.json
+
+  hosted-score-timing:
+    name: Hosted score_reform OBR step, timed (${{ matrix.ref }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [e4d7faa38a42ad1906e9745a95154271371e7d2d, current]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+      - name: Check out the model revision under test
+        if: matrix.ref != 'current'
+        run: |
+          cp scripts/time_hosted_score_path.py /tmp/
+          git checkout ${{ matrix.ref }}
+      - name: Keep the script for the current revision
+        if: matrix.ref == 'current'
+        run: cp scripts/time_hosted_score_path.py /tmp/
+      - run: uv sync
+      - run: uv run python /tmp/time_hosted_score_path.py | tee timing.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hosted-timing-${{ matrix.ref }}
+          path: timing.txt
