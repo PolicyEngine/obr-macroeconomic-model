@@ -5,8 +5,9 @@ Python implementation of the OBR's published macroeconomic model, enabling polic
 ## Features
 
 - Parses all 372 equations in the OBR's published EViews model code and solves them in Python.
-  Not all of them run: at solve time 79 are skipped (in the final scored quarter, 2027Q4)
-  because at least one input has no data, so the equation evaluates to NaN; several headline variables
+  Not all of them run: in the pinned reform solve over 2025Q1–2027Q4, 82 are dropped in at least
+  one quarter because an input has no data, so the equation evaluates to NaN (each must be listed in
+  `KNOWN_NONFINITE_EQUATIONS`, `obr_macro/full_solver.py`, or the solve raises); several headline variables
   (investment, trade, prices, earnings) have no live equation and pass through at the OBR's
   value. The business-investment equation `dlog(IBUSX)` is reconstructed from a line the OBR
   publishes commented out, and under the investment closure `MSGVA`, `PIF` and `PIRHH` are
