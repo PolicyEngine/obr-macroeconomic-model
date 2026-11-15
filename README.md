@@ -44,6 +44,8 @@ returned a finite, unflagged "a 105% corporation tax raises investment by
 
 ## Quick Start
 
+Install with `uv sync` (see Setup), then run the snippet with `uv run python`. Each `run_reform` call builds and solves the model twice over 12 quarters; the three calls below take about five minutes on a laptop (measured 15 Nov 2026, Apple silicon), most of it the first template build.
+
 ```python
 from obr_macro import FullOBRSolver, run_reform
 
@@ -98,10 +100,11 @@ This runs five policy scenarios and generates charts in `outputs/`:
 
 ## Data
 
-The `data/` directory contains:
+The `obr_macro/_data/` directory (shipped inside the package) contains:
 - `obr_model_code_october_2025.txt` - OBR EViews model equations (15 October 2025 version)
 - `obr_model_variables_october_2025.xlsx` - OBR model variable definitions (15 October 2025 version)
 - `obr_efo_march_2026_*.xlsx` - OBR forecast data (March 2026 EFO detailed forecast tables)
+- `obr_efo_november_2025_*.xlsx` - the previous (November 2025) EFO tables
 
 ## Setup
 

@@ -1,0 +1,1 @@
+The reform-analysis bar chart was titled "Cumulative GDP Impact" but plotted the final quarter's GDP delta; it is now titled "GDP impact in <quarter>". The README's Data section pointed at a `data/` directory that does not exist (the files ship in `obr_macro/_data/`), and the Quick Start now says to run `uv sync` first and how long it takes.

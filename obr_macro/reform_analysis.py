@@ -1353,8 +1353,10 @@ def create_visualisations(results: pd.DataFrame, output_dir: str = None):
     ax.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
     ax.set_xticks(x)
     ax.set_xticklabels(final_results["reform"], rotation=30, ha="right")
-    ax.set_ylabel("Change in GDP (£bn)", fontsize=12)
-    ax.set_title(f"Cumulative GDP Impact by {final_period}\n(OBR Model)", fontsize=14)
+    ax.set_ylabel("Change in GDP in that quarter (£bn)", fontsize=12)
+    # Final-quarter deltas, not cumulative: each bar is GDP in final_period
+    # minus its baseline value in the same quarter.
+    ax.set_title(f"GDP impact in {final_period}\n(OBR Model)", fontsize=14)
 
     # Add value labels
     for bar, val in zip(bars, final_results["delta_gdp_bn"]):
