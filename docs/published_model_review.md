@@ -371,7 +371,7 @@ Several items refer to the "T2 fix". This is the OBR's own label in the code ("C
 ### V5. "EU-budget payment equations remain live; formulas dimensionally questionable." (Low; marked unverified by the author)
 - **Verdict:** True
 - **Why:** GNP4 (l.469) and EUVAT (l.471) are active equations, and unlike the other EU items they do not depend on their own past values. They set payments in proportion to UK national income and VAT receipts. Both divide a sterling amount by ECUPO, which the dictionary defines as euros per pound. That looks inverted for a currency conversion, although the calibrated constants (0.010, 0.0325, 0.8267) may absorb it. GNP4 feeds transfer debits (l.485), the subsidy residual (l.504) and central government net borrowing (l.524). The ONS data for both series is zero from 2021, but the equations as printed produce positive values whenever they are solved.
-- **Our adapted model:** Inherited. This is a known open bug: our replication currently regenerates GNP4 at about £6.3–7.4bn and EUVAT at about £1.5bn a quarter after 2021, where the data is zero. This makes the current balance about £8–12bn a quarter weaker in our runs. Public sector net borrowing is unchanged because the subsidy residual offsets it. The fix is to hold both at zero in `obr_macro/full_solver.py`.
+- **Our adapted model:** Fixed (#62). Our replication used to regenerate GNP4 at about £6.3–7.4bn and EUVAT at about £1.5bn a quarter after 2021, where the data is zero, which made the current balance about £8bn a quarter weaker; public sector net borrowing was unchanged because the subsidy residual offset it. `FullOBRSolver` now drops both equations (`ENDED_EU_PAYMENTS` in `obr_macro/full_solver.py`), so both hold their data path.
 
 ### V6. "Add factor on seasonally adjusted borrowing shifts corporate net lending without affecting debt." (Low)
 - **Verdict:** True but openly documented
@@ -398,4 +398,4 @@ Several items refer to the "T2 fix". This is the OBR's own label in the code ("C
 ### R4. "Secondary income retains EU-era transfer items." (Low)
 - **Verdict:** True
 - **Why:** Transfer credits TRANC (l.483) and debits TRAND (l.485) still include EU items. Three of them (EUSUBPR, EUSF, ECNET, l.463–467) depend only on their own past values, so they stay at zero once the data is zero. EU subsidies on products are set to zero (EUSUBP = 0, l.461), and EU product-tax payments (EUOT) are exogenous. The two live items are GNP4 and EUVAT, which share the problem described in V5.
-- **Our adapted model:** Inherited. This is the same known open bug as V5: our replication currently regenerates GNP4 and EUVAT after 2021 and adds them to transfer debits, which weakens the current balance in our runs.
+- **Our adapted model:** Fixed with V5 (#62): GNP4 and EUVAT now hold their data path (zero from 2021Q1), so they no longer add to transfer debits.

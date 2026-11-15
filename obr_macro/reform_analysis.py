@@ -821,6 +821,40 @@ def _impose_published_convention(
     return conv.data.copy(), detail
 
 
+HOUSEHOLD_RATIO_BASIS_NOTE = (
+    "delta_gdp_m is chained-volume (real) GDP; the household shock is "
+    "current-price revenue. gdp_per_revenue_real = -delta_gdp_m / revenue "
+    "mixes the two bases. The OBR's 0.3 income-tax multiplier (EFO July "
+    "2015, Box 3.2) is like for like, so compare it with "
+    "gdp_per_revenue_current_price = -delta_GDPMPS / revenue, which equals "
+    "the real ratio times PGDP/100 (issue #63)."
+)
+
+
+def _attach_household_ratio_bases(out, revenue, delta_gdpmps, pgdp):
+    """Attach GDP per pound of revenue on both bases (issue #63).
+
+    ``revenue`` is the per-quarter shock path from the first reported quarter;
+    quarters outside it (revenue 0) get None. ``delta_gdpmps`` and ``pgdp``
+    are aligned with the rows of ``out``.
+    """
+    n = len(out)
+    rev = [float(x) for x in revenue[:n]] + [0.0] * max(0, n - len(revenue))
+    real, nominal = [], []
+    for i in range(n):
+        if rev[i] == 0.0:
+            real.append(None)
+            nominal.append(None)
+            continue
+        real.append(float(-out["delta_gdp_m"].iloc[i] / rev[i]))
+        nominal.append(float(-delta_gdpmps[i] / rev[i]))
+    out.attrs["delta_gdpmps_m"] = [float(x) for x in delta_gdpmps]
+    out.attrs["gdp_deflator"] = [float(x) / 100.0 for x in pgdp]
+    out.attrs["gdp_per_revenue_real"] = real
+    out.attrs["gdp_per_revenue_current_price"] = nominal
+    out.attrs["gdp_per_revenue_basis_note"] = HOUSEHOLD_RATIO_BASIS_NOTE
+
+
 def run_reform(
     name: str,
     var: str,
@@ -1206,6 +1240,15 @@ def run_reform(
         out.attrs["delta_rhhdi_m"] = (
             shocked_data.iloc[window]["RHHDI"] - baseline_data.iloc[window]["RHHDI"]
         ).tolist()
+        _attach_household_ratio_bases(
+            out,
+            revenue=shock_path(shock, periods),
+            delta_gdpmps=(
+                shocked_data.iloc[window]["GDPMPS"]
+                - baseline_data.iloc[window]["GDPMPS"]
+            ).tolist(),
+            pgdp=baseline_data.iloc[window]["PGDP"].tolist(),
+        )
     if var == "R":
         out.attrs["cost_of_capital_channel"] = COST_OF_CAPITAL_RATE_CHANNEL_NOTE
         out.attrs["inflation_unemployment_note"] = MONETARY_CONDITIONING_SCOPE_NOTE

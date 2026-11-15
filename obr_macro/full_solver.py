@@ -60,6 +60,17 @@ class DroppedEquationError(RuntimeError):
 # on the pinned, demand and investment-closure templates (2025Q1-2031Q1) and a
 # plain 2016Q1-2024Q4 history solve. Shrink it as blocks are sourced; never
 # grow it without the reason.
+# EU budget payments that ended with the transition period (issue #62). The
+# listing keeps GNP4 (l.469, the GNI-based contribution) and EUVAT (l.471, the
+# VAT-based contribution) as live level equations with no own lag, so a solve
+# regenerates about GBP 7.8bn a quarter of payments where the ONS data (and the
+# forecast path) is zero from 2021Q1. Both feed transfer debits TRAND (l.485),
+# the current balance CB (l.493) and the subsidy residual CGSUBP (l.504). The
+# other EU items (EUSUBPR, EUSF, ECNET, EUOT) are own-lag or exogenous and stay
+# at zero already. Their equations are dropped so both hold their data path;
+# see docs/published_model_review.md V5 and R4.
+ENDED_EU_PAYMENTS = ("GNP4", "EUVAT")
+
 KNOWN_NONFINITE_EQUATIONS = frozenset(
     {
         "BV",
@@ -343,6 +354,9 @@ class FullOBRSolver:
         # Seed the calibration constants (adjustments, residuals, *BASE
         # normalisers, base deflator levels) the published data does not supply.
         self._seed_constants()
+
+        # Hold the ended EU budget payments on their data path (issue #62).
+        self._hold_ended_eu_payments()
 
         # Build equation index
         self._build_equation_index()
@@ -1054,6 +1068,15 @@ class FullOBRSolver:
 
         _LHS_CACHE[lhs] = parsed
         return parsed
+
+    def _hold_ended_eu_payments(self):
+        """Drop the GNP4 (l.469) and EUVAT (l.471) equations so both keep
+        their data path, zero from 2021Q1 (issue #62; ENDED_EU_PAYMENTS)."""
+        self.equations = [
+            eq
+            for eq in self.equations
+            if self._extract_lhs_var(eq.lhs) not in ENDED_EU_PAYMENTS
+        ]
 
     def _extract_lhs_var(self, lhs: str) -> str:
         """Extract variable name from LHS."""
