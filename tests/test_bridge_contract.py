@@ -314,3 +314,28 @@ def test_shock_inside_horizon_reports_no_overflow(bridge):
         df = bridge.run_reform("r", "CGG", 100.0, "2025Q1", "2025Q4", periods=4)
     assert df.attrs["shock_quarters"] == 4
     assert df.attrs["shock_quarters_beyond_horizon"] == 0
+
+
+def test_household_ratio_bases_are_attached_on_both_bases():
+    """Issue #63: the household lever reports GDP per pound of revenue on the
+    real and the current-price basis; quarters outside the shock get None."""
+    import pandas as pd
+
+    from obr_macro.reform_analysis import (
+        HOUSEHOLD_RATIO_BASIS_NOTE,
+        _attach_household_ratio_bases,
+    )
+
+    out = pd.DataFrame({"delta_gdp_m": [-100.0, -200.0, -50.0]})
+    _attach_household_ratio_bases(
+        out,
+        revenue=[1000.0, 1000.0],
+        delta_gdpmps=[-110.0, -230.0, -60.0],
+        pgdp=[110.0, 115.0, 120.0],
+    )
+    assert out.attrs["gdp_per_revenue_real"] == [0.1, 0.2, None]
+    assert out.attrs["gdp_per_revenue_current_price"] == [0.11, 0.23, None]
+    assert out.attrs["gdp_deflator"] == [1.1, 1.15, 1.2]
+    assert out.attrs["delta_gdpmps_m"] == [-110.0, -230.0, -60.0]
+    assert "#63" in out.attrs["gdp_per_revenue_basis_note"]
+    assert out.attrs["gdp_per_revenue_basis_note"] == HOUSEHOLD_RATIO_BASIS_NOTE

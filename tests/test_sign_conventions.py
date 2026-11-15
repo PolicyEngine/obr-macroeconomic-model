@@ -107,6 +107,7 @@ def respond():
         out = _Response()
         for col in (
             "GDPM",
+            "GDPMPS",
             "CONS",
             "IF",
             "IBUSX",
@@ -309,14 +310,15 @@ def test_household_multiplier_is_in_the_published_neighbourhood(respond):
     """The one lever whose magnitude is defensible.
 
     The OBR's published impact multiplier for income tax and NICs is 0.3
-    (July 2015 EFO, Box 3.2). Measured here: ~0.20 as a mean over eight
-    quarters, building towards ~0.35-0.39 over a five-year window as the
-    consumption equation's lags feed through. The band is wide because the
-    solver does not converge, but it excludes both zero (no channel) and 1.0
-    (the CGG-style identity), which is what this is guarding.
+    (July 2015 EFO, Box 3.2), a like-for-like ratio. The shock is
+    current-price revenue, so the ratio here is current-price GDP (GDPMPS)
+    per pound (issue #63). Real GDP per pound, which this test used before,
+    is smaller by PGDP/100 (1.06-1.13): ~0.20 as a mean over eight quarters
+    on that basis. The band is wide, but it excludes both zero (no channel)
+    and 1.0 (the CGG-style identity), which is what this is guarding.
     """
     r = respond("HHDI_ADDFACTOR", TAX_RISE_M)
-    multiplier = abs(share_of_shock(r, "GDPM", TAX_RISE_M)) / 100.0
+    multiplier = abs(share_of_shock(r, "GDPMPS", TAX_RISE_M)) / 100.0
     assert 0.10 < multiplier < 0.60, f"implied multiplier {multiplier:.3f} out of band"
 
 
