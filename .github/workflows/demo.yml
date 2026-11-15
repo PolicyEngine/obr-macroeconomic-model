@@ -1,0 +1,58 @@
+name: Demo shocks
+
+# Heavy, on demand: regenerates results/demo_shocks.json (every number in
+# docs/demo.md), runs the README's "run all reforms" CLI as a newcomer would,
+# and recomputes results/site_figures.json. Never gates a PR.
+on:
+  workflow_dispatch:
+  push:
+    branches: [vahid/demo-readiness]
+    paths:
+      - scripts/demo_shocks.py
+      - .github/workflows/demo.yml
+
+jobs:
+  demo-shocks:
+    name: Demo shock battery
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --locked
+      - run: uv run python scripts/demo_shocks.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: demo-shocks
+          path: results/demo_shocks.json
+
+  readme-cli:
+    name: README "run all reforms" CLI
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --locked
+      - run: uv run python -m obr_macro.reform_analysis 2>&1 | tee reform_analysis.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reform-analysis
+          path: |
+            reform_analysis.log
+            outputs/
+
+  site-figures:
+    name: Recompute site figures
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --locked
+      - run: uv run python scripts/site_figures.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-figures
+          path: results/site_figures.json
