@@ -57,6 +57,16 @@ NOISE_FLOOR_PCT = 1.0
 TAX_RISE_M = 1615.75  # 1p on the basic rate, GBP m/quarter (PE static costing)
 
 
+# Sentinel: "the test did not name a nominal-GDP closure".
+_CLOSURE_DEFAULT = object()
+
+
+class _Response(dict):
+    """Per-variable deltas, plus how the two solves behind them ended."""
+
+    exit_status: "list[str]" = []
+
+
 def _panel(solver, col):
     return solver.data.loc[START:END, col].astype(float)
 
@@ -72,12 +82,21 @@ def respond():
 
     cache = {}
 
-    def run(var, shock, periods=QUARTERS, investment_closure=None):
-        key = (var, shock, periods, investment_closure)
+    def run(
+        var,
+        shock,
+        periods=QUARTERS,
+        investment_closure=None,
+        nominal_gdp_pin=_CLOSURE_DEFAULT,
+    ):
+        key = (var, shock, periods, investment_closure, nominal_gdp_pin)
         if key in cache:
             return cache[key]
         ic = (var == "TCPRO") if investment_closure is None else investment_closure
-        template = _build_reform_template(var, START, END, ic)
+        # Unless a test names a closure, take the library's default, whatever
+        # it is (the published closure, or the nominal-GDP pin once #54 lands).
+        closure = () if nominal_gdp_pin is _CLOSURE_DEFAULT else (nominal_gdp_pin,)
+        template = _build_reform_template(var, START, END, ic, *closure)
         baseline, shocked = template.clone(), template.clone()
         if var == HOUSEHOLD_COSTING_VAR:
             _apply_household_costing(shocked, shock, START, periods)
@@ -85,8 +104,19 @@ def respond():
             shocked.apply_shock(var, shock, START, periods=periods)
         baseline.solve(START, END)
         shocked.solve(START, END)
-        out = {}
-        for col in ("GDPM", "CONS", "IF", "IBUSX", "LFSUR", "ETLFS", "RPI", "X", "M"):
+        out = _Response()
+        for col in (
+            "GDPM",
+            "CONS",
+            "IF",
+            "IBUSX",
+            "GGIDEF",
+            "LFSUR",
+            "ETLFS",
+            "RPI",
+            "X",
+            "M",
+        ):
             if col not in baseline.data.columns:
                 continue
             delta = _panel(shocked, col) - _panel(baseline, col)
@@ -95,6 +125,13 @@ def respond():
                 "path": [float(x) for x in delta],
                 "base_mean": float(_panel(baseline, col).mean()),
             }
+        # How each quarter's Gauss-Seidel iteration ended in the two solves
+        # ('tol' = converged, 'stall' = stall break): a delta is only as good
+        # as the two solves it is the difference of.
+        out.exit_status = sorted(
+            set(baseline.last_solve_report["exit_status"].values())
+            | set(shocked.last_solve_report["exit_status"].values())
+        )
         cache[key] = out
         return out
 
@@ -162,22 +199,30 @@ def test_government_consumption_is_antisymmetric(respond):
     assert abs(up + down) / abs(up) < 0.01, f"not antisymmetric: {up} vs {down}"
 
 
-def test_government_consumption_multiplier_is_exactly_one(respond):
-    """DEFECT (pinned). The multiplier is 1.0000 because it is an identity.
+def test_government_consumption_multiplier_is_one_plus_the_income_channel(respond):
+    """DEFECT (pinned). The multiplier is about 1 because it is an identity.
 
-    The shock lands in the GDPM expenditure identity and no behavioural
-    equation responds, so GDP moves one-for-one with the shock and stays
-    flat. The OBR's published impact multiplier for day-to-day spending and
-    welfare is 0.6, tapering over five years (July 2015 EFO, Box 3.2).
+    The shock lands in the GDPM expenditure identity. Under the published
+    closure nothing else responds and the multiplier is 1.0000 and flat.
+    Under the default nominal-GDP pin (l.690, #42) nominal GDP rises at the
+    fixed deflator, wages are exogenous, so profits take the extra nominal
+    income and a small part reaches household income and consumption: the
+    multiplier is 1.013 on impact and drifts up (measured 6 Nov 2026,
+    2026Q1-2027Q4: mean 102.7% of the shock). The OBR's published impact
+    multiplier for day-to-day spending and welfare is 0.6, tapering over
+    five years (July 2015 EFO, Box 3.2).
 
     This is the largest published-vs-modelled gap of any lever in the model.
     It is pinned rather than skipped: if a real second round is ever wired up
     this test fails, which is the point.
     """
     r = respond("CGG", 1250.0)
-    assert share_of_shock(r, "GDPM", 1250.0) == pytest.approx(100.0, abs=0.5)
+    assert share_of_shock(r, "GDPM", 1250.0) == pytest.approx(102.7, abs=1.0)
     path = r["GDPM"]["path"]
-    assert max(path) - min(path) < 0.01 * abs(path[0]), "identity response is not flat"
+    assert all(b >= a for a, b in zip(path, path[1:])), (
+        f"the income channel should only add to the response: {path}"
+    )
+    assert max(path) - min(path) < 0.05 * abs(path[0]), "response is not near-flat"
 
 
 def test_government_consumption_response_scales_linearly(respond):
@@ -187,23 +232,29 @@ def test_government_consumption_response_scales_linearly(respond):
     assert two / one == pytest.approx(2.0, rel=0.01)
 
 
-def test_government_consumption_moves_nothing_but_gdp(respond):
-    """DEFECT (pinned). The spending second round is empty.
+def test_government_consumption_moves_little_but_gdp(respond):
+    """DEFECT (pinned). The spending second round is nearly empty.
 
-    Consumption moves by 0.002% of the shock and business investment by 0.09%
-    -- both far under the noise floor. A spending increase in this model does
-    not raise household income, employment or prices; it raises the GDP
-    identity and stops. This is what "multiplier ~1 by construction" means
-    mechanically.
+    Under the default nominal-GDP pin consumption moves by 2.7% of the shock
+    (6 Nov 2026), through profits -> household income; under the published
+    closure it moved by 0.002%. A spending increase does not change
+    employment or prices. Pinned at 1-5% of the shock: outside that band, a
+    channel changed.
+
+    Business investment (IBUSX) reads +17.5% of the shock under the pin
+    (0.09% under the published closure). That is deflator propagation, not
+    an investment response: under the demand closure IBUS is the residual
+    IF - GGI - ..., with IF exogenous, and a real-only CGG shock moves PIF
+    (l.337 absorbs the nominal gap, about +0.94), which raises GGIDEF and so
+    lowers real GGI. GDP is unaffected (IF is exogenous). Pinned at 10-25%
+    so the artefact cannot grow silently.
     """
     shock = 1250.0
     r = respond("CGG", shock)
-    for col in ("CONS", "IBUSX"):
-        assert not clears_noise(r, col, shock), (
-            f"{col} now responds to spending at "
-            f"{share_of_shock(r, col, shock):.3f}% of the shock -- the second "
-            "round may have been wired up; update this test"
-        )
+    cons = share_of_shock(r, "CONS", shock)
+    assert 1.0 <= cons <= 5.0, f"CONS responds at {cons:.3f}% of the shock"
+    ibusx = share_of_shock(r, "IBUSX", shock)
+    assert 10.0 <= ibusx <= 25.0, f"IBUSX responds at {ibusx:.3f}% of the shock"
 
 
 # ---------------------------------------------------------------------------
@@ -277,20 +328,21 @@ def test_household_shock_signs_are_opposite_in_the_two_directions(respond):
 
 
 def test_temporary_government_consumption_shock_ends_when_it_ends(respond):
-    """A four-quarter CGG rise moves GDP one-for-one for four quarters, then stops.
+    """A four-quarter CGG rise moves GDP about one-for-one for four quarters,
+    then stops.
 
-    CGG passes straight through the expenditure identity, so nothing should
-    linger once the shock ends. Measured on 6 Nov 2026 (2025Q1 start, 25
-    quarters): +1000m for q0-q3 to within 0.3m, then at most 1.0m (0.1%) up to
-    q24. The bounds are 0.5% of the shock in both phases.
+    Under the default nominal-GDP pin (6 Nov 2026, 2026Q1 start, 8 quarters):
+    +1266m to +1283m for q0-q3 (1.013-1.026 of the shock, the income
+    channel), then a tail of +22m falling to +17m. Bounds: 1.00-1.04 of the
+    shock in the window; after it, at most 2.5% of the shock and shrinking.
     """
     shock = 1250.0
     path = respond("CGG", shock, periods=4)["GDPM"]["path"]
-    for q, x in enumerate(path):
-        target = shock if q < 4 else 0.0
-        assert abs(x - target) <= 0.005 * shock, (
-            f"q{q}: GDP delta {x:.2f}, expected {target:.0f} (path {path})"
-        )
+    for q, x in enumerate(path[:4]):
+        assert shock <= x <= 1.04 * shock, f"q{q}: GDP delta {x:.2f} (path {path})"
+    tail = path[4:]
+    assert all(0 <= x <= 0.025 * shock for x in tail), f"tail {tail}"
+    assert all(b <= a for a, b in zip(tail, tail[1:])), f"tail not fading: {tail}"
 
 
 def _max_abs(xs):
@@ -446,44 +498,83 @@ def test_public_investment_does_not_transmit(respond):
     any instrument. This model cannot deliver that, in two separate ways.
 
     First, total fixed investment (IF) moves EXACTLY zero, because IF has no
-    live equation in the published listing (both IF identities are commented
-    out). The CGIPS chain never reaches the GDP identity at all.
+    live equation in the published listing (both IF identities, l.86 and
+    l.112, are commented out). The CGIPS chain never reaches the GDP identity
+    at all.
 
     Second, business investment (IBUSX) does move, but not as a channel. With
-    IF exogenous, IBUS is the OBR's residual identity
+    IF exogenous, IBUS is the OBR's residual identity (l.84)
     IBUS = IF - GGI - PCIH - PCLEB - IH - IPRL, so a rise in real government
-    investment GGI = 100*GGIPS/GGIDEF is booked one-for-one as a FALL in
-    business investment. Measured means over eight quarters (2026-10, reform
-    baseline anchored to the EFO, GGIDEF ~98):
+    investment GGI = 100*GGIPS/GGIDEF (l.96) is booked one-for-one as a FALL
+    in business investment: IBUSX/CGIPS = -100/GGIDEF.
 
-        shock  +1500   ->  IBUSX  -1468  (-98% of shock)
-        shock  +6000   ->  IBUSX  -5941  (-99% of shock)
+    The mirror is measured under the nominal-GDP pin (the OBR's commented-out
+    l.690), because that is the closure in which the solve converges. Means
+    over eight quarters from 2026Q1, every quarter of both solves exiting on
+    the tolerance, GGIDEF 108.2 (11 Nov 2026, the same on the commit before
+    and after the receipts identities went live, #56):
 
-    Until 2026-10 the reform baseline ran free, GGIDEF sat near 850 instead of
-    ~100 and oscillated, and this test pinned the resulting non-proportional
-    residue (-6803 / -11602). Anchoring removed the noise and exposed the
-    mechanism: a wrong-signed crowding-out by definition, not by behaviour.
-    (A +3000 shock lands on a stalled Gauss-Seidel quarter and reads -835:
-    solver residue on top of the mirror, see
-    test_government_investment_channel_is_dead_and_says_so.)
+        shock  +1500   ->  IBUSX  -1387  (-92.44% of shock)
+        shock  +3000   ->  IBUSX  -2773  (-92.44% of shock)
+        shock  +6000   ->  IBUSX  -5547  (-92.44% of shock)
+
+    Why not the published closure (l.688), where this test used to be taken.
+    There nominal GDP and PIF are one identity written twice (#42), no quarter
+    converges (all exit on the stall break), and GGIDEF follows PIF (l.100).
+    Most shock sizes give the mirror (-98%, GGIDEF about 101.5), but one size
+    lands on a different stalled branch: nominal GDP jumps by about +5.2bn in
+    the first quarter, GGIDEF rises by 3.6 to 8 index points and the "mirror"
+    reads anything. WHICH size does so is not a property of the model. It
+    moved when the receipts identities went live, although they change BPAPS
+    by under 1m here:
+
+        published closure      +1500    +3000    +6000
+        before #56 (95e66f1)   -0.979   -0.278   -0.990
+        after  #56 (5314229)   -0.978   -0.980   -0.640
+
+    So a -0.64 at +6000 is solver residue of the undetermined pair, not a
+    consequence of live receipts, and the bound below was not moved for it.
+    (test_government_investment_channel_is_dead_and_says_so pins the residue
+    that the default run_reform call returns.)
 
     Capital spending must not be scored on this model.
     """
-    small, large = 1500.0, 6000.0
-    r_small, r_large = respond("CGIPS", small), respond("CGIPS", large)
+    sizes = (1500.0, 3000.0, 6000.0)
+    runs = {s: respond("CGIPS", s, nominal_gdp_pin=True) for s in sizes}
+
+    # The measurement is only meaningful on converged solves.
+    for shock, r in runs.items():
+        assert r.exit_status == ["tol"], (
+            f"CGIPS {shock:+.0f} under the pin did not converge in every "
+            f"quarter: {r.exit_status}"
+        )
 
     # The dead leg: total fixed investment never moves, at any shock size.
-    assert r_small["IF"]["mean"] == 0.0 and r_large["IF"]["mean"] == 0.0, (
+    assert all(r["IF"]["mean"] == 0.0 for r in runs.values()), (
         "IF now responds to CGIPS -- an IF equation may have been added"
     )
 
     # The mirror leg: business investment falls by ~the shock, i.e. it is the
     # residual identity absorbing real GGI, not an investment response.
-    for shock, r in ((small, r_small), (large, r_large)):
-        ratio = r["IBUSX"]["mean"] / shock
+    ratios = {s: r["IBUSX"]["mean"] / s for s, r in runs.items()}
+    for shock, ratio in ratios.items():
         assert -1.1 < ratio < -0.85, (
             f"IBUSX/CGIPS = {ratio:.2f} at a {shock:+.0f} shock -- no longer "
             "the one-for-one residual-identity mirror; re-measure and update"
+        )
+    # An identity is proportional: the ratio must not depend on the size
+    # (measured identical to four decimals). This is what the stalled
+    # published-closure solve fails.
+    assert max(ratios.values()) - min(ratios.values()) < 0.005, (
+        f"IBUSX/CGIPS depends on the shock size: {ratios}"
+    )
+    # And it is the deflator arithmetic of l.96, -100/GGIDEF, with GGIDEF
+    # itself unmoved by the shock.
+    for shock, r in runs.items():
+        ggidef = r["GGIDEF"]["base_mean"]
+        assert ratios[shock] == pytest.approx(-100.0 / ggidef, abs=0.005)
+        assert abs(r["GGIDEF"]["mean"]) < 1e-3, (
+            f"GGIDEF moved by {r['GGIDEF']['mean']:.4f} under a CGIPS shock"
         )
 
 

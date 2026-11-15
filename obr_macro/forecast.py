@@ -53,12 +53,13 @@ def forecast(
     base_end=BASE_END,
     fc_start=FC_START,
     fc_end=FC_END,
-    nominal_gdp_pin=False,
+    nominal_gdp_pin=True,
 ):
     """Project the model forward with add-factors held from the base window.
 
     ``nominal_gdp_pin`` selects the l.690 nominal-GDP closure (see
-    docs/nominal_gdp_pin.md); default False is the published closure.
+    docs/nominal_gdp_pin.md); default True since #42. Pass False for the
+    published closure.
     """
     s = build(
         anchored=True, nominal_gdp_pin=nominal_gdp_pin
@@ -88,13 +89,14 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--nominal-gdp-pin",
+        "--published-closure",
         action="store_true",
-        help="close nominal GDP with the OBR's commented-out l.690",
+        help="use the published closure (l.688 live, PIF free) instead of the "
+        "default nominal-GDP pin (l.690)",
     )
     args = parser.parse_args(argv)
     efo = load_obr_data()
-    s, held = forecast(nominal_gdp_pin=args.nominal_gdp_pin)
+    s, held = forecast(nominal_gdp_pin=not args.published_closure)
     has_eq = {s._extract_lhs_var(eq.lhs) for eq in s.equations}
     t1 = s.period_idx(FC_END)
     skipped = {d["var"] for d in s.diagnose_period(t1)}
