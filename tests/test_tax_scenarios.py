@@ -19,7 +19,9 @@ live channel (TCPRO, investment closure) cannot be combined with the pin.
 The tests pin both facts so a change to either shows up.
 
 The ratio checked is -dGDPMPS / revenue (nominal GDP per £ of nominal
-revenue). PGDP is exogenous, so this equals the real ratio. For reference,
+revenue). It is a current-price ratio, not the real one: real GDP per £ of
+nominal revenue is this times 100/PGDP, so the two differ by PGDP/100
+(1.06-1.13 over 2025-2027). For reference,
 the OBR's published tax multiplier is 0.33 in year 0, 0.30 in year 1 and 0.23
 in year 2, tapering to 0 by year 5 ("Dynamic scoring of policy measures in
 OBR forecasts", OBR fiscal multipliers table), and 0.3 for income tax and
@@ -192,7 +194,9 @@ def test_vat_corporation_tax_and_fuel_duty_have_no_gdp_channel(tax_runs):
     off in this closure. Pinned as a documented gap, not a result.
 
     Expected to flip for VAT and fuel duty when #56 lands: a live BPAPS
-    lowers OS (l.719), and OSHH feeds HHDI (l.654). Re-pin with the
+    lowers OS (l.719) and so profits FYCPR (l.731); quasi-corporation
+    withdrawals WYQC (l.641) scale with FYCPR and enter PIRHH (l.645), which
+    feeds HHDI (l.654). OSHH (l.725) has no profits term. Re-pin with the
     measured values then."""
     for name in DEAD:
         r = tax_runs[f"{name}+1"]
