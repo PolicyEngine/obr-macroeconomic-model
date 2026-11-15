@@ -945,15 +945,20 @@ def test_raw_calibration_scorecard_does_not_regress():
         # HHDI 6.00, RHHDI 5.76, FYCPR 41.71, CB 2.99 (FYCPR was 82.78 there:
         # that closure's profits are a residual of the wandering PIF, so they
         # move with any perturbation).
-        "GDPM": ("lvl", 4.16),  # % MAPE
-        "CONS": ("lvl", 6.95),
+        # Re-pinned 15 Nov 2026 with the ended EU payments GNP4/EUVAT held at
+        # zero (#62, CI run 43710220541): GDPM 4.16 -> 4.12, CONS 6.95 ->
+        # 6.90, HHDI 4.65 -> 4.50, RHHDI 4.41 -> 4.26, FYCPR 17.90 -> 12.45,
+        # CB 2.19 -> 1.19. Published closure, same run: GDPM 4.14, CONS 6.92,
+        # IBUS 17.19, HHDI 5.97, RHHDI 5.73, FYCPR 43.64, CB 2.11.
+        "GDPM": ("lvl", 4.12),  # % MAPE
+        "CONS": ("lvl", 6.90),
         "IBUS": ("lvl", 8.38),
         "LFSUR": ("pp", 1.01),  # mean abs pp
         "RPI": ("pp", 1.71),
-        "HHDI": ("lvl", 4.65),
-        "RHHDI": ("lvl", 4.41),
-        "FYCPR": ("lvl", 17.90),
-        "CB": ("gdp", 2.19),  # % of GDP
+        "HHDI": ("lvl", 4.50),
+        "RHHDI": ("lvl", 4.26),
+        "FYCPR": ("lvl", 12.45),
+        "CB": ("gdp", 1.19),  # % of GDP
         "TB": ("gdp", 0.68),
     }
     report = build_scorecard()

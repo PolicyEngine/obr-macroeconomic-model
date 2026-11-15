@@ -1,0 +1,1 @@
+Hold the ended EU budget payments `GNP4` (l.469) and `EUVAT` (l.471) on their data path, zero from 2021Q1 (#62). The listing's level equations regenerated about £7.8bn a quarter of payments into transfer debits, the current balance and the subsidy residual, and booked about 3.3% of any VAT rise as an extra payment to the EU.
