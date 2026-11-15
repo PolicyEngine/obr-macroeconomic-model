@@ -5,10 +5,6 @@ name: Demo shocks
 # and recomputes results/site_figures.json. Never gates a PR.
 on:
   workflow_dispatch:
-  # Pushes to the demo branch rerun it while docs/demo.md is being written;
-  # after merge it is dispatch-only.
-  push:
-    branches: [vahid/demo-readiness]
 
 jobs:
   demo-shocks:

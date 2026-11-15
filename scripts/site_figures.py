@@ -29,9 +29,9 @@ What each block measures, and the window it uses:
   Site claim: IBUSX mean -6.8/-8.8/-11.6bn; IF exactly zero.
 
 The site claims above were measured at e4d7faa, under the published closure.
-Recomputed 15 Nov 2026 under the default nominal-GDP pin (Actions run
-43716065096): every quarter now converges; Bank Rate +100bp gives GDP
--129/-405/-480/-522 GBP m at q1/4/8/12 and a cut +134 to +541; the CGIPS
+Recomputed 15 Nov 2026 under the default nominal-GDP pin, after #65 (Actions
+run 43720935064, a4e06f8): every quarter now converges; Bank Rate +100bp gives
+GDP -129/-405/-481/-522 GBP m at q1/4/8/12 and a cut +134 to +541; the CGIPS
 sweep is proportional, IBUSX mean -1,387/-2,773/-5,547 (-0.924 of the shock,
 = -100/GGIDEF); corporation tax and the anchored horizon are unchanged to the
 first decimal. The JSON is the source; the site text needs updating to it.
