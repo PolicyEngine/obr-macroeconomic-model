@@ -15,13 +15,16 @@ All are exogenous receipts in this closure, and every one reaches PSCR and
 CGNB one for one (#56). Income tax and NICs reach household disposable
 income directly. VAT and fuel duty reach it only through profits: a live
 BPAPS lowers GVA at basic prices under the pin, so operating surplus and
-OSHH fall. CPI (l.314) is commented out by the OBR, so there is no price
-route to real consumption. Corporation tax reaches nothing but receipts; its
+profits fall, and households lose the quasi-corporation withdrawals WYQC
+(l.641) that scale with profits. CPI (l.314) is commented out by the OBR,
+so there is no price route to real consumption. Corporation tax reaches nothing but receipts; its
 live channel (TCPRO, investment closure) cannot be combined with the pin.
 The tests pin these facts so a change to any of them shows up.
 
 The ratio checked is -dGDPMPS / revenue (nominal GDP per £ of nominal
-revenue). PGDP is exogenous, so this equals the real ratio. For reference,
+revenue). It is a current-price ratio, not the real one: real GDP per £ of
+nominal revenue is this times 100/PGDP, so the two differ by PGDP/100
+(1.06-1.13 over 2025-2027). For reference,
 the OBR's published tax multiplier is 0.33 in year 0, 0.30 in year 1 and 0.23
 in year 2, tapering to 0 by year 5 ("Dynamic scoring of policy measures in
 OBR forecasts", OBR fiscal multipliers table), and 0.3 for income tax and
@@ -201,7 +204,10 @@ def test_corporation_tax_has_no_gdp_channel(tax_runs):
 def test_vat_and_fuel_duty_reach_gdp_through_profits(tax_runs, name):
     """With BPAPS live (#56), VAT and fuel duty raise basic-price taxes;
     under the nominal-GDP pin GVA at basic prices falls, so operating
-    surplus absorbs them (l.719), OSHH lowers HHDI (l.654) and consumption.
+    surplus absorbs them (l.719) and profits FYCPR fall (l.731).
+    Quasi-corporation withdrawals WYQC (l.641) scale with FYCPR and enter
+    PIRHH (l.645), so HHDI (l.654) and consumption fall; OSHH (l.725) has no
+    profits term and does not move.
     Measured -dGDPMPS / revenue: VAT 0.027 at q4, 0.046 at q12; fuel duty
     0.026 / 0.044 (0 before #56). OBR Box 3.2 (EFO July 2015) scores VAT at
     0.35: there is still no price route (CPI, l.314, is commented out), so
