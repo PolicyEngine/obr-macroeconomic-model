@@ -24,20 +24,23 @@ Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
 > some historical tables below) shorthand this as "within 10%", which is
 > accurate only for the level variables.
 
-Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
+Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`, 6 Nov
+2026). The default closure is the nominal-GDP pin (l.690, #42; see
+[nominal_gdp_pin.md](nominal_gdp_pin.md)); `--published-closure` gives the
+figures in the last column.
 
-| Variable | Error (held-AF forecast) | band |
-|---|--:|---|
-| Real GDP | 0.27% | within |
-| Consumption | 0.19% | within |
-| Employment | 0.00% | **trivial identity** |
-| Real household income | — | **held at EFO (not forecast)** |
-| Household income | — | **held at EFO (not forecast)** |
-| Unemployment rate | 0.69pp | within |
-| Business investment | 13.32% | **over** |
-| Company profits | 14.86% | **over** |
-| Trade balance | 0.25% of GDP | within |
-| Current account | 1.39% of GDP | within |
+| Variable | Error (held-AF forecast) | band | Published closure |
+|---|--:|---|--:|
+| Real GDP | 0.28% | within | 0.27% |
+| Consumption | 0.19% | within | 0.19% |
+| Employment | 0.00% | **trivial identity** | 0.00% |
+| Real household income | — | **held at EFO (not forecast)** | — |
+| Household income | — | **held at EFO (not forecast)** | — |
+| Unemployment rate | 0.69pp | within | 0.69pp |
+| Business investment | 10.00% | within (at the 10% edge) | 13.32% (over) |
+| Company profits | 13.48% | **over** | 14.86% (over) |
+| Trade balance | 0.25% of GDP | within | 0.25% of GDP |
+| Current account | 1.51% of GDP | **over** (1.5% band) | 1.39% of GDP (within) |
 
 > **Recovered-series revision.** These follow the ONS-pull repair (see
 > `calibration_scorecard.md`): the eight series the TLS failure had been
@@ -86,7 +89,9 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
    consumption, and adds seven EFO series. It is a statement about the
    consumption equation's short-run dynamics, not about the model forecasting
    GDP. The un-anchored version of the same question is the raw calibration
-   scorecard (GDP 4.32%, consumption 7.22%, household income 6.18%). That is
+   scorecard (GDP 4.16%, consumption 6.96%, household income 4.66% under the
+   default nominal-GDP pin; 4.32%, 7.22% and 6.18% under the published
+   closure). That is
    not a forecast-skill number either, and not an OBR error: in the OBR's
    model GDP is an input, so it cannot miss it. It measures this emulator —
    the closure swap that makes GDP endogenous plus the OBR inputs that are not
@@ -110,8 +115,9 @@ Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`):
   forecast by it, so this is not evidence of forecast skill. Unemployment
   (0.69pp) is the one line here that is both computed and not downstream of a
   held income series.
-- **Over band: business investment (~15%), company profits (~12%).** Finite and
-  in the right ballpark, not usable.
+- **Over band: company profits (13.5%) and the current account (1.51% of
+  GDP); business investment sits on the 10% edge.** Finite and in the right
+  ballpark, not usable.
 - **Not forecast at all: household income and real household income** — held at
   their EFO values by `_PUBLISHED_LEVEL_ANCHORS`.
 - A few remain passthrough (exports, imports, CPI) — exogenous in this setup,

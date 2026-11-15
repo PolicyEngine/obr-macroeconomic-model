@@ -50,6 +50,27 @@ NOMINAL_GDP_PIN_EQ = ParsedEquation(
 )
 
 
+def resolve_nominal_gdp_pin(nominal_gdp_pin, investment_closure) -> bool:
+    """Resolve the ``nominal_gdp_pin`` default for a reform run.
+
+    ``None`` (the default) means "the pin wherever it applies": on under the
+    demand closure, off under the investment closure, which already
+    determines nominal GDP by holding PIF exogenous. An explicit True with the
+    investment closure is refused; an explicit False selects the published
+    closure.
+    """
+    if nominal_gdp_pin is None:
+        return not investment_closure
+    if nominal_gdp_pin and investment_closure:
+        raise ValueError(
+            "nominal_gdp_pin cannot be combined with investment_closure: the "
+            "investment closure holds PIF exogenous, which already determines "
+            "nominal GDP through l.688. Pinning GDPMPS as well would remove "
+            "both l.337 and l.688 and break the nominal expenditure identity."
+        )
+    return bool(nominal_gdp_pin)
+
+
 def apply_nominal_gdp_pin(solver) -> None:
     """Close nominal GDP with the OBR's commented-out l.690.
 
@@ -438,20 +459,14 @@ def _anchor_published_levels(template, start: str, end: str) -> None:
 _REFORM_TEMPLATE_CACHE = {}
 
 
-def _build_reform_template(var, start, end, investment_closure, nominal_gdp_pin=False):
+def _build_reform_template(var, start, end, investment_closure, nominal_gdp_pin=None):
     """Build (and cache) the stabilised, unsolved baseline template.
 
     The baseline and shocked runs must be structurally identical (same closures,
     same exogenous instrument, same starting data, same stabilisation) so the
     delta isolates the shock — hence a single shared template that both clone.
     """
-    if nominal_gdp_pin and investment_closure:
-        raise ValueError(
-            "nominal_gdp_pin cannot be combined with investment_closure: the "
-            "investment closure holds PIF exogenous, which already determines "
-            "nominal GDP through l.688. Pinning GDPMPS as well would remove "
-            "both l.337 and l.688 and break the nominal expenditure identity."
-        )
+    nominal_gdp_pin = resolve_nominal_gdp_pin(nominal_gdp_pin, investment_closure)
     key = (var, start, end, investment_closure, nominal_gdp_pin)
     cached = _REFORM_TEMPLATE_CACHE.get(key)
     if cached is not None:
@@ -561,6 +576,16 @@ def _label_investment_closure_divergence(
         warnings.warn(msg, stacklevel=3)
 
 
+# Imposing a published convention (see _impose_published_convention): the
+# reported GDP delta must be within this many £m of multiplier x shock in every
+# quarter, and the add-factor is corrected for at most this many solves.
+# Measured under the nominal-GDP pin: the first solve misses by about 1.4% of
+# the add-factor (£7m on a £1.25bn CGG shock), the second by about 1.4% of
+# that. Six leaves a wide margin and bounds the cost.
+_CONVENTION_TOL_M = 0.5
+_CONVENTION_MAX_PASSES = 6
+
+
 def _impose_published_convention(
     template,
     baseline_data,
@@ -594,10 +619,28 @@ def _impose_published_convention(
     applied to the baseline AND every shocked clone alike so they cancel in the
     delta; here they are applied to the shocked run ONLY, deliberately, so they
     do NOT cancel — the non-cancelling difference IS the convention. The
-    add-factor for each quarter is (convention target - measured raw delta), so
-    the imposed run lands on the target exactly, including the removal of the
-    raw run's deflator noise (the wrong-signed residue a dead CGIPS shock
-    leaves in GDP is part of what is being overridden).
+    add-factor for each quarter starts at (convention target - measured raw
+    delta) and is then corrected until the imposed run lands on the target,
+    including the removal of the raw run's deflator noise (the wrong-signed
+    residue a dead CGIPS shock leaves in GDP is part of what is being
+    overridden).
+
+    Why the correction passes. The one-shot add-factor is exact only when the
+    GDPM add-factor has no feedback onto GDPM. That holds under the published
+    closure (l.688), where real GDP reaches nothing behavioural. Under the
+    nominal-GDP pin (the OBR's commented-out l.690, GDPMPS = PGDP*GDPM/100)
+    it does not: real GDP sets nominal GDP, the income side books the change
+    in profits, part of it reaches household income (OSHH -> HHDI) and
+    consumption responds through the RHHDI terms of dlog(CONS) (l.4), which
+    is itself a component of GDPM. Each £1 of add-factor therefore moved GDP
+    by about £1.014, and a one-shot imposition delivered 0.594 where the
+    convention says 0.6 (#54). The add-factor is the fixed point of
+    af <- af + (target - delta); the loop below iterates it until every
+    quarter is within ``_CONVENTION_TOL_M`` of the target, and raises rather
+    than report a multiplier it did not impose. Under the published closure
+    there is no such feedback: the first solve misses only by stall residue
+    (up to about £1.5m on a £1.25bn CGG shock, measured 11 Nov 2026), which
+    one correction solve removes.
 
     Units: the OBR multipliers map real spending to real GDP. Nominal
     instruments (CGIPS/LAIPS/GGIPS, £m current prices) are converted to real
@@ -621,18 +664,46 @@ def _impose_published_convention(
         real_shock.append(float(s))
     target = target_gdp_delta(convention.channel, real_shock)
 
-    conv = template.clone()
-    conv.apply_shock(var, shock, start, periods=periods)
-    for q in range(horizon):
-        t = t_start + q
-        raw_delta = float(
-            raw_shocked_data.iloc[t]["GDPM"] - baseline_data.iloc[t]["GDPM"]
-        )
-        key = ("GDPM", t)
-        # += so the structural add-factors already on the template (e.g. the
-        # OSHH anchor) are preserved, not clobbered.
-        conv.add_factors[key] = conv.add_factors.get(key, 0.0) + (target[q] - raw_delta)
-    conv.solve(start, end)
+    base_gdp = [float(baseline_data.iloc[t_start + q]["GDPM"]) for q in range(horizon)]
+    # First guess: (target - raw delta), exact when the add-factor has no
+    # feedback onto GDPM (the published closure).
+    add = [
+        target[q] - (float(raw_shocked_data.iloc[t_start + q]["GDPM"]) - base_gdp[q])
+        for q in range(horizon)
+    ]
+    passes = 0
+    while True:
+        passes += 1
+        # A fresh clone each pass: every pass is the same solve from the same
+        # start, differing only in the add-factor path.
+        conv = template.clone()
+        conv.apply_shock(var, shock, start, periods=periods)
+        for q in range(horizon):
+            key = ("GDPM", t_start + q)
+            # += so the structural add-factors already on the template (e.g.
+            # the OSHH anchor) are preserved, not clobbered.
+            conv.add_factors[key] = conv.add_factors.get(key, 0.0) + add[q]
+        conv.solve(start, end)
+        miss = [
+            target[q] - (float(conv.data.iloc[t_start + q]["GDPM"]) - base_gdp[q])
+            for q in range(horizon)
+        ]
+        worst = max((abs(m) for m in miss), default=0.0)
+        if not np.isfinite(worst):
+            raise RuntimeError(
+                "published-convention solve produced a non-finite GDPM; the "
+                "convention cannot be imposed"
+            )
+        if worst <= _CONVENTION_TOL_M:
+            break
+        if passes >= _CONVENTION_MAX_PASSES:
+            raise RuntimeError(
+                f"published convention not imposed: after {passes} solves the "
+                f"GDP delta is still £{worst:.2f}m from the convention path "
+                f"(tolerance £{_CONVENTION_TOL_M}m). Refusing to report a "
+                "multiplier the run does not deliver."
+            )
+        add = [a + m for a, m in zip(add, miss)]
 
     entry = PUBLISHED_MULTIPLIERS[convention.channel]
     detail = {
@@ -650,6 +721,18 @@ def _impose_published_convention(
         "deflator": convention.deflator,
         "real_shock_m": real_shock,
         "target_delta_gdp_m": target,
+        # How the imposition landed: solves used (1 = the one-shot add-factor
+        # was already on target, i.e. no feedback) and the largest remaining
+        # distance from the convention path, £m.
+        "imposition_solves": passes,
+        "max_abs_miss_m": worst,
+        # Per-quarter exit status of the imposed solve (None for a solver
+        # double that reports nothing), so a reader can see whether the
+        # reported path is a converged solve.
+        "solver_exit_status": dict(
+            (getattr(conv, "last_solve_report", None) or {}).get("exit_status", {})
+        )
+        or None,
     }
     return conv.data.copy(), detail
 
@@ -663,7 +746,7 @@ def run_reform(
     periods: int = 12,
     investment_closure: bool = False,
     published_conventions: bool = False,
-    nominal_gdp_pin: bool = False,
+    nominal_gdp_pin: "bool | None" = None,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -699,9 +782,11 @@ def run_reform(
             l.688 expenditure identity, so the investment deflator PIF is
             determined (as its l.337 residual) rather than left free. Holds
             the GDP deflator PGDP at its EFO path, which it is anyway (PGDP is
-            exogenous). Default False keeps the published closure. Cannot be
-            combined with ``investment_closure`` (see apply_nominal_gdp_pin).
-            See docs/nominal_gdp_pin.md.
+            exogenous). Default None (since #42): the pin under the demand
+            closure, the published closure under ``investment_closure``
+            (which already determines nominal GDP by holding PIF). False
+            selects the published closure; True with ``investment_closure``
+            raises (see resolve_nominal_gdp_pin). See docs/nominal_gdp_pin.md.
     """
     if published_conventions and investment_closure:
         raise ValueError(
@@ -722,6 +807,7 @@ def run_reform(
     # Clone the shared (cached) template for both runs; the template is pristine
     # and unsolved, so the baseline and shocked clones are structurally
     # identical and the delta isolates the shock.
+    nominal_gdp_pin = resolve_nominal_gdp_pin(nominal_gdp_pin, investment_closure)
     template = _build_reform_template(
         var, start, end, investment_closure, nominal_gdp_pin
     )
@@ -797,6 +883,9 @@ def run_reform(
         )
 
     out = pd.DataFrame(results)
+    # Which nominal-GDP closure produced this frame (#42): True = l.690 pin
+    # (the default under the demand closure), False = published l.688.
+    out.attrs["nominal_gdp_pin"] = nominal_gdp_pin
 
     # A shock path longer than the [start, end] window is applied to the data
     # but never solved or reported, so a caller summing "the shocked quarters"
@@ -876,9 +965,11 @@ def run_reform(
     # being dressed up as a validated multiplier profile.
     #
     # AGAINST THE PUBLISHED RANGE. The OBR's own impact multipliers are 1.0 for
-    # CAPITAL spending, 0.6 for CURRENT spending, 0.6 for welfare, 0.3 for
-    # personal tax and NICs and 0.2 for corporation tax, and all of them decay
-    # to zero as the output gap closes. This model returns 1.00 flat for a
+    # CAPITAL spending, 0.6 for CURRENT spending, 0.6 for welfare and 0.3 for
+    # personal tax and NICs (published_conventions.py, EFO July 2015 Box 3.2),
+    # and all of them decay to zero as the output gap closes. (A 0.2
+    # corporation-tax figure used to be listed here and in df.attrs; it had no
+    # source in this repo and was dropped, #54.) This model returns 1.00 flat for a
     # government-CONSUMPTION shock — measured impact 1.0000, quarter 12 0.9995,
     # linear in shock size from GBP 0.1bn to GBP 10bn. So it overstates the
     # OBR's current-spending multiplier by ~67% on impact and by more at every
@@ -912,10 +1003,19 @@ def run_reform(
                 else "an accounting identity (1.0-flat passthrough)"
             )
             + " and cannot produce this profile. Component deltas "
-            "(delta_cons_m, delta_if_m) are NOT overridden — they remain the "
-            "raw model's values, so e.g. delta_if_m stays exactly zero for a "
-            "capital-spending shock even though delta_gdp follows the "
-            "convention."
+            "(delta_cons_m, delta_if_m) are NOT overridden — they are what "
+            "the model's own equations give in the imposed run, so e.g. "
+            "delta_if_m stays exactly zero for a capital-spending shock even "
+            "though delta_gdp follows the convention."
+            + (
+                " Under the nominal-GDP pin (l.690) delta_cons_m is the "
+                "income channel's response to the imposed GDP path (nominal "
+                "GDP -> profits -> household income -> consumption), a few "
+                "per cent of the GDP delta; the add-factor absorbs it, so "
+                "the GDP total is still exactly the convention."
+                if nominal_gdp_pin
+                else ""
+            )
         )
     elif not investment_closure:
         out.attrs["published_conventions"] = False
@@ -924,14 +1024,16 @@ def run_reform(
             "current_spending": 0.6,
             "capital_spending": 1.0,
             "personal_tax_and_nics": 0.3,
-            "corporation_tax": 0.2,
         }
         out.attrs["multiplier_warning"] = (
             "Demand-closure shock: GDP delta is mechanical passthrough via the "
-            "expenditure identity (flat multiplier 1.0, no behavioural "
-            "second-round effects and no decay). Import leakage, income-driven "
-            "consumption and crowding-out channels are structurally inert in "
-            "the published model file/data. This does NOT match the OBR's "
+            "expenditure identity (multiplier 1.0 under the published closure; "
+            "under the default nominal-GDP pin about 1.01 on impact, drifting "
+            "up to about 1.05 by q12 because the extra nominal GDP lands in "
+            "profits and a small part reaches household income and "
+            "consumption; no decay). Import leakage and crowding-out channels "
+            "are structurally inert in the published model file/data. This "
+            "does NOT match the OBR's "
             "published impact multiplier for current spending (0.6, decaying "
             "to zero as the output gap closes) — it is ~67% too large on "
             "impact and stays flat where the OBR's decays. Do not read the "

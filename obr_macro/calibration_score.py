@@ -78,7 +78,7 @@ PANEL = {
 }
 
 
-def raw_solve(nominal_gdp_pin=False):
+def raw_solve(nominal_gdp_pin=True):
     """Raw solve (residuals off) with the EFO seed removed from the horizon.
 
     The solver's data frame is pre-filled with the EFO path, so a period whose
@@ -105,7 +105,7 @@ def raw_solve(nominal_gdp_pin=False):
     return s, has_eq, skipped, t0, t1
 
 
-def build_scorecard(nominal_gdp_pin=False) -> dict:
+def build_scorecard(nominal_gdp_pin=True) -> dict:
     """Return the calibration evidence as structured, machine-readable data.
 
     Passthroughs are retained in the inventory but excluded from the computed
@@ -191,13 +191,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="emit structured JSON")
     parser.add_argument(
-        "--nominal-gdp-pin",
+        "--published-closure",
         action="store_true",
-        help="close nominal GDP with the OBR's commented-out l.690 "
-        "(GDPMPS = PGDP*GDPM/100); see docs/nominal_gdp_pin.md",
+        help="score the published closure (l.688 live, PIF free) instead of "
+        "the default nominal-GDP pin (l.690); see docs/nominal_gdp_pin.md",
     )
     args = parser.parse_args(argv)
-    report = build_scorecard(nominal_gdp_pin=args.nominal_gdp_pin)
+    report = build_scorecard(nominal_gdp_pin=not args.published_closure)
     if args.json:
         print(json.dumps(report, indent=2))
         return
