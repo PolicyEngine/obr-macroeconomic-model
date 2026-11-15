@@ -173,6 +173,49 @@ def _check_instrument_domain(template, var, values, start: str) -> None:
 # tests/test_stress.py already excludes CGIPS from its instrument list for this
 # reason; the warning makes the same fact visible to anyone calling
 # run_reform directly (including run_five_reforms' "GBP 10bn Gov Investment").
+# Terms of the expenditure identity (GDPM_EQ) a caller can shock directly:
+# their GDP delta is mechanical passthrough, labelled as such in run_reform.
+EXPENDITURE_IDENTITY_TERMS = frozenset({"CGG", "DINV", "VAL", "X", "M", "SDE"})
+
+# How each common non-identity instrument reaches GDP under the demand
+# closure, attached to run_reform output as attrs["transmission_note"].
+_HOUSEHOLD_NOTE = (
+    "Behavioural channel: household disposable income falls, and the "
+    "published consumption equation (l.4) responds to real income. Compare "
+    "with the OBR's 0.3 income tax/NICs multiplier on a like-for-like "
+    "(current-price) basis; the model's response builds up instead of "
+    "tapering (#50)."
+)
+TRANSMISSION_NOTES = {
+    "TYEM": _HOUSEHOLD_NOTE,
+    "EENIC": _HOUSEHOLD_NOTE,
+    "HHDI_ADDFACTOR": _HOUSEHOLD_NOTE,
+    "VREC": (
+        "Receipts reach PSCR and CGNB one for one. GDP moves only through "
+        "profits: under the nominal-GDP pin the tax lands on operating "
+        "surplus, and households lose the quasi-corporation withdrawals "
+        "(WYQC, l.641) that scale with profits. CPI is exogenous in the "
+        "listing (l.314 commented out), so there is no price channel; the "
+        "response is about a tenth of the OBR's 0.35 VAT convention (#60)."
+    ),
+    "TXFUEL": (
+        "Receipts reach PSCR and CGNB one for one. GDP moves only through "
+        "profits (operating surplus, then WYQC, l.641); CPI is exogenous, "
+        "so there is no price channel (#60)."
+    ),
+    "NNSCTP": (
+        "Corporation-tax receipts only: PSCR and CGNB move one for one and "
+        "GDP by exactly zero. The corporation-tax GDP channel is the cost "
+        "of capital: shock TCPRO with investment_closure=True."
+    ),
+    "R": (
+        "Consumption and household/corporate interest flows only. "
+        "Investment, sterling, house prices and gilt yields have no rate "
+        "term, so the peak GDP response is a fraction of the Bank of "
+        "England's -0.2% to -0.35% (see docs/monetary_conditioning.md)."
+    ),
+}
+
 _DEAD_UNDER_DEMAND_CLOSURE = {
     "CGIPS": "central government investment (nominal)",
     "LAIPS": "local authority investment (nominal)",
@@ -1105,26 +1148,33 @@ def run_reform(
         )
     elif not investment_closure:
         out.attrs["published_conventions"] = False
-        out.attrs["mechanical_passthrough"] = True
+        out.attrs["mechanical_passthrough"] = var in EXPENDITURE_IDENTITY_TERMS
         out.attrs["obr_published_impact_multiplier"] = {
             "current_spending": 0.6,
             "capital_spending": 1.0,
             "personal_tax_and_nics": 0.3,
         }
-        out.attrs["multiplier_warning"] = (
-            "Demand-closure shock: GDP delta is mechanical passthrough via the "
-            "expenditure identity (multiplier 1.0 under the published closure; "
-            "under the default nominal-GDP pin about 1.01 on impact, drifting "
-            "up to about 1.05 by q12 because the extra nominal GDP lands in "
-            "profits and a small part reaches household income and "
-            "consumption; no decay). Import leakage and crowding-out channels "
-            "are structurally inert in the published model file/data. This "
-            "does NOT match the OBR's "
-            "published impact multiplier for current spending (0.6, decaying "
-            "to zero as the output gap closes) — it is ~67% too large on "
-            "impact and stays flat where the OBR's decays. Do not read the "
-            "path as a multiplier profile."
-        )
+        if var in TRANSMISSION_NOTES:
+            out.attrs["transmission_note"] = TRANSMISSION_NOTES[var]
+        # The passthrough label is true only for a term of the expenditure
+        # identity (GDPM_EQ). It used to be attached to every demand-closure
+        # run, so an income-tax or Bank Rate result was labelled as
+        # mechanical passthrough with a multiplier of 1.0.
+        if var in EXPENDITURE_IDENTITY_TERMS:
+            out.attrs["multiplier_warning"] = (
+                "Demand-closure shock: GDP delta is mechanical passthrough via the "
+                "expenditure identity (multiplier 1.0 under the published closure; "
+                "under the default nominal-GDP pin about 1.01 on impact, drifting "
+                "up to about 1.05 by q12 because the extra nominal GDP lands in "
+                "profits and a small part reaches household income and "
+                "consumption; no decay). Import leakage and crowding-out channels "
+                "are structurally inert in the published model file/data. This "
+                "does NOT match the OBR's "
+                "published impact multiplier for current spending (0.6, decaying "
+                "to zero as the output gap closes) — it is ~67% too large on "
+                "impact and stays flat where the OBR's decays. Do not read the "
+                "path as a multiplier profile."
+            )
         if var in _DEAD_UNDER_DEMAND_CLOSURE:
             msg = (
                 f"{var} ({_DEAD_UNDER_DEMAND_CLOSURE[var]}) has NO transmission "
