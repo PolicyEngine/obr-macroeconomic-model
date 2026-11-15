@@ -359,8 +359,9 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     Here the market-sector supply block that would discipline MSGVA is not
     populated (see docs/stage1c_data_scope.md), so MSGVA is a ~1:1 mirror of
     investment-driven demand and the closed loop's eigenvalue exceeds 1 (the raw
-    baseline runs IBUSX ~86,000 -> ~572,000 over 2025Q1-2027Q4; ~94,000 ->
-    ~16,000,000 before the bracket fix, #59). Two coupled
+    baseline runs IBUSX ~86,000 -> ~522,000 over 2025Q1-2027Q4 under the
+    nominal-GDP pin, ~586,000 under the published closure; ~94,000 ->
+    ~8,000,000 before the bracket fix, #59). Two coupled
     defects: (a) that spurious accelerator feedback, and (b) a mis-scaled KSTAR
     level (desired capital ~=GBP 12.5tn vs a capital stock ~=GBP 2.5tn, because
     MSGVA/COC/deflators are off the OBR's calibrated scale), which puts the
