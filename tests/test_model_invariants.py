@@ -963,14 +963,23 @@ def test_raw_calibration_scorecard_does_not_regress():
         # -> 0.41. The EFO path the model is scored against moved, not the
         # model. Published closure, same run: GDPM 4.51, CONS 7.67, IBUS
         # 18.21, HHDI 6.51, RHHDI 6.72, FYCPR 109.96, CB 3.32, TB 0.41.
-        "GDPM": ("lvl", 4.25),  # % MAPE
-        "CONS": ("lvl", 7.24),
+        # Re-pinned 16 Nov 2026 when TYWHH (l.612) was closed on its data
+        # path: its ONS components are non-seasonally-adjusted cash receipts
+        # against a seasonally adjusted aggregate, and the gap had landed in
+        # raw household income (-10.6% in 2025Q1, -12.5% in 2026Q1). GDPM
+        # 4.25 -> 4.05, CONS 7.24 -> 6.92, HHDI 4.30 -> 3.08, RHHDI 4.52 ->
+        # 3.29, FYCPR 12.32 -> 11.66. Removing a data-basis artefact, not a
+        # better model fit; household taxes now follow their data path in the
+        # raw solve. Published closure, same change: GDPM 3.82, CONS 6.55,
+        # IBUS 22.13, HHDI 3.69, RHHDI 3.82, FYCPR 47.74, CB 1.03.
+        "GDPM": ("lvl", 4.05),  # % MAPE
+        "CONS": ("lvl", 6.92),
         "IBUS": ("lvl", 7.34),
         "LFSUR": ("pp", 1.17),  # mean abs pp
         "RPI": ("pp", 2.32),
-        "HHDI": ("lvl", 4.30),
-        "RHHDI": ("lvl", 4.52),
-        "FYCPR": ("lvl", 12.32),
+        "HHDI": ("lvl", 3.08),
+        "RHHDI": ("lvl", 3.29),
+        "FYCPR": ("lvl", 11.66),
         "CB": ("gdp", 0.91),  # % of GDP
         "TB": ("gdp", 0.41),
     }
