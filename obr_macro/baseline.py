@@ -26,6 +26,8 @@ from obr_macro.full_solver import FullOBRSolver
 from obr_macro.reform_analysis import GDPM_EQ, apply_nominal_gdp_pin
 from obr_macro.data import load_obr_data
 
+# END stays at 2031Q1 although the October 2026 EFO databank runs to 2032Q1:
+# it keeps the anchored-horizon figures comparable across vintages.
 START, END = "2025Q1", "2031Q1"
 CHECK = [
     ("GDPM", "Real GDP", "£m"),

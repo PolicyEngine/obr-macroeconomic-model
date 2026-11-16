@@ -106,7 +106,8 @@ The listing and the OBR's documentation point the same way.
    PIF absorbs it. The release does not show this step.
 4. **The published forecast obeys l.690.** In the EFO data shipped with this
    repo, `PGDP × GDPM / 100` equals GDPMPS to within 0.05% in every quarter
-   from 2021Q1 to 2031Q1 (rounding). The l.337 residual reproduces the
+   from 2021Q1 to 2031Q1 (rounding; October 2026 EFO: 0.05% in outturn and
+   0.0135% in forecast quarters, to 2032Q1). The l.337 residual reproduces the
    published PIF to within 0.3–0.7% over 2025Q1–2027Q4.
 
 The label "T2 fix" is the OBR's and is not defined in the release or in
@@ -136,8 +137,8 @@ Partly, and the difference matters.
   not the OBR's configuration, because PIF is a residual there and not an
   input. Both closures are tabled below.
 
-The ~4% raw GDP error in the scorecard (4.12% under the pin, 4.14% under the
-published closure, 15 Nov 2026) is a closure artifact of this
+The ~4% raw GDP error in the scorecard (4.25% under the pin, 4.51% under the
+published closure, 16 Nov 2026 on the October 2026 EFO) is a closure artifact of this
 emulator (GDPM is exogenous in the OBR's published model). It is not an OBR
 forecast error, under either closure.
 
@@ -182,8 +183,19 @@ investment 8.38%, household income 4.50%, real household income 4.26%,
 company profits 12.45%, current account 1.19% and trade balance 0.68% of
 GDP; 8 of 11 within band. Published closure: 4.14%, 6.92%, 17.19%, 5.97%,
 5.73%, 43.64%, 2.11% and 0.68%; 6 of 11. Unemployment (1.01pp) and RPI
-inflation (1.71pp) are unchanged. These are the current figures; the table
-above is kept as the 6 Nov record. The PIF-held column was not re-run.
+inflation (1.71pp) are unchanged. The table above is kept as the 6 Nov
+record. The PIF-held column was not re-run.
+
+Re-measured on 16 Nov 2026 after the re-anchor to the October 2026 EFO
+(calibration-scorecard job of CI run 43866052221, commit 5eccd49). These are
+the current figures. Pinned: real GDP 4.25%, consumption 7.24%, business
+investment 7.34%, household income 4.30%, real household income 4.52%,
+company profits 12.32%, unemployment 1.17pp, RPI inflation 2.32pp, current
+account 0.91% and trade balance 0.41% of GDP; 8 of 11 within band. Published
+closure: 4.51%, 7.67%, 18.21%, 6.51%, 6.72%, 109.96%, 1.17pp, 2.32pp, 3.32%
+and 0.41%; 6 of 11. On the October databank the EFO's own forecast deflator
+is not exactly nominal over real GDP (at most 0.0135%, 2026Q4), so the pin
+moves nominal GDP off the published path by at most that much.
 
 Employment (a trivial identity) scores 0.00% in all three. Under the pin PIF
 runs 3–6% above the EFO path, because real GDP does (the closure artifact).

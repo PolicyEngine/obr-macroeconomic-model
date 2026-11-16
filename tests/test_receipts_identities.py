@@ -104,7 +104,10 @@ def test_efo_receipt_components_follow_the_fiscal_year():
     assert c["CUST"][pd.Period("2025Q2", "Q")] == pytest.approx(4972.0 / 4, abs=0.01)
     assert c["CUST"][pd.Period("2026Q1", "Q")] == pytest.approx(4972.0 / 4, abs=0.01)
     assert c["CUST"][pd.Period("2026Q2", "Q")] == pytest.approx(5116.98 / 4, abs=0.01)
-    # Table 4.2, lorry road user levy 2025-26 = £0.160bn; held before.
+    # Table 4.2, lorry road user levy 2025-26 = £0.160bn; held before. The
+    # October tables start at 2025-26 (March started at 2024-25), so 2025Q1
+    # now takes the 2025-26 value; the level only splits each identity
+    # between component and residual, so the identity's data path is kept.
     assert c["RULC"][pd.Period("2024Q1", "Q")] == pytest.approx(160 / 4)
     for s in c.values():
         assert np.isfinite(s).all() and (s >= 0).all()

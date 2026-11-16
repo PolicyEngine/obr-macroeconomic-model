@@ -689,7 +689,8 @@ def load_efo_receipt_components(index: pd.PeriodIndex) -> dict[str, pd.Series]:
     the fiscal-year total. Periods before the first published fiscal year take
     the first year's value and periods after the last take the last year's
     (the level only splits the identity between component and residual; the
-    residual keeps the identity on its data path). Raises if a row is missing,
+    residual keeps the identity on its data path; on the October 2026 EFO the
+    first published year is 2025-26, so 2025Q1 takes that value). Raises if a row is missing,
     so a re-laid-out workbook fails loudly.
     """
     files = ensure_downloaded()
