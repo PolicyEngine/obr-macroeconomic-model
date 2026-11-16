@@ -136,7 +136,8 @@ Partly, and the difference matters.
   not the OBR's configuration, because PIF is a residual there and not an
   input. Both closures are tabled below.
 
-The ~4.32% raw GDP error in the scorecard is a closure artifact of this
+The ~4% raw GDP error in the scorecard (4.12% under the pin, 4.14% under the
+published closure, 15 Nov 2026) is a closure artifact of this
 emulator (GDPM is exogenous in the OBR's published model). It is not an OBR
 forecast error, under either closure.
 
@@ -173,6 +174,16 @@ closure reads real GDP 4.16%, consumption 6.96%, business investment
 16.90%, household income 6.00%, real household income 5.76%, company
 profits 41.71%, current account 2.99% and trade balance 0.68% of GDP. The
 PIF-held column was not re-run.
+
+Re-measured again on 15 Nov 2026 with the ended EU payments `GNP4` and
+`EUVAT` held at zero (#62; calibration-scorecard job of CI run 43720827000
+on main 6fbbe06). Pinned: real GDP 4.12%, consumption 6.90%, business
+investment 8.38%, household income 4.50%, real household income 4.26%,
+company profits 12.45%, current account 1.19% and trade balance 0.68% of
+GDP; 8 of 11 within band. Published closure: 4.14%, 6.92%, 17.19%, 5.97%,
+5.73%, 43.64%, 2.11% and 0.68%; 6 of 11. Unemployment (1.01pp) and RPI
+inflation (1.71pp) are unchanged. These are the current figures; the table
+above is kept as the 6 Nov record. The PIF-held column was not re-run.
 
 Employment (a trivial identity) scores 0.00% in all three. Under the pin PIF
 runs 3–6% above the EFO path, because real GDP does (the closure artifact).
