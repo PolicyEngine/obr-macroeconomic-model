@@ -183,8 +183,9 @@ _HOUSEHOLD_NOTE = (
     "Behavioural channel: household disposable income falls, and the "
     "published consumption equation (l.4) responds to real income. Compare "
     "with the OBR's 0.3 income tax/NICs multiplier on a like-for-like "
-    "(current-price) basis; the model's response builds up instead of "
-    "tapering (#50)."
+    "(current-price) basis. The OBR's figure is an impact multiplier that "
+    "fades; the model's response builds up instead, because consumption "
+    "adjusts gradually and nothing in the published equations pulls it back."
 )
 TRANSMISSION_NOTES = {
     "TYEM": _HOUSEHOLD_NOTE,
@@ -209,7 +210,8 @@ TRANSMISSION_NOTES = {
         "of capital: shock TCPRO with investment_closure=True."
     ),
     "R": (
-        "Consumption and household/corporate interest flows only. "
+        "Consumption and household interest flows only (corporate interest "
+        "and the cost of capital do not respond; see cost_of_capital_channel). "
         "Investment, sterling, house prices and gilt yields have no rate "
         "term, so the peak GDP response is a fraction of the Bank of "
         "England's -0.2% to -0.35% (see docs/monetary_conditioning.md)."
@@ -1205,8 +1207,9 @@ def run_reform(
                 "are structurally inert in the published model file/data. This "
                 "does NOT match the OBR's "
                 "published impact multiplier for current spending (0.6, decaying "
-                "to zero as the output gap closes) — it is ~67% too large on "
-                "impact and stays flat where the OBR's decays. Do not read the "
+                "to zero as the output gap closes) — it is ~69% too large on "
+                "impact under the default pin (~67% under the published "
+                "closure) and drifts up where the OBR's decays. Do not read the "
                 "path as a multiplier profile."
             )
         if var in _DEAD_UNDER_DEMAND_CLOSURE:
