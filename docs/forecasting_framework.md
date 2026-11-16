@@ -89,9 +89,9 @@ figures in the last column.
    consumption, and adds seven EFO series. It is a statement about the
    consumption equation's short-run dynamics, not about the model forecasting
    GDP. The un-anchored version of the same question is the raw calibration
-   scorecard (GDP 4.16%, consumption 6.96%, household income 4.66% under the
-   default nominal-GDP pin; 4.32%, 7.22% and 6.18% under the published
-   closure). That is
+   scorecard (GDP 4.12%, consumption 6.90%, household income 4.50% under the
+   default nominal-GDP pin; 4.14%, 6.92% and 5.97% under the published
+   closure; re-measured 15 Nov 2026, see `calibration_scorecard.md`). That is
    not a forecast-skill number either, and not an OBR error: in the OBR's
    model GDP is an input, so it cannot miss it. It measures this emulator —
    the closure swap that makes GDP endogenous plus the OBR inputs that are not
