@@ -14,7 +14,7 @@ job: run it on its own.
 What each block measures, and the window it uses:
 
 * ``anchored_horizon`` -- the anchored baseline (``baseline.build``) solved
-  over the whole databank, 2025Q1..2031Q1, against the March 2026 EFO. Site
+  over the whole databank, 2025Q1..2031Q1, against the October 2026 EFO. Site
   claim: GDP MAPE 0.67% out to 2031Q1; LFSUR drifts to 0.9% against the EFO's
   4.1% by 2031Q1.
 * ``bank_rate`` -- Bank Rate (``R``) +/-1.0 (100bp) sustained for 12 quarters

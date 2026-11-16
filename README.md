@@ -103,7 +103,7 @@ This runs five policy scenarios and generates charts in `outputs/`:
 The `obr_macro/_data/` directory (shipped inside the package) contains:
 - `obr_model_code_october_2025.txt` - OBR EViews model equations (15 October 2025 version)
 - `obr_model_variables_october_2025.xlsx` - OBR model variable definitions (15 October 2025 version)
-- `obr_efo_march_2026_*.xlsx` - OBR forecast data (March 2026 EFO detailed forecast tables)
+- `obr_efo_october_2026_*.xlsx` - OBR forecast data (October 2026 EFO detailed forecast tables)
 - `obr_efo_november_2025_*.xlsx` - the previous (November 2025) EFO tables
 
 ## Setup
@@ -140,8 +140,8 @@ run through the OBR's published formulas — derivation committed as
 | | now | was | basis |
 |---|--:|--:|---|
 | `DB` (PV of allowances, buildings) | 0.0 | 0.18 | the OBR's own equation zeroes it after 2011Q2 (Industrial Buildings Allowance abolished April 2011); no unpublished input needed |
-| `DP` (PV of allowances, plant) | 0.9515 | 0.06 | full expensing (100% first-year, permanent since FA 2024) collapses the formula to `1/(1+DISCO)`; `DISCO` = 0.051, mean EFO March-2026 20-year gilt over the solve window |
-| `DV` (PV of allowances, vehicles) | 0.7793 | 0.25 | `SV/(DISCO+SV)` with the statutory 18% main-rate WDA |
+| `DP` (PV of allowances, plant) | 0.9492 | 0.06 | full expensing (100% first-year, permanent since FA 2024) collapses the formula to `1/(1+DISCO)`; `DISCO` = 0.0535, mean EFO October-2026 20-year gilt over the solve window |
+| `DV` (PV of allowances, vehicles) | 0.7709 | 0.25 | `SV/(DISCO+SV)` with the statutory 18% main-rate WDA |
 | `COCU` (pre-tax user cost) | 0.12 | 0.12 | **kept as a declared seed**: its level provably cancels in the corporation-tax deviation (doubling it moves a 12q `delta_IF` path by <1e-10), and its equation needs a 1970Q1 rebasing anchor predating every committed series — no estimate can beat it on evidence |
 
 The old `DB`/`DP`/`DV` numbers were statutory writing-down **rates** mislabeled

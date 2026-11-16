@@ -635,7 +635,7 @@ def test_anchored_household_income_is_held_not_reproduced(anchored):
     [("HHDI_ADDFACTOR", False), ("CGG", False), ("TCPRO", True)],
 )
 def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
-    """Every reform is described as scored against the March-2026 EFO
+    """Every reform is described as scored against the October-2026 EFO
     anchored baseline; this pins that it is.
 
     Until 2026-10 it was not: the reform template set _shock_active=True,

@@ -9,12 +9,12 @@ import numpy as np
 import pandas as pd
 import openpyxl
 
-# OBR March 2026 EFO download URLs
+# OBR October 2026 EFO download URLs
 OBR_URLS = {
-    "economy": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-economy/",
-    "receipts": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-receipts/",
-    "expenditure": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-expenditure/",
-    "aggregates": "https://obr.uk/download/march-2026-economic-and-fiscal-outlook-detailed-forecast-tables-aggregates/",
+    "economy": "https://obr.uk/download/october-2026-economic-and-fiscal-outlook-detailed-forecast-tables-economy/",
+    "receipts": "https://obr.uk/download/october-2026-economic-and-fiscal-outlook-detailed-forecast-tables-receipts/",
+    "expenditure": "https://obr.uk/download/october-2026-economic-and-fiscal-outlook-detailed-forecast-tables-expenditure/",
+    "aggregates": "https://obr.uk/download/october-2026-economic-and-fiscal-outlook-detailed-forecast-tables-aggregates/",
 }
 
 
@@ -127,10 +127,10 @@ def ensure_downloaded() -> dict[str, Path]:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     files = {
-        "economy": DATA_DIR / "obr_efo_march_2026_economy.xlsx",
-        "receipts": DATA_DIR / "obr_efo_march_2026_receipts.xlsx",
-        "expenditure": DATA_DIR / "obr_efo_march_2026_expenditure.xlsx",
-        "aggregates": DATA_DIR / "obr_efo_march_2026_aggregates.xlsx",
+        "economy": DATA_DIR / "obr_efo_october_2026_economy.xlsx",
+        "receipts": DATA_DIR / "obr_efo_october_2026_receipts.xlsx",
+        "expenditure": DATA_DIR / "obr_efo_october_2026_expenditure.xlsx",
+        "aggregates": DATA_DIR / "obr_efo_october_2026_aggregates.xlsx",
     }
 
     for key, path in files.items():
@@ -667,10 +667,10 @@ def _derive_variables(df: pd.DataFrame) -> pd.DataFrame:
 # publishes the line; set to zero where it does not (see notes).
 EFO_RECEIPT_COMPONENTS = {
     # var: (sheet, row label, note)
-    "CUST": ("3.8", "Customs Duties", "EFO table 3.8"),
-    "EUETS": ("3.8", "Emission Trading Scheme", "EFO table 3.8 (UK ETS)"),
-    "CIL": ("3.2", "Community infrastructure levy", "EFO table 3.2"),
-    "RULC": ("3.2", "Lorry road user levy", "EFO table 3.2"),
+    "CUST": ("4.8", "Customs Duties", "EFO table 4.8"),
+    "EUETS": ("4.8", "Emission Trading Scheme", "EFO table 4.8 (UK ETS)"),
+    "CIL": ("4.2", "Community infrastructure levy", "EFO table 4.2"),
+    "RULC": ("4.2", "Lorry road user levy", "EFO table 4.2"),
 }
 # Not published as a separate EFO line. PROV (allowance for tax litigation
 # losses) and CCLACA (climate change and aggregates levies accruals adjustment)

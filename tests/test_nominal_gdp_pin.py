@@ -95,17 +95,21 @@ def test_builders_default_to_the_pin_and_keep_the_published_closure():
 
 def test_efo_satisfies_the_pin():
     """The OBR's own forecast obeys l.690: nominal GDP is the deflator times
-    real GDP to rounding. Measured 6 Nov 2026: max 0.049% over 2021Q1-2031Q1,
-    all of it in outturn quarters (2022Q2); every forecast quarter
-    (2025Q4-2031Q1) is exactly 0. The outturn bound is 0.1%, about twice the
-    measured gap, so an ONS revision to outturn cannot flip a data-only test;
-    the forecast quarters, which are what the pin imposes, are held to 1e-6."""
+    real GDP to rounding. Measured 16 Nov 2026 on the October 2026 EFO: max
+    0.049% over 2021Q1-2026Q2, all of it in outturn quarters (2022Q2, with the
+    deflator published to one decimal place); max 0.0135% over the forecast
+    quarters 2026Q3-2032Q1 (2026Q4). On the March 2026 EFO every forecast
+    quarter was exactly 0; the October forecast deflator is not exactly
+    nominal over real GDP, so the pin moves nominal GDP off the published path
+    by at most that much. The outturn bound is 0.1%, about twice the measured
+    gap, so an ONS revision cannot flip a data-only test; the forecast quarters,
+    which are what the pin imposes, are held to 0.02%."""
     from obr_macro.data import load_obr_data
 
-    e = load_obr_data().loc["2021Q1":"2031Q1"]
+    e = load_obr_data().loc["2021Q1":"2032Q1"]
     gap = (e["PGDP"] * e["GDPM"] / 100 / e["GDPMPS"] - 1).abs()
     assert gap.max() < 1e-3, f"EFO breaks GDPMPS = PGDP*GDPM/100 by {gap.max():.2%}"
-    assert gap.loc["2025Q4":].max() < 1e-6, gap.loc["2025Q4":].max()
+    assert gap.loc["2026Q3":].max() < 2e-4, gap.loc["2026Q3":].max()
 
 
 # --- Full solves --------------------------------------------------------------

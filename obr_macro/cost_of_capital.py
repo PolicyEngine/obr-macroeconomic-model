@@ -58,8 +58,8 @@ SV (rate of annual writing down allowance for vehicles) = 0.18
 
 DISCO (discount factor): mean of the OBR's published "Long-term interest
     rate" market-derived assumption (20-year gilt) over the model's solve
-    window, EFO March 2026 economy workbook Table 1.9 — committed in this
-    repo at obr_macro/_data/obr_efo_march_2026_economy.xlsx. A nominal
+    window, EFO October 2026 economy workbook Table 1.9 — committed in this
+    repo at obr_macro/_data/obr_efo_october_2026_economy.xlsx. A nominal
     risk-free rate; a corporate financing spread would push DP/DV modestly
     further from 1 (sensitivity: +200bp moves DP by ~-0.02 and DV by ~-0.03),
     but no published OBR artefact carries a corporate-spread assumption, so
@@ -92,7 +92,7 @@ from pathlib import Path
 import pandas as pd
 
 DATA_DIR = Path(__file__).parent / "_data"
-EFO_ECONOMY = DATA_DIR / "obr_efo_march_2026_economy.xlsx"
+EFO_ECONOMY = DATA_DIR / "obr_efo_october_2026_economy.xlsx"
 
 # Statutory capital-allowance rates (provenance in the module docstring).
 FP_PLANT_FIRST_YEAR = 1.0  # full expensing, F(No.2)A 2023 s.7 / FA 2024 s.1
@@ -106,7 +106,7 @@ SOLVE_WINDOW = ("2025Q1", "2027Q4")
 
 def efo_long_rate_mean(start: str = SOLVE_WINDOW[0], end: str = SOLVE_WINDOW[1]):
     """Mean of the OBR's 'Long-term interest rate' (20-year gilt, per cent)
-    over [start, end], from EFO March 2026 economy Table 1.9.
+    over [start, end], from EFO October 2026 economy Table 1.9.
 
     Located by header text rather than position so a re-download that inserts
     a column fails loudly instead of silently reading the wrong series.
@@ -174,7 +174,7 @@ def derive_allowance_pvs() -> dict:
 
 def main():
     d = derive_allowance_pvs()
-    print("Inputs (statute + OBR EFO March 2026 Table 1.9):")
+    print("Inputs (statute + OBR EFO October 2026 Table 1.9):")
     print(
         f"  DISCO (mean 20y gilt {SOLVE_WINDOW[0]}-{SOLVE_WINDOW[1]}): {d['DISCO']:.6f}"
     )
