@@ -13,11 +13,11 @@ only numbers that ship in the repo's official OBR workbooks (obr_macro/_data):
    series (GDP expenditure identity, growth-vs-index consistency,
    unemployment rate vs counts). These are properties of the official
    publication, so any violation is an ingestion bug, not a model error.
-2. Pinned spot values transcribed from the March-2026 EFO economy workbook
+2. Pinned spot values transcribed from the October-2026 EFO economy workbook
    (Table 1.1), guarding the £bn→£m unit conversions.
 3. Cross-vintage coherence: the November-2025 EFO workbook (also shipped in
    _data, previously read by nothing) must parse under the same layout
-   assertions, and its overlap with the March-2026 vintage must agree to
+   assertions, and its overlap with the October-2026 vintage must agree to
    within normal forecast-revision size.
 
 All tests here are fast and hermetic (no solver, no network): they run in the
@@ -42,7 +42,7 @@ SCORED_END = pd.Period("2027Q4", freq="Q")
 
 @pytest.fixture(scope="module")
 def efo():
-    """The March-2026 EFO as the model consumes it (no ONS snapshot merge,
+    """The October-2026 EFO as the model consumes it (no ONS snapshot merge,
     so every value scored here traces to the OBR workbooks alone)."""
     return load_obr_data(merge_snapshot=False)
 
@@ -72,7 +72,7 @@ def test_published_real_gdp_identity_holds_on_loaded_data(horizon):
     """CONS+CGG+IF+DINV+VAL+X-M+SDE must equal GDPM on the *published* series
     as loaded. In the workbook this holds to rounding; a column shift or a
     missed unit conversion breaks it by orders of magnitude. Observed max
-    relative residual on the March-2026 vintage: ~5e-12."""
+    relative residual on the October-2026 vintage: ~5e-12."""
     rhs = (
         horizon["CONS"]
         + horizon["CGG"]
@@ -133,22 +133,22 @@ def test_unemployment_rate_matches_published_counts(efo):
 
 # --- 2. Pinned published spot values (unit-conversion guard) -----------------
 
-# Transcribed from obr_macro/_data/obr_efo_march_2026_economy.xlsx,
+# Transcribed from obr_macro/_data/obr_efo_october_2026_economy.xlsx,
 # Table 1.1 (real GDP expenditure, £bn, row 2025Q1), converted to the model's
 # £m units exactly as load_obr_data does. These are OBR-published numbers,
 # not model outputs: if a future loader change scales or shifts a column,
 # these fail with the exact variable named.
-MARCH_2026_EFO_TABLE_1_1_2025Q1_M = {
-    "GDPM": 703_435.0,  # real GDP, £m
-    "CONS": 429_345.0,  # private consumption, £m
+OCTOBER_2026_EFO_TABLE_1_1_2025Q1_M = {
+    "GDPM": 703_178.0,  # real GDP, £m
+    "CONS": 429_957.0,  # private consumption, £m
 }
 
 
 def test_pinned_published_2025q1_levels(efo):
     row = efo.loc[pd.Period("2025Q1", freq="Q")]
-    for code, published in MARCH_2026_EFO_TABLE_1_1_2025Q1_M.items():
+    for code, published in OCTOBER_2026_EFO_TABLE_1_1_2025Q1_M.items():
         assert row[code] == pytest.approx(published, rel=1e-9), (
-            f"{code} 2025Q1 loaded as {row[code]:,.0f} but the March-2026 EFO "
+            f"{code} 2025Q1 loaded as {row[code]:,.0f} but the October-2026 EFO "
             f"Table 1.1 publishes {published:,.0f} (£m) — ingestion drifted "
             "from the official workbook"
         )
@@ -160,7 +160,7 @@ def test_pinned_published_2025q1_levels(efo):
 @pytest.fixture(scope="module")
 def november_gdp():
     """Real GDP and consumption from the November-2025 EFO economy workbook,
-    read through the same layout-guarded path as the March vintage."""
+    read through the same layout-guarded path as the October vintage."""
     wb = openpyxl.load_workbook(
         str(DATA_DIR / "obr_efo_november_2025_economy.xlsx"), data_only=True
     )
@@ -187,18 +187,18 @@ def test_november_2025_vintage_parses_under_same_layout(november_gdp):
 
 
 @pytest.mark.parametrize("code", ["GDPM", "CONS"])
-def test_march_vs_november_vintages_agree_to_revision_size(efo, november_gdp, code):
+def test_october_vs_november_vintages_agree_to_revision_size(efo, november_gdp, code):
     """On overlapping quarters the two official vintages must agree to within
-    normal forecast-revision size (observed max relative gap: GDPM 0.43%,
-    CONS 0.34%). A gap of percent-scale or more means one vintage is being
+    normal forecast-revision size (observed max relative gap, October 2026 vs
+    November 2025: GDPM 0.95%, CONS 1.01%, both at 2027Q3). A gap of percent-scale or more means one vintage is being
     mis-read — the strongest available check that BOTH loads are faithful,
     since two independent workbooks would not mis-parse into agreement."""
-    both = pd.concat([november_gdp[code], efo[code]], axis=1, keys=["nov", "mar"])
+    both = pd.concat([november_gdp[code], efo[code]], axis=1, keys=["nov", "oct"])
     both = both.dropna()
     assert len(both) > 40, f"too little vintage overlap for {code}"
-    rev = (both["mar"] / both["nov"] - 1).abs()
+    rev = (both["oct"] / both["nov"] - 1).abs()
     assert rev.max() < 0.02, (
-        f"{code}: March-2026 vs November-2025 vintages diverge by "
+        f"{code}: October-2026 vs November-2025 vintages diverge by "
         f"{100 * rev.max():.2f}% at {rev.idxmax()} — far beyond forecast "
         "revision size; one vintage is mis-read"
     )

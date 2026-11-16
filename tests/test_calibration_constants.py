@@ -107,8 +107,8 @@ def test_invented_seeds_are_plausible_but_declared():
     # the next test pins them to that derivation.)
     assert UNPUBLISHED_COST_OF_CAPITAL_SEEDS == {
         "DB": 0.0,
-        "DP": 0.9515,
-        "DV": 0.7793,
+        "DP": 0.9492,
+        "DV": 0.7709,
         "COCU": 0.12,
     }
 

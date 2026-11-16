@@ -3,7 +3,7 @@
 No model build or full solve. A bare solver with a toy frame and equations
 parsed by the real transpiler covers (a) the drop guard in solve() and (b) the
 identity-residual closure in _close_receipts_identities. The EFO loader is
-checked against the committed March 2026 receipts workbook. The full-model
+checked against the committed October 2026 receipts workbook. The full-model
 check (VAT, CT, fuel duty and income tax reach PSCR/CGNB one for one) is the
 slow test in tests/test_tax_scenarios.py.
 """
@@ -99,13 +99,16 @@ def test_efo_receipt_components_follow_the_fiscal_year():
     idx = pd.period_range("2024Q1", "2031Q4", freq="Q")
     c = load_efo_receipt_components(idx)
     assert set(c) == set(EFO_RECEIPT_COMPONENTS)
-    # EFO March 2026 table 3.8, customs duties 2025-26 = £4.943bn, spread over
-    # 2025Q2-2026Q1; 2026-27 = £4.945bn.
-    assert c["CUST"][pd.Period("2025Q2", "Q")] == pytest.approx(4943.056 / 4, abs=0.01)
-    assert c["CUST"][pd.Period("2026Q1", "Q")] == pytest.approx(4943.056 / 4, abs=0.01)
-    assert c["CUST"][pd.Period("2026Q2", "Q")] == pytest.approx(4944.604 / 4, abs=0.01)
-    # Table 3.2, lorry road user levy 2024-25 = £0.157bn; held before.
-    assert c["RULC"][pd.Period("2024Q1", "Q")] == pytest.approx(157 / 4)
+    # EFO October 2026 table 4.8, customs duties 2025-26 (outturn) = £4.972bn,
+    # spread over 2025Q2-2026Q1; 2026-27 = £5.117bn.
+    assert c["CUST"][pd.Period("2025Q2", "Q")] == pytest.approx(4972.0 / 4, abs=0.01)
+    assert c["CUST"][pd.Period("2026Q1", "Q")] == pytest.approx(4972.0 / 4, abs=0.01)
+    assert c["CUST"][pd.Period("2026Q2", "Q")] == pytest.approx(5116.98 / 4, abs=0.01)
+    # Table 4.2, lorry road user levy 2025-26 = £0.160bn; held before. The
+    # October tables start at 2025-26 (March started at 2024-25), so 2025Q1
+    # now takes the 2025-26 value; the level only splits each identity
+    # between component and residual, so the identity's data path is kept.
+    assert c["RULC"][pd.Period("2024Q1", "Q")] == pytest.approx(160 / 4)
     for s in c.values():
         assert np.isfinite(s).all() and (s >= 0).all()
     assert not set(ZERO_RECEIPT_COMPONENTS) & set(EFO_RECEIPT_COMPONENTS)

@@ -216,14 +216,14 @@ UNPUBLISHED_COST_OF_CAPITAL_SEEDS = {
     "DB": 0.0,
     # PV of allowances, plant: 1/(1+DISCO) — full expensing (100% first-year
     # deduction for companies' main-rate plant, permanent since FA 2024)
-    # collapses the published formula; DISCO = 0.0510 (mean EFO March 2026
+    # collapses the published formula; DISCO = 0.0535 (mean EFO October 2026
     # 20-year gilt over the solve window). Was 0.18.
-    "DP": 0.9515,
+    "DP": 0.9492,
     # PV of allowances, vehicles: SV/(DISCO+SV) with SV = 0.18 statutory
     # main-rate WDA (cars <=50g/km; commercial vehicles are main-pool plant).
     # Bounded caveats in cost_of_capital.py: 6% special-rate cars pull it
     # down, 100% FYA zero-emission cars pull it up. Was 0.25.
-    "DV": 0.7793,
+    "DV": 0.7709,
     # Pre-tax user cost of capital: KEPT AS A DECLARED SEED — the one of the
     # four that published data cannot beat. Its published equation needs (a) a
     # PIBUS/PGDP rebasing to 1970Q1, which predates every committed series

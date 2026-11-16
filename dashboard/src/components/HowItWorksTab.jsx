@@ -396,7 +396,7 @@ export default function HowItWorksTab({ model, explorer }) {
           across the horizon, every given input is held flat at its last value,
           and the seeded constants (tax &amp; depreciation parameters)
           don&rsquo;t move. The data comes from the OBR{" "}
-          <strong>EFO March 2026</strong> tables, the <strong>372 equations</strong>{" "}
+          <strong>EFO October 2026</strong> tables, the <strong>372 equations</strong>{" "}
           (15 Oct 2025 code) and a <strong>355-series ONS</strong> snapshot.
         </p>
 

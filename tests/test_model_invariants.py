@@ -531,9 +531,9 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
       swap, and CGG's dlog equation is driven by exogenous EFO nominal
       spending and pinned by its own residual. So the GDP fit is the
       consumption fit scaled by the consumption share, and it is measurably
-      exactly that: GDPM 0.300%, CONS 0.493%, ratio 0.609 against a
-      consumption share of GDP of 0.609 (March-2026 EFO, 355-series ONS
-      snapshot).
+      exactly that: GDPM 0.439%, CONS 0.721%, ratio 0.609 against a
+      consumption share of GDP of 0.609 (October-2026 EFO, 355-series ONS
+      snapshot; March-2026 EFO: 0.300% and 0.493%).
     - HHDI is not scored here at all. baseline.build(anchored=True) makes HHDI
       and RHHDI EXOGENOUS (_PUBLISHED_LEVEL_ANCHORS), so their "MAPE 0.00%" was
       the tautology "a series held at its EFO value equals its EFO value" — an
@@ -547,12 +547,14 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
     t1 = anchored.period_idx("2027Q4")
 
     mapes = {c: _mape(anchored.data, efo, c, t0, t1) for c in ("GDPM", "CONS")}
-    # Pinned near the measured fit (GDPM 0.300%, CONS 0.493%) with a 25%
+    # Pinned near the measured fit (GDPM 0.439%, CONS 0.721%; re-measured
+    # 16 Nov 2026 on the October 2026 EFO, CI run 43866052221; it was
+    # 0.300% / 0.493% on the March 2026 EFO) with a 25%
     # tolerance: the previous blanket "< 1%" gate let the fit roughly double
     # (0.16% -> 0.30%) without anyone noticing. A change outside the band in
     # either direction means the anchoring changed and the README and
     # scorecard figures must be refreshed with it.
-    reference = {"GDPM": 0.300, "CONS": 0.493}
+    reference = {"GDPM": 0.439, "CONS": 0.721}
     for code, mape in mapes.items():
         ref = reference[code]
         assert 0.75 * ref < mape < 1.25 * ref, (
@@ -562,7 +564,7 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
 
     # The GDP fit is not independent evidence: it is the consumption fit
     # diluted by the exogenous expenditure components. Pin that so the headline
-    # "GDP reproduces the EFO to 0.30%" cannot be read as a second success.
+    # "GDP reproduces the EFO to 0.44%" cannot be read as a second success.
     for code in ("IF", "X", "M", "DINV", "VAL", "SDE"):
         assert code not in anchored.eq_for_var, (
             f"{code} became endogenous — the anchored GDP fit is no longer just "
@@ -635,7 +637,7 @@ def test_anchored_household_income_is_held_not_reproduced(anchored):
     [("HHDI_ADDFACTOR", False), ("CGG", False), ("TCPRO", True)],
 )
 def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
-    """Every reform is described as scored against the March-2026 EFO
+    """Every reform is described as scored against the October-2026 EFO
     anchored baseline; this pins that it is.
 
     Until 2026-10 it was not: the reform template set _shock_active=True,
@@ -645,8 +647,11 @@ def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
     the template (FullOBRSolver.freeze_anchoring) and HHDI (plus IF under the
     investment closure) is held on the EFO by a level add-factor
     (_anchor_published_levels), so the reform baseline must track the EFO as
-    closely as the standalone anchored baseline does (0.30% / 0.49%), and the
-    shocked clone must carry the same residuals.
+    closely as the standalone anchored baseline does, and the shocked clone
+    must carry the same residuals. Measured 16 Nov 2026 on the October 2026
+    EFO: standalone GDP 0.44% / CONS 0.72%, reform baseline GDP 0.46% / CONS
+    0.76% (March 2026 EFO: 0.30% / 0.49% standalone); the bounds are about
+    1.2x the reform-baseline values.
     """
     from obr_macro import reform_analysis as ra
     from obr_macro.data import load_obr_data
@@ -657,8 +662,8 @@ def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
     base.solve("2025Q1", "2027Q4")
     t0, t1 = base.period_idx("2025Q1"), base.period_idx("2027Q4")
     mape = {c: _mape(base.data, efo, c, t0, t1) for c in ("GDPM", "CONS", "HHDI")}
-    assert mape["GDPM"] < 0.45, f"reform baseline GDP {mape['GDPM']:.2f}% off EFO"
-    assert mape["CONS"] < 0.75, f"reform baseline CONS {mape['CONS']:.2f}% off EFO"
+    assert mape["GDPM"] < 0.55, f"reform baseline GDP {mape['GDPM']:.2f}% off EFO"
+    assert mape["CONS"] < 0.90, f"reform baseline CONS {mape['CONS']:.2f}% off EFO"
     assert mape["HHDI"] < 0.10, f"reform baseline HHDI {mape['HHDI']:.2f}% off EFO"
     if investment_closure:
         assert _mape(base.data, efo, "IF", t0, t1) < 0.05
@@ -679,7 +684,8 @@ def test_anchored_unemployment_divergence_is_bounded(anchored):
     """EXPECTED DIVERGENCE, explicitly documented: unlike GDPM/CONS/HHDI, the
     anchored unemployment rate does NOT reproduce the EFO path — LFSUR drifts
     from the published values once its unpublished labour-market inputs run
-    out (max abs gap 1.23pp on the March-2026 vintage; the EFO peaks near
+    out (max abs gap 1.23pp on the March-2026 vintage, under 1.5pp on the
+    October-2026 vintage, where this test passed on 16 Nov 2026; the EFO peaks near
     5.3%, the model overshoots then undershoots). This test does not bless
     the drift as correct; it pins its current size so it cannot silently
     worsen. If it starts failing, the labour block regressed; if the drift is
@@ -916,7 +922,7 @@ def test_basic_rate_costing_path_moves_hhdi_by_the_static_yield():
 def test_raw_calibration_scorecard_does_not_regress():
     """docs/calibration_scorecard.md promises the raw MAPEs are 'gated against
     regression'; this is that gate. The reference values below are the
-    scorecard as of the March-2026 EFO vintage, re-measured on 6 Nov 2026
+    scorecard as of the October-2026 EFO vintage, re-measured on 16 Nov 2026
     under the default nominal-GDP pin (`obr_macro.calibration_score`). Each computed variable may not worsen by
     more than 20% relative (plus a small absolute slack for near-zero
     values). Improvements are always allowed — tighten the reference when
@@ -950,16 +956,23 @@ def test_raw_calibration_scorecard_does_not_regress():
         # 6.90, HHDI 4.65 -> 4.50, RHHDI 4.41 -> 4.26, FYCPR 17.90 -> 12.45,
         # CB 2.19 -> 1.19. Published closure, same run: GDPM 4.14, CONS 6.92,
         # IBUS 17.19, HHDI 5.97, RHHDI 5.73, FYCPR 43.64, CB 2.11.
-        "GDPM": ("lvl", 4.12),  # % MAPE
-        "CONS": ("lvl", 6.90),
-        "IBUS": ("lvl", 8.38),
-        "LFSUR": ("pp", 1.01),  # mean abs pp
-        "RPI": ("pp", 1.71),
-        "HHDI": ("lvl", 4.50),
-        "RHHDI": ("lvl", 4.26),
-        "FYCPR": ("lvl", 12.45),
-        "CB": ("gdp", 1.19),  # % of GDP
-        "TB": ("gdp", 0.68),
+        # Re-pinned 16 Nov 2026 on the October 2026 EFO (CI run 43866052221,
+        # commit 5eccd49): GDPM 4.12 -> 4.25, CONS 6.90 -> 7.24, IBUS 8.38 ->
+        # 7.34, LFSUR 1.01 -> 1.17, RPI 1.71 -> 2.32, HHDI 4.50 -> 4.30,
+        # RHHDI 4.26 -> 4.52, FYCPR 12.45 -> 12.32, CB 1.19 -> 0.91, TB 0.68
+        # -> 0.41. The EFO path the model is scored against moved, not the
+        # model. Published closure, same run: GDPM 4.51, CONS 7.67, IBUS
+        # 18.21, HHDI 6.51, RHHDI 6.72, FYCPR 109.96, CB 3.32, TB 0.41.
+        "GDPM": ("lvl", 4.25),  # % MAPE
+        "CONS": ("lvl", 7.24),
+        "IBUS": ("lvl", 7.34),
+        "LFSUR": ("pp", 1.17),  # mean abs pp
+        "RPI": ("pp", 2.32),
+        "HHDI": ("lvl", 4.30),
+        "RHHDI": ("lvl", 4.52),
+        "FYCPR": ("lvl", 12.32),
+        "CB": ("gdp", 0.91),  # % of GDP
+        "TB": ("gdp", 0.41),
     }
     report = build_scorecard()
     scored = {

@@ -49,11 +49,11 @@ QUARTERS = 8
 # moves GDP by 100% of the shock and consumption by 0.0019% of it.
 NOISE_FLOOR_PCT = 1.0
 
-# Levels the shocks are read against (2026Q1, March 2026 EFO baseline):
-#   R     = 3.67   Bank Rate, percent          -> +1.0 is +100bp
-#   RX    = 84.78  sterling ERI, index         -> +5.0 is a ~6% appreciation
+# Levels the shocks are read against (2026Q1, October 2026 EFO baseline):
+#   R     = 3.75   Bank Rate, percent          -> +1.0 is +100bp
+#   RX    = 84.79  sterling ERI, index         -> +5.0 is a ~6% appreciation
 #   TCPRO = 0.25   corporation tax main rate   -> +0.05 is +5pp
-#   CGG   = 150720 real government consumption, GBP m/quarter
+#   CGG   = 151058 real government consumption, GBP m/quarter
 TAX_RISE_M = 1615.75  # 1p on the basic rate, GBP m/quarter (PE static costing)
 
 
