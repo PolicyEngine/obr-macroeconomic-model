@@ -1,6 +1,8 @@
 name: Site numbers (scratch)
 on:
   workflow_dispatch:
+  push:
+    branches: [vahid/scratch-site-numbers-6fbbe06]
 jobs:
   run:
     runs-on: ubuntu-latest
