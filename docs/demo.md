@@ -73,6 +73,6 @@ Receipts (`PSCR`) and central government net borrowing (`CGNB`) move one for one
 - **Hosted results.** Do not show them until the hosted server's model pin moves from e4d7faa to current main: they come from the published closure (no quarter converges, CGG exactly 1.00) and will not match this page. That applies to `obr_shock` as well as `score_reform`. After the pin moves, start `score_reform` through `start_job` before the session: a 5-year score takes about 12 minutes (tracked in the hosted-server repo, #243).
 - **Fuel duty** is supported (`TXFUEL`; +5% = 300 a quarter gives GDP −7 at q4, −12 at q12), but it is the VAT story at a seventh of the size.
 
-## Pending change
+## Business-investment bracket (#61)
 
-- #61 corrects the business-investment equation's bracket. Corporation-tax deltas (row 5) are unchanged to the pound; only the unguarded zero-shock level path in the README moves.
+- #61 corrects the business-investment equation's bracket, and this branch includes it (merged in to resolve a README conflict). Corporation-tax deltas (row 5) are unchanged to the pound; only the unguarded zero-shock level path in the README moves. The demo battery was rerun on main + #61 + this PR on 16 Nov (Actions run 43778368240) and reproduced every number in `results/demo_shocks.json` and `results/site_figures.json` exactly.
