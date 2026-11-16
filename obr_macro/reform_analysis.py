@@ -173,14 +173,20 @@ def _check_instrument_domain(template, var, values, start: str) -> None:
 # tests/test_stress.py already excludes CGIPS from its instrument list for this
 # reason; the warning makes the same fact visible to anyone calling
 # run_reform directly (including run_five_reforms' "GBP 10bn Gov Investment").
-# Terms of the expenditure identity (GDPM_EQ) a caller can shock directly:
-# their GDP delta is mechanical passthrough, labelled as such in run_reform.
-EXPENDITURE_IDENTITY_TERMS = frozenset({"CGG", "DINV", "VAL", "X", "M", "SDE"})
+# Terms of the expenditure identity (GDPM_EQ). Shocking one makes it exogenous
+# (apply_shock -> make_exogenous), including CONS, whose l.4 equation is then
+# switched off, and IF, which has no live equation anyway. Their GDP delta is
+# mechanical passthrough, one for one (minus one for M), labelled as such in
+# run_reform.
+EXPENDITURE_IDENTITY_TERMS = frozenset(
+    {"CGG", "CONS", "IF", "DINV", "VAL", "X", "M", "SDE"}
+)
 
 # How each common non-identity instrument reaches GDP under the demand
 # closure, attached to run_reform output as attrs["transmission_note"].
 _HOUSEHOLD_NOTE = (
-    "Behavioural channel: household disposable income falls, and the "
+    "Behavioural channel: household disposable income moves by the revenue "
+    "(falls for a rise, rises for a cut), and the "
     "published consumption equation (l.4) responds to real income. Compare "
     "with the OBR's 0.3 income tax/NICs multiplier on a like-for-like "
     "(current-price) basis. The OBR's figure is an impact multiplier that "
@@ -193,7 +199,7 @@ TRANSMISSION_NOTES = {
     "HHDI_ADDFACTOR": _HOUSEHOLD_NOTE,
     "VREC": (
         "Receipts reach PSCR and CGNB one for one. GDP moves only through "
-        "profits: under the nominal-GDP pin the tax lands on operating "
+        "profits: with nominal GDP pinned (the default) the tax lands on operating "
         "surplus, and households lose the quasi-corporation withdrawals "
         "(WYQC, l.641) that scale with profits. CPI is exogenous in the "
         "listing (l.314 commented out), so there is no price channel; the "
@@ -1196,7 +1202,15 @@ def run_reform(
         # identity (GDPM_EQ). It used to be attached to every demand-closure
         # run, so an income-tax or Bank Rate result was labelled as
         # mechanical passthrough with a multiplier of 1.0.
-        if var in EXPENDITURE_IDENTITY_TERMS:
+        if var in EXPENDITURE_IDENTITY_TERMS and var != "CGG":
+            sign = "minus one" if var == "M" else "one"
+            out.attrs["multiplier_warning"] = (
+                f"Demand-closure shock to {var}, a term of the expenditure "
+                f"identity: it is held exogenous and enters GDP {sign} for one. "
+                "The GDP delta is accounting, not a multiplier; do not compare "
+                "it with an OBR multiplier."
+            )
+        elif var == "CGG":
             out.attrs["multiplier_warning"] = (
                 "Demand-closure shock: GDP delta is mechanical passthrough via the "
                 "expenditure identity (multiplier 1.0 under the published closure; "

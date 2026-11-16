@@ -11,7 +11,7 @@ template (as ``tests/test_tax_scenarios.py`` does) and checked against
 
     uv run python scripts/demo_shocks.py
 
-About 15 full solves: run it on GitHub Actions (``.github/workflows/demo.yml``).
+About 40 solves (11 run_reform calls plus 9 rebuilt pairs, about 25 minutes): run it on GitHub Actions (``.github/workflows/demo.yml``).
 """
 
 from __future__ import annotations
@@ -212,6 +212,11 @@ def main():
             rec["pair_matches_run_reform_max_abs_m"] = _r(
                 np.nanmax(np.abs(g_rr - g_pair)), 6
             )
+            # Fail rather than write numbers the doc would quote unchecked.
+            assert rec["pair_matches_run_reform_max_abs_m"] < 0.01, key
+            for name, st in rec["pair"]["status"].items():
+                assert st["tol"] == st["quarters"], (key, name, st["not_tol"])
+        assert rec["attrs"].get("solver_converged", True), key
         rec["runtime_s"] = round(time.time() - t, 1)
         out[key] = rec
         print(

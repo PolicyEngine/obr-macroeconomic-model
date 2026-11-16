@@ -19,8 +19,9 @@ from obr_macro.reform_analysis import (
 
 def test_identity_terms_are_exactly_the_exogenous_gdp_identity_terms():
     rhs = set(re.findall(r"[A-Z]+", GDPM_EQ.rhs))
-    # CONS and IF are solved, so a caller cannot shock them as passthrough.
-    assert EXPENDITURE_IDENTITY_TERMS == rhs - {"CONS", "IF"}
+    # Every term, CONS and IF included: apply_shock makes the shocked
+    # variable exogenous, so each enters GDP as passthrough.
+    assert EXPENDITURE_IDENTITY_TERMS == rhs
 
 
 def test_tax_and_rate_instruments_are_not_labelled_passthrough():
