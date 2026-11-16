@@ -277,7 +277,7 @@ Several items refer to the "T2 fix". This is the OBR's own label in the code ("C
 ### N1. "Business investment equation switched off; investment is residual of exogenous total investment." (High)
 - **Verdict:** True but openly documented
 - **Why:** Business investment is the live identity `IBUS = IF - GGI - PCIH - PCLEB - IH - IPRL` (l.84). Total investment `IF` has no equation and is listed as "Exogenous" (dict 59). The behavioural equation `dlog(IBUSX) = …` (l.92) and the identity it would replace (l.86, 112) are commented out, not deleted. The code comment labels this as part of the T2 fix (l.82). As published, l.92 also has an unclosed parenthesis, so it cannot be switched back on without editing.
-- **Our adapted model:** Changed. For corporation-tax analysis we rebuild the commented equation, adding the missing parenthesis, as an "investment closure" in `obr_macro/reform_analysis.py` (`_IBUSX_SRC`, `_stabilise_investment_closure`). On our data it feeds back explosively through market-sector output (MSGVA), so that closure holds MSGVA at a reference path.
+- **Our adapted model:** Changed. For corporation-tax analysis we rebuild the commented equation, adding the missing parenthesis after `KGAP(-2)` (where the OBR's Briefing paper No. 5, equation 2.38, closes the error-correction bracket), as an "investment closure" in `obr_macro/reform_analysis.py` (`_IBUSX_SRC`, `_stabilise_investment_closure`). On our data it feeds back explosively through market-sector output (MSGVA), so that closure holds MSGVA at a reference path.
 
 ### N2. "Cost-of-capital block unused; capital allowances cannot affect investment in code." (Mid)
 - **Verdict:** Partly true
