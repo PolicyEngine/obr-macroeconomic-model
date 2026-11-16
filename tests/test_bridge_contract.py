@@ -55,6 +55,8 @@ EXPECTED_RUN_REFORM_KWARGS = [
     "nominal_gdp_pin",
     # Added Nov 2026 (#50), last and defaulting to False.
     "monetary_conditioning",
+    # Added Nov 2026 (#60), last and defaulting to False.
+    "price_passthrough",
 ]
 
 
@@ -98,6 +100,8 @@ def test_run_reform_defaults_are_stable():
     assert sig.parameters["nominal_gdp_pin"].default is None
     # #50: the Bank Rate conditioning overlay is strictly opt-in.
     assert sig.parameters["monetary_conditioning"].default is False
+    # #60: the indirect-tax price pass-through overlay is strictly opt-in.
+    assert sig.parameters["price_passthrough"].default is False
 
 
 # --- Fake template: a solvable stand-in with a plausible shock response ------
