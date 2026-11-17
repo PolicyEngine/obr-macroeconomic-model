@@ -464,7 +464,7 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
         via both 1.00573*dlog(MSGVA(-1)) and the KSTAR target (KSTAR ~ MSGVA).
 
     Here the market-sector supply block that would discipline MSGVA is not
-    populated (see docs/stage1c_data_scope.md), so MSGVA is a ~1:1 mirror of
+    populated (see docs/history/stage1c_data_scope.md), so MSGVA is a ~1:1 mirror of
     investment-driven demand and the closed loop's eigenvalue exceeds 1 (the raw
     baseline runs IBUSX ~86,000 -> ~522,000 over 2025Q1-2027Q4 under the
     nominal-GDP pin, ~586,000 under the published closure; ~94,000 ->
@@ -563,7 +563,7 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     # reference, identically in baseline and shocked clones, so they cancel
     # in the delta. Same stop-gap status as the MSGVA freeze: replace when
     # the market-sector supply and price blocks are calibrated
-    # (docs/stage1c_data_scope.md).
+    # (docs/history/stage1c_data_scope.md).
     freeze_refs = {
         "MSGVA": msgva_ref,
         "PIF": trk.data["PIF"].copy(),
@@ -1267,7 +1267,7 @@ def run_reform(
     #   - consumption: the dlog(CONS) equation is live, but its income input
     #     RHHDI does not respond to demand because the labour-income chain
     #     (GDP -> employment -> wages -> HHDI) is unpopulated
-    #     (docs/stage1c_data_scope.md);
+    #     (docs/history/stage1c_data_scope.md);
     #   - crowding out/decay: no monetary rule (R is exogenous) and no output
     #     gap, so nothing closes the multiplier over the horizon.
     # Activating any of these would mean inventing equations or data the OBR

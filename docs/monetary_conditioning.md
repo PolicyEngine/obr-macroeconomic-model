@@ -27,7 +27,7 @@ The frame's `attrs` record which inputs moved (`monetary_conditioning_on`, with 
 
 ## Results: +25 / +100 / −100bp, held for 4 quarters
 
-Measured 6 Nov 2026 under the default nominal-GDP pin, with window 2025Q1–2028Q4. Every quarter of every run converged to tolerance. The +100bp rows and the −100bp conditioning row are pinned by `tests/test_monetary_conditioning.py`.
+Measured 6 Nov 2026 on the March 2026 EFO under the default nominal-GDP pin, with window 2025Q1–2028Q4. Every quarter of every run converged to tolerance. On the October 2026 EFO (demo battery, 16 Nov 2026, window 2025Q1–2027Q4) the +100bp peaks are −0.057% default and −0.149% with conditioning (`results/demo_shocks.json`); the table is not re-run. The +100bp rows and the −100bp conditioning row are pinned by `tests/test_monetary_conditioning.py`.
 
 | Shock | Mode | Peak GDP (q4) | GDP q8 | GDP q12 | Peak CONS | Peak real HH income | CPI inflation | Unemployment |
 |---|---|--:|--:|--:|--:|--:|--:|--:|
@@ -40,7 +40,7 @@ Measured 6 Nov 2026 under the default nominal-GDP pin, with window 2025Q1–2028
 
 The conditioning response is proportional to size (+25bp × 4 = −0.1475%) and symmetric in sign.
 
-The BoE benchmark is in the Bank of England's *The transmission mechanism of monetary policy* (Quarterly Bulletin 1999 Q2). It gives GDP −0.2% to −0.35% after about a year, and inflation −0.2pp to −0.4pp a year after that. With only the mortgage rate moved, GDP reaches −0.15%, below that range.
+The BoE benchmark is in the Bank of England's *The transmission mechanism of monetary policy* (Quarterly Bulletin 1999 Q2). It gives GDP −0.2% to −0.35% after about a year, and inflation −0.2pp to −0.4pp a year after that. With only the mortgage rate moved, GDP reaches −0.15%, below that range. The conditioning run is the reading consistent with the OBR's own listing (the 0.9 mortgage pass-through is its l.623 coefficient); the default run, which holds the mortgage rate at the EFO path, is a lower bound.
 
 - Round 3's illustrative "all channels" run gave −0.25%, inside the range. It used unsourced pass-throughs for gilts, sterling and house prices, so it is not adopted here.
 - Inflation stays at 0 in every run, so the inflation half of the benchmark cannot be compared at all.

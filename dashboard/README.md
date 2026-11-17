@@ -18,16 +18,25 @@ npm run dev      # http://localhost:3000
 
 ## Data
 
-The tabs read two JSON files from `public/data/`, regenerated from the repo root:
+The tabs read three JSON files from `public/data/`, regenerated from the repo root:
 
 ```bash
 uv run python dashboard/gen_model_data.py      # -> public/data/model_data.json   (variables + equations)
 uv run python dashboard/gen_explorer_data.py   # -> public/data/explorer_data.json (scenario solver output; slow)
+uv run python dashboard/gen_reform_grid.py     # -> public/data/reform_grid.json   (custom-reform grid; slow)
 ```
 
-`gen_model_data.py` parses `data/obr_model_variables_october_2025.xlsx` and transpiles
-each equation. `gen_explorer_data.py` solves the five reform scenarios (baseline vs
-shock) — it is slow (two full 12-quarter solves per scenario).
+`gen_model_data.py` parses the OBR variable list and transpiles each equation.
+`gen_explorer_data.py` solves the five reform scenarios (baseline vs shock); it is
+slow (two full 12-quarter solves per scenario).
+
+**Vintage.** The committed `explorer_data.json` and `reform_grid.json` were
+generated on 6 Nov 2026 against the March 2026 EFO and have not been regenerated
+since the October 2026 re-anchor (for example CGG +1,250 at q1: 1,269 here, 1,267
+in `results/demo_shocks.json`; Bank Rate +100bp at q1: −143 here, −128 there).
+Their captions (such as "multiplier 1.0, flat" in `reform_grid.json`) describe
+that run. `results/` is the source of record; regenerating the dashboard data is
+a follow-up.
 
 ## Structure
 

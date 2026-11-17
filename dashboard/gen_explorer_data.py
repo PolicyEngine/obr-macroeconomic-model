@@ -275,13 +275,10 @@ def main():
             "with identical model structure in both runs. Under the demand closure the shock "
             "lands directly in the GDP identity and the behavioural second round is largely "
             "inactive, so the impact multiplier is ~1 by construction (the OBR's own published "
-            "impact multiplier for current spending is ~0.45). Corporation-tax scenarios are "
-            "excluded: their closure does not solve stably in this emulator. Scenarios "
-            "whose ± responses fail a symmetry check are likewise dropped (the "
-            "export and Bank Rate scenarios: their solves do not converge under "
-            "the corrected convergence test, so their responses are solver "
-            "artifacts — previously shipped numbers for them were artifacts too). "
-            "Illustrative, not an OBR forecast.",
+            "impact multiplier for current spending is 0.6 in real terms, EFO July 2015 Box 3.2). "
+            "Corporation-tax scenarios are not part of this explorer: they need the investment "
+            "closure (see the README). Scenarios whose ± responses fail a symmetry check are "
+            "dropped by the generator. Illustrative, not an OBR forecast.",
         },
         "periods": periods_ref,
         "variables": [{"code": c, "label": lbl, "unit": u} for c, lbl, u, _ in VARS],

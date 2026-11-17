@@ -87,8 +87,9 @@ Within band: 8 of 11 under the default, 7 of 11 under the published closure.
 > (annual sums −£0.5bn to −£0.8bn in 2023–25, −£49.9bn in 2026, −£8.7bn a
 > year from 2027). Seasonally adjusting the components is the follow-up.
 
-> **Re-measured 16 Nov 2026 on the October 2026 EFO (CI run 43866052221,
-> commit 5eccd49).** Against the March 2026 EFO the default closure read real
+> **Re-measured 16 Nov 2026 on the October 2026 EFO (calibration-scorecard
+> job of CI run 43866052221 on commit 5eccd49; the full CI run on the
+> re-pinned commit 41dd8f1, 43885876247, is green).** Against the March 2026 EFO the default closure read real
 > GDP 4.12%, consumption 6.90%, business investment 8.38%, household income
 > 4.50%, real household income 4.26%, company profits 12.45%, unemployment
 > 1.01pp, RPI inflation 1.71pp, current account 1.19% and trade balance 0.68%
@@ -144,7 +145,7 @@ Within band: 8 of 11 under the default, 7 of 11 under the published closure.
 > incomes block) and were never refreshed. The reference values of record are
 > the ones in `test_raw_calibration_scorecard_does_not_regress`; the table above
 > now agrees with them and with a fresh
-> `python -m obr_macro.calibration_score` run on the March-2026 vintage.
+> `python -m obr_macro.calibration_score` run on the October-2026 vintage.
 > Downstream consumers that quote 5.75% / 9.56% (including the
 > `policyengine-macro` capability registry) are quoting the stale figures.
 
@@ -155,17 +156,19 @@ are all-NaN in the published databank. When the fix landed the whole scorecard
 was verified bitwise identical before and after — including Household income,
 Real household income and Company profits, the lines that would move if the
 profits → dividends channel were live (then 14.76%, 14.48% and 54.57% on the
-pre-OSHH-anchor vintage; 6.27%, 6.03% and 63.29% in the table above). The
+pre-OSHH-anchor vintage; 6.27%, 6.03% and 63.29% on the vintage current when
+the fix landed). The
 freeze is vintage-independent: `MAJGDP` and `CORP` are still absent from the
 current databank, so the fix cannot move any line on any vintage.
 
 **Cost-of-capital re-estimation (issue #30): scorecard unchanged.** Replacing
 the invented `DB`/`DP`/`DV` seeds (0.18/0.06/0.25 — statutory writing-down
 *rates* pasted in as present *values*) with the estimates derived in
-`obr_macro/cost_of_capital.py` (0.0/0.9515/0.7793, from statutory allowance
-rates and the EFO's published 20-year gilt assumption) leaves every line above
-bitwise identical, business investment (15.28%) and Company profits (82.77%)
-included. That is the expected null: the constants only enter through
+`obr_macro/cost_of_capital.py` (0.0/0.9515/0.7793 on the March 2026 EFO,
+re-derived as 0.0/0.9492/0.7709 on the October 2026 EFO, from statutory
+allowance rates and the EFO's published 20-year gilt assumption) left every
+line bitwise identical when it landed, business investment (15.28%) and
+Company profits (82.77%) included. That is the expected null: the constants only enter through
 `TAF → COC → KSTAR`, a chain consumed solely by the reconstructed
 `dlog(IBUSX)` equation under the *investment closure*, which no scorecard
 solve activates. What the re-estimation changes is the corporation-tax
@@ -174,21 +177,21 @@ marginal main-rate plant investment nearly tax-neutral), not the baseline fit
 scored here.
 
 ## Honest score
+Default closure (nominal-GDP pin), October 2026 EFO, 2025Q1–2027Q4:
 - **11 of 21** headline variables are actually computed; the other **10 are passthrough**.
-- Of the 11 computed: 1 is a trivial identity, 5 are fair, 3 are poor, and 2 are off.
-- **6 of 11 land within band (55%)** — Real GDP, Consumption, Household income,
-  Real household income and the trade balance (as % of GDP) are fair, plus the
-  trivial employment identity. Business investment, the unemployment rate and
-  RPI inflation are poor; Company profits and the current account are off.
-- **Company profits (FYCPR) and, on the March-2026 vintage, the current
-  account (CB) score "off".** FYCPR's raw error is solver drift, not the
-  unpublished OSHH constant this line used to blame: nominal GDP and the
-  investment deflator `PIF` are one identity written twice, so `PIF`
-  random-walks under the de-seeded solve and profits follow (see the 6 Nov
-  2026 note under the OSHH floor below, and issue #42). CB crossed from "poor" (2.76% of GDP on the November-2025 vintage) to "off"
-  (3.60%) because the March EFO revised the current-account path while the
-  `NIPD` overseas rate-of-return normalisers stay at their old unpublished
-  levels.
+- Of the 11 computed: 2 are good (the trivial employment identity and the
+  trade balance), 6 are fair, 3 are poor, and none is off.
+- **8 of 11 land within band (73%)**: Real GDP, Consumption, Business
+  investment, Household income, Real household income and the current account
+  (as % of GDP) are fair, plus the two good lines. The unemployment rate, RPI
+  inflation and Company profits are poor.
+- Under the published closure 7 of 11 are within band. Its business
+  investment is poor and its Company profits are off; both measure solver
+  drift (nominal GDP and the investment deflator `PIF` are one identity
+  written twice, so `PIF` random-walks in the de-seeded solve and profits
+  follow; see the OSHH-floor notes below and issue #42), not fit.
+- None of this is an OBR forecast error. It measures this emulator's closure
+  (GDP made endogenous) and the inputs the OBR does not publish.
 
 ### RPI: a metric fix, not a model fix
 The model computes `RPI` as the year-on-year RPI **inflation rate**
@@ -196,7 +199,8 @@ The model computes `RPI` as the year-on-year RPI **inflation rate**
 to compare that rate against the EFO `RPI` *index* (~400) as a level, which is a
 category error — it read a meaningless **99.58%** "off". Scored against the EFO
 `RPIGR` inflation series as a rate (pp), the honest error was **2.03pp** ("poor") when the metric was fixed; it is
-1.71pp on the current vintage (table above).
+2.32pp on the October 2026 vintage (table above; 1.71pp on the March 2026
+vintage).
 The residual is real and traces to the RPI index itself: `PR` (≈ the exogenous
 `I7` normaliser) freezes once its unpublished history runs out around 2026Q2, so
 modelled inflation decays toward zero over the tail of the horizon. That decay is
@@ -262,21 +266,20 @@ OBR's own convention. Crucially it is now applied **consistently in both this
 scorecard and the forecast scorecard** (`forecast.py`) — previously it lived only
 in the forecast scorecard, which is the kind of selective metric that flatters a
 headline. Scored the same way everywhere, the trade balance is *fair*; the
-current account is *off* (4.17% of GDP when this was written; 3.02% on the
-current vintage, table above) once de-seeded — driven by a net
-investment-income (`NIPD`) overshoot, itself bounded by the overseas
-rate-of-return normalisers the OBR does not publish.
+current account was *off* (4.17% of GDP when this was written) once
+de-seeded, driven by a net investment-income (`NIPD`) overshoot, itself
+bounded by the overseas rate-of-return normalisers the OBR does not publish.
+On the October 2026 vintage it is fair: 0.91% of GDP under the default
+closure and 1.03% under the published closure (table above).
 
 ## Verdict
-Raw (un-add-factored) calibration is **partial but honest**: Real GDP,
-consumption and the trade balance sit within band (fair), the trivial employment
-identity is exact, and RPI inflation, business investment, the incomes block and
-the current account are *poor/off* but no longer diverging. Company profits
-(FYCPR) and the current account (CB) are *off* on the March-2026 vintage;
-FYCPR's residual is dominated by the documented OSHH
-unpublished-constant floor rather than a live bug. The ~10 dead/exogenous
-channels (exports, imports, prices, labour demand, wages) are held at the OBR
-value.
+Raw (un-add-factored) calibration is **partial but honest**. Under the default
+closure on the October 2026 EFO, Real GDP, consumption, business investment,
+the incomes block and the current account sit within band (fair), the trade
+balance is good, and the trivial employment identity is exact. The
+unemployment rate, RPI inflation and Company profits are poor but no longer
+diverging. The ~10 dead or exogenous channels (exports, imports, prices,
+labour demand, wages) are held at the OBR value.
 
 Note these figures are **much better than early versions of this doc** (which
 recorded 318% / 932% / 375% divergences), because the incomes, investment and

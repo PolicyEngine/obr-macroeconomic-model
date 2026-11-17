@@ -16,3 +16,6 @@ obr_macro/_data/ons_cache/
 obr_macro/_data/obr_model_variables.json
 obr_macro/_data/*.part
 data/ons_cache/
+
+# reform CLI output (python -m obr_macro.reform_analysis)
+outputs/

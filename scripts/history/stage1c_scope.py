@@ -13,7 +13,7 @@ into:
 Fast (no forward solve — just parse + data load).
 
 Run from the repo root:
-    uv run python -m obr_macro.stage1c_scope
+    uv run python scripts/history/stage1c_scope.py
 """
 
 from __future__ import annotations

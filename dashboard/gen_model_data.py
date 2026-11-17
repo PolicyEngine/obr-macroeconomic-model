@@ -1,7 +1,7 @@
 """Generate the dashboard's variable/equation glossary JSON from the OBR
 variables spreadsheet.
 
-Reads data/obr_model_variables_october_2025.xlsx, transpiles each equation with
+Reads obr_macro/_data/obr_model_variables_october_2025.xlsx, transpiles each equation with
 the project's EViews transpiler, and writes dashboard/public/data/model_data.json
 (consumed by the Variables and Equations tabs).
 
@@ -15,7 +15,7 @@ import openpyxl
 
 from obr_macro.transpiler import EViewsTranspiler
 
-XLSX = "data/obr_model_variables_october_2025.xlsx"
+XLSX = "obr_macro/_data/obr_model_variables_october_2025.xlsx"
 OUT = "dashboard/public/data/model_data.json"
 
 
