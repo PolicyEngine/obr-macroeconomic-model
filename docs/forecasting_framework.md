@@ -48,8 +48,8 @@ figures in the last column.
 > **March 2026 EFO (6 Nov 2026), for comparison:** GDP 0.28% (published
 > closure 0.27%), consumption 0.19%, unemployment 0.69pp, business investment
 > 10.00% (13.32%), company profits 13.48% (14.86%), trade balance 0.25% and
-> current account 1.51% of GDP (1.39%); 6 of 8 computed within band (7 of 8
-> under the published closure).
+> current account 1.51% of GDP (1.39%); 6 of 8 computed within band under
+> both closures.
 
 > **Recovered-series revision.** These follow the ONS-pull repair (see
 > `calibration_scorecard.md`): the eight series the TLS failure had been
