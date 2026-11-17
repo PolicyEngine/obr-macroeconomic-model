@@ -187,6 +187,24 @@ def _check_instrument_domain(template, var, values, start: str) -> None:
 # tests/test_stress.py already excludes CGIPS from its instrument list for this
 # reason; the warning makes the same fact visible to anyone calling
 # run_reform directly (including run_five_reforms' "GBP 10bn Gov Investment").
+# Government investment under the investment closure: IF = IBUS + GGI + PCIH +
+# PCLEB + IH + IPRL (the listing's commented-out l.86) is live, so real
+# government investment GGI = 100*GGIPS/GGIDEF enters IF and the expenditure
+# identity directly. Measured 16 Nov 2026 on the October 2026 EFO, CGIPS
+# +3,000 a quarter for 12 quarters: GDP +3,075 / +2,901 / +2,932 at q1/q4/q12
+# (delta_IF the same to within GBP 3m, consumption about -3), every quarter
+# converged.
+INVESTMENT_CLOSURE_CAPITAL_NOTE = (
+    "Investment closure: the listing's commented-out IF identity (l.86) is "
+    "live, so real government investment (GGI = 100*GGIPS/GGIDEF) enters IF "
+    "and GDP one for one. This is identity passthrough, not a validated "
+    "multiplier: GDP per real pound stays flat at about 1.0 with no taper and "
+    "no crowding-out (business investment follows its own equation, which "
+    "does not respond to public investment). The OBR's published capital "
+    "multiplier is 1.0 on impact, tapering to zero. The nominal-GDP pin is "
+    "off under this closure."
+)
+
 # Terms of the expenditure identity (GDPM_EQ). Shocking one makes it exogenous
 # (apply_shock -> make_exogenous), including CONS, whose l.4 equation is then
 # switched off, and IF, which has no live equation anyway. Their GDP delta is
@@ -287,6 +305,44 @@ _DEAD_UNDER_DEMAND_CLOSURE = {
 # with no sourced coefficient are listed in MONETARY_CONDITIONING_OFF and are
 # NOT moved; inventing a number for them would put a judgement in the model's
 # mouth.
+# Opt-in indirect-tax price pass-through (issue #60). The listing's CPI block
+# is cost-push: RPCOST (l.270) carries indirect taxes as (BPAPS/GVA)/TXRATEBASE
+# at weight 11.56, and so do the cost indices it averages, SCOST (3.52), CCOST
+# (0.51) and UTCOST (2.90), which are markup-free identities (l.264-l.268).
+# Solving those three with PPIY held (it is exogenous in the shipped template)
+# gives a total weight of 13.84 on the tax term. CPIX = RPCOST * MKR * base
+# (l.288), and the commented-out l.314 makes CPI a (1-W1, W1) geometric mean of
+# CPIX and rents, W1 = 0.084 (commented constant). The shipped listing instead
+# solves the markup MKR as the residual of an exogenous CPI (the "indirect T2
+# fix", l.284), so a VAT rise squeezes margins and prices do not move.
+# price_passthrough=True switches the other way for the shock only: MKR held at
+# baseline, l.314 and l.270 applied in deviation form,
+#   dlog CPI = (1 - W1) * 0.1384 * dlog(BPAPS / GVA)   (shocked minus baseline).
+# The levels cannot be evaluated (SCOST, CCOST, UTCOST and the bases are
+# unpublished, see KNOWN_NONFINITE_EQUATIONS), so the weights stand in for
+# shares, which holds when each component ratio is near its base: on the
+# repo's data the 2025 tax ratio against its 2009 base is 1.59 and CPI's is
+# 1.60 (RPCOST itself is unpublished, so CPI proxies it); the tax ratio drifts
+# to about 1.75 by 2028.
+PRICE_PASSTHROUGH_W1 = 0.084
+PRICE_PASSTHROUGH_TAX_WEIGHT = 0.1384
+PRICE_PASSTHROUGH_ELASTICITY = (1 - PRICE_PASSTHROUGH_W1) * PRICE_PASSTHROUGH_TAX_WEIGHT
+PRICE_PASSTHROUGH_VARS = frozenset({"VREC", "TXFUEL"})
+PRICE_PASSTHROUGH_PASSES = 3
+PRICE_PASSTHROUGH_NOTE = (
+    "Judgement overlay, not the shipped listing: the indirect-tax rise is "
+    "passed into CPI (and so PCE and real household income) through the "
+    "listing's own cost-push weights (RPCOST l.270 with SCOST/CCOST/UTCOST, "
+    "total tax weight 13.84; CPI from the commented-out l.314, W1 = 0.084), "
+    "with the retail markup MKR held at baseline. The shipped listing does "
+    "the opposite (CPI exogenous, MKR the residual, l.284). Holding MKR means "
+    "full and immediate pass-through of the cost change. Weights stand in for "
+    "unpublished shares (linearised at base). The GDP deflator PGDP stays at "
+    "its EFO path under the nominal-GDP pin. Nothing in the published "
+    "equations makes the consumption response fade, so later quarters can "
+    "exceed the OBR's tapering 0.35 convention."
+)
+
 MONETARY_CONDITIONING = {
     "RMORT": (
         0.9,
@@ -906,6 +962,47 @@ def _attach_household_ratio_bases(out, revenue, delta_gdpmps, pgdp):
     out.attrs["gdp_per_revenue_basis_note"] = HOUSEHOLD_RATIO_BASIS_NOTE
 
 
+def _apply_price_passthrough(shocked, baseline_data, start, end, t_start, t_end):
+    """Impose dlog CPI = PRICE_PASSTHROUGH_ELASTICITY * dlog(BPAPS/GVA) on the
+    solved shocked run and re-solve, PRICE_PASSTHROUGH_PASSES times, so the CPI
+    shift is consistent with the indirect-tax take it produces. Returns the
+    final shocked data, its solve report and a detail dict for df.attrs."""
+    j_cpi = shocked.data.columns.get_loc("CPI")
+    window = slice(t_start, t_end + 1)
+    base_cpi = baseline_data["CPI"].astype(float).to_numpy()
+    base_ratio = (baseline_data["BPAPS"] / baseline_data["GVA"]).astype(float)
+    dlog_prev = None
+    changes = []
+    for _ in range(PRICE_PASSTHROUGH_PASSES):
+        ratio = (shocked.data["BPAPS"] / shocked.data["GVA"]).astype(float)
+        dlog = np.zeros(len(shocked.data))
+        dlog[window] = PRICE_PASSTHROUGH_ELASTICITY * (
+            np.log(ratio.to_numpy()[window]) - np.log(base_ratio.to_numpy()[window])
+        )
+        if dlog_prev is not None:
+            changes.append(float(np.max(np.abs(dlog[window] - dlog_prev[window]))))
+        dlog_prev = dlog
+        shocked.data.iloc[t_start : t_end + 1, j_cpi] = base_cpi[window] * np.exp(
+            dlog[window]
+        )
+        shocked.solve(start, end)
+    report = getattr(shocked, "last_solve_report", None)
+    final_ratio = (shocked.data["BPAPS"] / shocked.data["GVA"]).astype(float)
+    implied = PRICE_PASSTHROUGH_ELASTICITY * (
+        np.log(final_ratio.to_numpy()[window]) - np.log(base_ratio.to_numpy()[window])
+    )
+    detail = {
+        "elasticity": round(PRICE_PASSTHROUGH_ELASTICITY, 6),
+        "tax_weight": PRICE_PASSTHROUGH_TAX_WEIGHT,
+        "w1": PRICE_PASSTHROUGH_W1,
+        "passes": PRICE_PASSTHROUGH_PASSES,
+        "cpi_pct_delta": [round(100 * float(x), 4) for x in dlog_prev[window]],
+        "max_change_last_pass": changes[-1] if changes else None,
+        "residual_vs_final_take": float(np.max(np.abs(implied - dlog_prev[window]))),
+    }
+    return shocked.data.copy(), report, detail
+
+
 def run_reform(
     name: str,
     var: str,
@@ -917,6 +1014,7 @@ def run_reform(
     published_conventions: bool = False,
     nominal_gdp_pin: "bool | None" = None,
     monetary_conditioning: bool = False,
+    price_passthrough: bool = False,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -965,11 +1063,30 @@ def run_reform(
             are left at the EFO path and listed in ``df.attrs``. A labelled
             judgement overlay, not model dynamics. Default False (unchanged).
             CPI and unemployment do not respond in either mode, by design.
+        price_passthrough: Only for an indirect-tax shock (``VREC``,
+            ``TXFUEL``) under the demand closure. If True, pass the tax into
+            CPI through the listing's own cost-push weights with the retail
+            markup held at baseline (PRICE_PASSTHROUGH_NOTE), iterating
+            ``PRICE_PASSTHROUGH_PASSES`` times so the CPI shift matches the
+            solved indirect-tax take. A labelled judgement overlay, not the
+            shipped listing (which holds CPI exogenous). Default False
+            (unchanged). See issue #60.
     """
     if monetary_conditioning and var != "R":
         raise ValueError(
             "monetary_conditioning applies only to a Bank Rate shock (var='R'); "
             f"got var={var!r}."
+        )
+    if price_passthrough and var not in PRICE_PASSTHROUGH_VARS:
+        raise ValueError(
+            "price_passthrough applies only to an indirect-tax shock "
+            f"({', '.join(sorted(PRICE_PASSTHROUGH_VARS))}); got var={var!r}."
+        )
+    if price_passthrough and investment_closure:
+        raise ValueError(
+            "price_passthrough is defined for the demand closure only; the "
+            "investment closure holds the investment deflator and was not "
+            "measured with it."
         )
     if published_conventions and investment_closure:
         raise ValueError(
@@ -1021,6 +1138,12 @@ def run_reform(
     # Build results
     t_start = baseline.period_idx(start)
     t_end = baseline.period_idx(end)
+
+    passthrough_detail = None
+    if price_passthrough:
+        shocked_data, shocked_report, passthrough_detail = _apply_price_passthrough(
+            shocked, baseline_data, start, end, t_start, t_end
+        )
 
     # Published-conventions override: only for instruments whose model channel
     # is an identity or dead. The raw solve above is kept as the measurement of
@@ -1250,7 +1373,13 @@ def run_reform(
                 "chain never reaches the GDP identity. delta_IF is exactly "
                 "zero and the small GDP residue is deflator noise of "
                 "indeterminate sign. This result is not a public-investment "
-                "multiplier and must not be reported as one."
+                "multiplier and must not be reported as one. Two labelled "
+                "routes give it a path: investment_closure=True switches on "
+                "the listing's commented-out IF identity (l.86), so GDP moves "
+                "one for one with real government investment (identity "
+                "passthrough, no taper, no crowding-out); "
+                "published_conventions=True imposes the OBR's capital-spending "
+                "convention (1.0, tapering) as a labelled add-factor."
             )
             out.attrs["dead_channel"] = True
             out.attrs["dead_channel_warning"] = msg
@@ -1281,7 +1410,10 @@ def run_reform(
                 )
     else:
         out.attrs["published_conventions"] = False
-        out.attrs["mechanical_passthrough"] = False
+        out.attrs["mechanical_passthrough"] = var in _DEAD_UNDER_DEMAND_CLOSURE
+        out.attrs["dead_channel"] = False
+        if var in _DEAD_UNDER_DEMAND_CLOSURE:
+            out.attrs["transmission_note"] = INVESTMENT_CLOSURE_CAPITAL_NOTE
         # End-of-horizon log deviations of investment and its steady-state
         # target, for the convergence diagnostics (guarded: a broken run can
         # leave non-positive levels, which must label as NaN, not raise).
@@ -1319,6 +1451,10 @@ def run_reform(
     if var == "R":
         out.attrs["cost_of_capital_channel"] = COST_OF_CAPITAL_RATE_CHANNEL_NOTE
         out.attrs["inflation_unemployment_note"] = MONETARY_CONDITIONING_SCOPE_NOTE
+    out.attrs["price_passthrough"] = bool(price_passthrough)
+    if passthrough_detail is not None:
+        out.attrs["price_passthrough_detail"] = passthrough_detail
+        out.attrs["price_passthrough_note"] = PRICE_PASSTHROUGH_NOTE
     out.attrs["monetary_conditioning"] = bool(monetary_conditioning)
     if monetary_conditioning:
         out.attrs["monetary_conditioning_on"] = {

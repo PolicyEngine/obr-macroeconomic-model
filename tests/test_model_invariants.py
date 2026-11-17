@@ -186,9 +186,12 @@ def test_government_investment_channel_is_dead_and_says_so():
     """CGIPS has no path to GDP under the demand closure (IF has no live
     equation), so a GBP 12bn/year public investment programme moves total
     investment by EXACTLY zero and GDP by a wrong-signed deflator residue.
-    That is a defect this repo cannot fix without inventing an equation the
-    OBR did not publish — so it must be announced, not silently returned as a
-    public-investment multiplier."""
+    Under the demand closure that cannot be fixed without inventing an
+    equation the OBR did not publish, so it must be announced, not silently
+    returned as a public-investment multiplier. The warning names the two
+    labelled routes (investment_closure=True, which switches on the listing's
+    commented-out IF identity, and published_conventions=True); see
+    tests/test_price_passthrough.py."""
     from obr_macro.reform_analysis import run_reform
 
     with pytest.warns(UserWarning, match="NO transmission path"):
