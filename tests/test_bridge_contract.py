@@ -173,6 +173,27 @@ def bridge(monkeypatch):
     return reform_analysis
 
 
+# --- Nominal-consistent spending label ---------------------------------------
+
+
+def test_default_cgg_run_is_labelled_nominal_consistent(bridge):
+    """A default CGG run says it moved the nominal legs, and names them; the
+    real-only run says it did not. A caller reading only delta_gdp_m must be
+    able to tell which experiment it got."""
+    df = bridge.run_reform("r", "CGG", 100.0, "2025Q1", "2025Q4", periods=4)
+    assert df.attrs["nominal_consistent"] is True
+    assert df.attrs["nominal_consistent_legs"] == ["CGGPS", "CGGPSPSF", "PSCE"]
+    assert "borrowing" in df.attrs["nominal_consistent_note"]
+
+    real = bridge.run_reform(
+        "r", "CGG", 100.0, "2025Q1", "2025Q4", periods=4, nominal_consistent=False
+    )
+    assert real.attrs["nominal_consistent"] is False
+    assert "nominal_consistent_legs" not in real.attrs
+    # The fake template's GDP reads CGG only, so the two runs agree on GDP.
+    assert list(real["delta_gdp_m"]) == list(df["delta_gdp_m"])
+
+
 # --- Output schema ----------------------------------------------------------
 
 

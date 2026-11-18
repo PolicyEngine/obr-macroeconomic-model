@@ -156,6 +156,11 @@ def test_government_consumption_multiplier_gap_vs_obr_is_pinned(spending_reforms
     # income rises by about GBP 170m a quarter and consumption follows.
     # Measured on +GBP 1,250m x 12q (2025Q1-2027Q4): GDP multiplier 1.0136 on
     # impact rising to 1.0496 by q12; consumption +GBP 17m to +GBP 62m.
+    # 18 Nov 2026: the default CGG shock now carries its nominal legs
+    # (reform_analysis.NOMINAL_SPENDING_LEGS), which removes the deflator
+    # spill into PIF. Measured: 1.013 on impact rising to about 1.040 by q12
+    # (drift +0.027); consumption +GBP 16m to +GBP 50m. The bands below are
+    # unchanged and still hold.
     # 1. Still essentially passthrough on impact: 1.00-1.03.
     assert 1.0 <= mult[0] < 1.03, f"impact multiplier {mult[0]:.4f} left 1.00-1.03"
     # 2. It does NOT decay: it drifts UP by the income channel (measured
@@ -166,7 +171,8 @@ def test_government_consumption_multiplier_gap_vs_obr_is_pinned(spending_reforms
         "channel is now live, re-benchmark against the OBR profile"
     )
     # 3. Consumption responds only through the profits -> household income
-    #    trickle: at most GBP 62m on GBP 1,250m (4.9%). Bound 6% of the shock.
+    #    trickle: at most GBP 50m on GBP 1,250m (4.0%; GBP 62m real-only).
+    #    Bound 6% of the shock.
     assert df["delta_cons_m"].abs().max() < 0.06 * 1250, (
         "consumption responds to a spending shock more than the measured "
         "income channel — re-benchmark the multiplier"
