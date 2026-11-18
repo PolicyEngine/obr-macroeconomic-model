@@ -534,9 +534,10 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
       swap, and CGG's dlog equation is driven by exogenous EFO nominal
       spending and pinned by its own residual. So the GDP fit is the
       consumption fit scaled by the consumption share, and it is measurably
-      exactly that: GDPM 0.439%, CONS 0.721%, ratio 0.609 against a
+      exactly that: GDPM 0.242%, CONS 0.398%, ratio 0.609 against a
       consumption share of GDP of 0.609 (October-2026 EFO, 355-series ONS
-      snapshot; March-2026 EFO: 0.300% and 0.493%).
+      snapshot, 18 Nov 2026; 0.439% and 0.721% before the forecast
+      population followed the EFO; March-2026 EFO: 0.300% and 0.493%).
     - HHDI is not scored here at all. baseline.build(anchored=True) makes HHDI
       and RHHDI EXOGENOUS (_PUBLISHED_LEVEL_ANCHORS), so their "MAPE 0.00%" was
       the tautology "a series held at its EFO value equals its EFO value" — an
@@ -557,7 +558,13 @@ def test_anchored_reproduces_efo_published_aggregates(anchored):
     # (0.16% -> 0.30%) without anyone noticing. A change outside the band in
     # either direction means the anchoring changed and the README and
     # scorecard figures must be refreshed with it.
-    reference = {"GDPM": 0.439, "CONS": 0.721}
+    # Re-pinned 18 Nov 2026 (0.439 -> 0.242, 0.721 -> 0.398) when the
+    # forecast 16+ population was put on the EFO-implied path. The
+    # consumption equation carries the change in the unemployment rate, so
+    # an unemployment path draining away from the EFO's had been pushing
+    # anchored consumption above it; with LFSUR on the EFO path that part of
+    # the gap is gone. The band is unchanged at +/-25% of the reference.
+    reference = {"GDPM": 0.242, "CONS": 0.398}
     for code, mape in mapes.items():
         ref = reference[code]
         assert 0.75 * ref < mape < 1.25 * ref, (
@@ -683,35 +690,34 @@ def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
     assert shocked.anchor_terms is tmpl.anchor_terms
 
 
-def test_anchored_unemployment_divergence_is_bounded(anchored):
-    """EXPECTED DIVERGENCE, explicitly documented: unlike GDPM/CONS/HHDI, the
-    anchored unemployment rate does NOT reproduce the EFO path — LFSUR drifts
-    from the published values once its unpublished labour-market inputs run
-    out (max abs gap 1.23pp on the March-2026 vintage, under 1.5pp on the
-    October-2026 vintage, where this test passed on 16 Nov 2026; the EFO peaks near
-    5.3%, the model overshoots then undershoots). This test does not bless
-    the drift as correct; it pins its current size so it cannot silently
-    worsen. If it starts failing, the labour block regressed; if the drift is
-    ever fixed, promote LFSUR into
-    test_anchored_reproduces_efo_published_aggregates and delete this."""
+def test_anchored_unemployment_reproduces_the_efo(anchored):
+    """The anchored unemployment rate reproduces the EFO path.
+
+    Until 18 Nov 2026 it did not: LFSUR drifted to 3.75% against the EFO's
+    5.07% at 2027Q4 (max gap 1.32pp over 2025Q1-2027Q4) and to 1.05% against
+    4.17% by 2031Q1, and test_anchored_unemployment_divergence_is_bounded
+    pinned the drift under 1.5pp. The cause was the 16+ population, held at
+    its trailing mean beyond the last ONS observation while the EFO's
+    employment kept rising (data._extend_pop16_on_efo_path). With POP16 on
+    the EFO-implied path the identity ULFS = POP16*PART16/100 - ETLFS (l.163)
+    returns the EFO's unemployment, so this is now a by-construction
+    invariant like GDPM and CONS above: it proves the labour-force identity
+    is closed on published inputs, not that the model forecasts unemployment.
+    The 2031Q1 horizon is recorded in results/site_figures.json.
+    """
     from obr_macro.data import load_obr_data
 
     efo = load_obr_data()
     t0 = anchored.period_idx("2025Q1")
-    t1 = anchored.period_idx("2027Q4")
+    t1 = anchored.period_idx("2027Q4")  # the fixture's solved window
     m = anchored.data["LFSUR"].iloc[t0 : t1 + 1].to_numpy(dtype=float)
     e = efo["LFSUR"].iloc[t0 : t1 + 1].to_numpy(dtype=float)
     ok = np.isfinite(m) & np.isfinite(e)
-    assert ok.any(), "no finite LFSUR pairs to score"
+    assert ok.sum() >= 12, "too few finite LFSUR pairs to score"
     gap = np.abs(m[ok] - e[ok])
-    assert gap.max() < 1.5, (
-        f"anchored LFSUR drift grew to {gap.max():.2f}pp (was 1.23pp) — the "
-        "documented divergence got worse"
-    )
-    # And the rate itself must stay economically sane on the horizon (the
-    # failure mode on record is a decay toward zero, vs the EFO's ~4-5%).
-    assert (m[ok] > 2.0).all() and (m[ok] < 8.0).all(), (
-        "anchored unemployment rate left the plausible band"
+    assert gap.max() < 0.02, (
+        f"anchored LFSUR is {gap.max():.3f}pp off the EFO — the labour-force "
+        "identity no longer closes on the published inputs"
     )
 
 
@@ -975,14 +981,26 @@ def test_raw_calibration_scorecard_does_not_regress():
         # better model fit; household taxes now follow their data path in the
         # raw solve. Published closure, same change: GDPM 3.82, CONS 6.55,
         # IBUS 22.13, HHDI 3.69, RHHDI 3.82, FYCPR 47.74, CB 1.03.
-        "GDPM": ("lvl", 4.05),  # % MAPE
-        "CONS": ("lvl", 6.92),
+        # Re-pinned 18 Nov 2026 when the forecast 16+ population was put on
+        # the EFO-implied path (data._extend_pop16_on_efo_path) instead of
+        # being held flat: GDPM 4.05 -> 4.24, CONS 6.92 -> 7.23, LFSUR 1.17
+        # -> 0.62, HHDI 3.08 -> 3.10, RHHDI 3.29 -> 3.30, FYCPR 11.66 ->
+        # 12.88 (IBUS, RPI, CB, TB unchanged). The frozen population had
+        # drained raw unemployment, and through the -0.0084*d(LFSUR) term of
+        # the consumption equation (l.4) that lifted raw consumption towards
+        # the EFO path it otherwise undershoots. Removing the artefact makes
+        # the unemployment line better and the GDP and consumption lines
+        # 0.2-0.3 points worse. Every move is inside the 20% gate of the old
+        # references; they are re-pinned so the gate measures from the
+        # current figures, not because any tolerance changed.
+        "GDPM": ("lvl", 4.24),  # % MAPE
+        "CONS": ("lvl", 7.23),
         "IBUS": ("lvl", 7.34),
-        "LFSUR": ("pp", 1.17),  # mean abs pp
+        "LFSUR": ("pp", 0.62),  # mean abs pp
         "RPI": ("pp", 2.32),
-        "HHDI": ("lvl", 3.08),
-        "RHHDI": ("lvl", 3.29),
-        "FYCPR": ("lvl", 11.66),
+        "HHDI": ("lvl", 3.10),
+        "RHHDI": ("lvl", 3.30),
+        "FYCPR": ("lvl", 12.88),
         "CB": ("gdp", 0.91),  # % of GDP
         "TB": ("gdp", 0.41),
     }
