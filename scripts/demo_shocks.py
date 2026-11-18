@@ -11,7 +11,7 @@ template (as ``tests/test_tax_scenarios.py`` does) and checked against
 
     uv run python scripts/demo_shocks.py
 
-About 40 solves (11 run_reform calls plus 9 rebuilt pairs, about 25 minutes): run it on GitHub Actions (``.github/workflows/demo.yml``).
+About 55 solves (14 run_reform calls plus 12 rebuilt pairs; the pass-through rows re-solve three times; about 35 minutes): run it on GitHub Actions (``.github/workflows/demo.yml``).
 """
 
 from __future__ import annotations
@@ -29,6 +29,7 @@ from obr_macro import run_reform
 from obr_macro.reform_analysis import (
     HOUSEHOLD_COSTING_VAR,
     _apply_household_costing,
+    _apply_price_passthrough,
     _build_reform_template,
 )
 
@@ -124,6 +125,30 @@ SHOCKS = [
         4,
         {"monetary_conditioning": True},
     ),
+    (
+        "vat_passthrough",
+        "VAT standard rate +1pp, price_passthrough (#60)",
+        "VREC",
+        8800 / 4,
+        12,
+        {"price_passthrough": True},
+    ),
+    (
+        "fuel_duty_passthrough",
+        "Fuel duty +5%, price_passthrough (#60)",
+        "TXFUEL",
+        5 * 240 / 4,
+        12,
+        {"price_passthrough": True},
+    ),
+    (
+        "cgips_investment_closure",
+        "Government investment +GBP 3bn a quarter, investment closure",
+        "CGIPS",
+        3000.0,
+        12,
+        {"investment_closure": True},
+    ),
 ]
 PAIR_SKIP = {"cgg_conventions", "bank_rate_conditioned"}  # run_reform-only paths
 
@@ -151,7 +176,7 @@ def _attrs(df):
     return keep
 
 
-def pair(var, shock, periods, investment_closure):
+def pair(var, shock, periods, investment_closure, price_passthrough=False):
     tpl = _build_reform_template(var, START, END, investment_closure)
     base, k = tpl.clone(), tpl.clone()
     if var == HOUSEHOLD_COSTING_VAR:
@@ -160,6 +185,9 @@ def pair(var, shock, periods, investment_closure):
         k.apply_shock(var, shock, START, periods=periods)
     base.solve(START, END)
     k.solve(START, END)
+    if price_passthrough:
+        t0, t1 = base.period_idx(START), base.period_idx(END)
+        _apply_price_passthrough(k, base.data.copy(), START, END, t0, t1)
     status = {}
     for name, sv in (("baseline", base), ("shocked", k)):
         rep = getattr(sv, "last_solve_report", None) or {}
@@ -206,7 +234,13 @@ def main():
             "attrs": _attrs(df),
         }
         if key not in PAIR_SKIP:
-            rec["pair"] = pair(var, shock, periods, kw.get("investment_closure", False))
+            rec["pair"] = pair(
+                var,
+                shock,
+                periods,
+                kw.get("investment_closure", False),
+                kw.get("price_passthrough", False),
+            )
             g_rr = np.array(rec["run_reform"]["delta_gdp_m"], dtype=float)
             g_pair = np.array(rec["pair"]["deltas_m"]["GDPM"], dtype=float)
             rec["pair_matches_run_reform_max_abs_m"] = _r(
