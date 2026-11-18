@@ -55,20 +55,37 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 
 | Variable | Error (3yr), default (nominal-GDP pin) | Status | Published closure |
 |---|--:|---|--:|
-| Real GDP | 4.25% | computed — fair | 4.51% |
-| Consumption | 7.24% | computed — fair | 7.67% |
-| Business investment | 7.34% | computed — fair | 18.21% (poor) |
+| Real GDP | 4.05% | computed — fair | 3.82% |
+| Consumption | 6.92% | computed — fair | 6.55% |
+| Business investment | 7.34% | computed — fair | 22.13% (poor) |
 | Employment | 0.00% | computed — **trivial identity** | 0.00% |
 | Unemployment rate | 1.17pp | computed — poor | 1.17pp |
 | RPI inflation | 2.32pp | computed — poor | 2.32pp |
-| Household income | 4.30% | computed — fair | 6.51% |
-| Real household income | 4.52% | computed — fair | 6.72% |
-| Company profits | 12.32% | computed — poor | 109.96% (off) |
-| Current account | 0.91% of GDP | computed — fair | 3.32% of GDP (off) |
+| Household income | 3.08% | computed — fair | 3.69% |
+| Real household income | 3.29% | computed — fair | 3.82% |
+| Company profits | 11.66% | computed — poor | 47.74% (off) |
+| Current account | 0.91% of GDP | computed — fair | 1.03% of GDP (fair) |
 | Trade balance | 0.41% of GDP | computed — good | 0.41% of GDP (good) |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) | 0.00% |
 
-Within band: 8 of 11 under the default, 6 of 11 under the published closure.
+Within band: 8 of 11 under the default, 7 of 11 under the published closure.
+
+> **Household taxes held on their data path (16 Nov 2026).** `TYWHH`
+> (l.612) sums ONS components that are not seasonally adjusted (self-
+> assessment and capital gains tax land in January) against a seasonally
+> adjusted aggregate. The gap, about −£34bn to −£43bn every Q1 and roughly
+> zero over a year, had landed in raw household income (−10.6% in 2025Q1,
+> −12.5% in 2026Q1, then a rebound). It is now closed with an identity
+> residual, as the OBR does with `TYWHH_A` (l.613). Before this, the default
+> closure read GDP 4.25%, consumption 7.24%, household income 4.30%, real
+> household income 4.52% and profits 12.32%; the published closure 4.51%,
+> 7.67%, 6.51%, 6.72%, 109.96% and current account 3.32% of GDP (6 of 11).
+> **The fall is the removal of a data-basis artefact, not better fit**:
+> household taxes now follow their data path in the raw solve, so the
+> household-income score no longer tests that identity. The components are
+> carried flat from 2026Q3, so the residual also corrects a level gap there
+> (annual sums −£0.5bn to −£0.8bn in 2023–25, −£49.9bn in 2026, −£8.7bn a
+> year from 2027). Seasonally adjusting the components is the follow-up.
 
 > **Re-measured 16 Nov 2026 on the October 2026 EFO (CI run 43866052221,
 > commit 5eccd49).** Against the March 2026 EFO the default closure read real

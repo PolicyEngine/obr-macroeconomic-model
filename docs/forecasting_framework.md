@@ -24,23 +24,32 @@ Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
 > some historical tables below) shorthand this as "within 10%", which is
 > accurate only for the level variables.
 
-Recomputed on the March-2026 vintage (`python -m obr_macro.forecast`, 6 Nov
-2026). The default closure is the nominal-GDP pin (l.690, #42; see
+Recomputed on the October-2026 EFO vintage (`python -m obr_macro.forecast`,
+17 Nov 2026, with household taxes held on their data path). The fit window
+2024Q1–2025Q4 and projection 2026Q1–2027Q4 are unchanged; on this vintage
+2026Q1–2026Q2 are outturn, so the first two projected quarters are scored
+against outturn rather than forecast. The default closure is the nominal-GDP pin (l.690, #42; see
 [nominal_gdp_pin.md](nominal_gdp_pin.md)); `--published-closure` gives the
 figures in the last column.
 
 | Variable | Error (held-AF forecast) | band | Published closure |
 |---|--:|---|--:|
-| Real GDP | 0.28% | within | 0.27% |
-| Consumption | 0.19% | within | 0.19% |
+| Real GDP | 0.35% | within | 0.35% |
+| Consumption | 0.39% | within | 0.39% |
 | Employment | 0.00% | **trivial identity** | 0.00% |
 | Real household income | — | **held at EFO (not forecast)** | — |
 | Household income | — | **held at EFO (not forecast)** | — |
-| Unemployment rate | 0.69pp | within | 0.69pp |
-| Business investment | 10.00% | within (at the 10% edge) | 13.32% (over) |
-| Company profits | 13.48% | **over** | 14.86% (over) |
-| Trade balance | 0.25% of GDP | within | 0.25% of GDP |
-| Current account | 1.51% of GDP | **over** (1.5% band) | 1.39% of GDP (within) |
+| Unemployment rate | 0.82pp | within | 0.82pp |
+| Business investment | 8.48% | within | 10.68% (over) |
+| Company profits | 17.66% | **over** | 17.42% (over) |
+| Trade balance | 0.23% of GDP | within | 0.23% of GDP |
+| Current account | 0.33% of GDP | within | 0.41% of GDP (within) |
+
+> **March 2026 EFO (6 Nov 2026), for comparison:** GDP 0.28% (published
+> closure 0.27%), consumption 0.19%, unemployment 0.69pp, business investment
+> 10.00% (13.32%), company profits 13.48% (14.86%), trade balance 0.25% and
+> current account 1.51% of GDP (1.39%); 6 of 8 computed within band under
+> both closures.
 
 > **Recovered-series revision.** These follow the ONS-pull repair (see
 > `calibration_scorecard.md`): the eight series the TLS failure had been
@@ -51,8 +60,8 @@ figures in the last column.
 > Consumption 0.33%, Business investment 15.11%, Company profits 12.40%,
 > Trade balance 0.25% and Current account 1.36% of GDP.
 
-**8 of 16 headline variables computed; 6 of those within band (net balances as
-% of GDP).** No explosions — the financial blocks are bounded by their real data.
+**8 of 16 headline variables computed; 7 of those within band under the
+default closure, 6 under the published closure (net balances as % of GDP).** No explosions — the financial blocks are bounded by their real data.
 
 > **Superseded numbers.** Earlier revisions of this table read Real GDP 2.22%,
 > Consumption 3.55%, Business investment 17.85%, Company profits 47.42%,
@@ -84,13 +93,13 @@ figures in the last column.
    published EFO values for the whole projection. `RHHDI` is the income driver
    of the one live behavioural aggregate, `dlog(CONS)`; and under the demand
    closure every other term in `GDPM = CGG + CONS + IF + DINV + VAL + X − M +
-   SDE` is exogenous and likewise held at EFO. So "Real GDP forecasts to 0.27%"
+   SDE` is exogenous and likewise held at EFO. So "Real GDP forecasts to 0.35%"
    decomposes as: the model is given household income, uses it to project
    consumption, and adds seven EFO series. It is a statement about the
    consumption equation's short-run dynamics, not about the model forecasting
    GDP. The un-anchored version of the same question is the raw calibration
-   scorecard (GDP 4.25%, consumption 7.24%, household income 4.30% under the
-   default nominal-GDP pin; 4.51%, 7.67% and 6.51% under the published
+   scorecard (GDP 4.05%, consumption 6.92%, household income 3.08% under the
+   default nominal-GDP pin; 3.82%, 6.55% and 3.69% under the published
    closure; re-measured 16 Nov 2026 on the October 2026 EFO, see
    `calibration_scorecard.md`). That is
    not a forecast-skill number either, and not an OBR error: in the OBR's
@@ -99,7 +108,7 @@ figures in the last column.
    published and are filled from the ONS or seeded here.
 
 5. **ONS vintage mismatch.** The 355 unpublished-input series pulled from the
-   ONS API are current-vintage data, merged into the March-2026 EFO baseline
+   ONS API are current-vintage data, merged into the October-2026 EFO baseline
    (October-2025 model code). Where the ONS has since
    revised history, the national-accounts identities no longer close exactly
    against the EFO aggregates, and that identity slack is silently absorbed
@@ -240,7 +249,8 @@ and `solve_period` skips the update — so `HHTFA` and `NDIVHH` remain frozen fo
 second, independent reason. Every validation number is therefore **bitwise
 unchanged** by this fix: anchored GDPM MAPE 0.1756% / CONS 0.2888% on the
 November-2025 vintage current when that check was run (0.30% / 0.49% on the
-current March-2026 vintage, after the recovered-series revision), the full
+March-2026 vintage, after the recovered-series revision; 0.44% / 0.72% on the
+current October-2026 vintage), the full
 calibration scorecard, and the standard `CGG +£1.25bn × 4q` shock path.
 
 The `FYCPR → NDIVHH → PIRHH → HHDI` (corporate profits → household dividend

@@ -137,7 +137,7 @@ Partly, and the difference matters.
   not the OBR's configuration, because PIF is a residual there and not an
   input. Both closures are tabled below.
 
-The ~4% raw GDP error in the scorecard (4.25% under the pin, 4.51% under the
+The ~4% raw GDP error in the scorecard (4.05% under the pin, 3.82% under the
 published closure, 16 Nov 2026 on the October 2026 EFO) is a closure artifact of this
 emulator (GDPM is exogenous in the OBR's published model). It is not an OBR
 forecast error, under either closure.
@@ -187,8 +187,7 @@ inflation (1.71pp) are unchanged. The table above is kept as the 6 Nov
 record. The PIF-held column was not re-run.
 
 Re-measured on 16 Nov 2026 after the re-anchor to the October 2026 EFO
-(calibration-scorecard job of CI run 43866052221, commit 5eccd49). These are
-the current figures. Pinned: real GDP 4.25%, consumption 7.24%, business
+(calibration-scorecard job of CI run 43866052221, commit 5eccd49). Pinned: real GDP 4.25%, consumption 7.24%, business
 investment 7.34%, household income 4.30%, real household income 4.52%,
 company profits 12.32%, unemployment 1.17pp, RPI inflation 2.32pp, current
 account 0.91% and trade balance 0.41% of GDP; 8 of 11 within band. Published
@@ -196,6 +195,16 @@ closure: 4.51%, 7.67%, 18.21%, 6.51%, 6.72%, 109.96%, 1.17pp, 2.32pp, 3.32%
 and 0.41%; 6 of 11. On the October databank the EFO's own forecast deflator
 is not exactly nominal over real GDP (at most 0.0135%, 2026Q4), so the pin
 moves nominal GDP off the published path by at most that much.
+
+Re-measured later on 16 Nov 2026 after household taxes `TYWHH` (l.612) were
+held on their data path (their ONS components are not seasonally adjusted;
+the gap had put a first-quarter dip of 11% to 13% into raw household
+income). These are the current figures. Pinned: real GDP 4.05%,
+consumption 6.92%, business investment 7.34%, household income 3.08%, real
+household income 3.29%, company profits 11.66%; the rest unchanged; 8 of 11.
+Published closure: real GDP 3.82%, consumption 6.55%, business investment 22.13%, 3.69%, 3.82%, 47.74%,
+current account 1.03% of GDP; 7 of 11. The fall is the removal of a
+data-basis artefact, not better fit.
 
 Employment (a trivial identity) scores 0.00% in all three. Under the pin PIF
 runs 3–6% above the EFO path, because real GDP does (the closure artifact).

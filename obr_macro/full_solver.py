@@ -42,7 +42,19 @@ _WARNED_DUPLICATE_LHS: set = set()
 # and an additive identity residual (data minus the identity's RHS) is held in
 # add_factors, so each identity reproduces its data in the baseline and passes
 # a component shock through one for one.
-RECEIPTS_IDENTITIES = ("CETAX", "PUBSTIW", "PUBSTPD", "BPAPS", "TPRODPS")
+#
+# TYWHH (l.612, households' taxes on income and wealth) is closed the same
+# way for a different reason: its components TYEM, TSEOP, CC, CGT and OCT come
+# from the ONS snapshot as non-seasonally-adjusted cash receipts (self-
+# assessment and capital gains tax land in January: CGT 11.8bn in 2025Q1
+# against about 0.5bn in other quarters), while TYWHH itself is seasonally
+# adjusted. The identity gap (data minus RHS) is about -34bn to -43bn every
+# Q1 and nets to roughly zero over a year (2024 -0.9bn, 2025 -0.7bn). Left
+# open, it lands in household income (l.654) in the raw solve, which fell
+# 10.6% in 2025Q1 and 12.5% in 2026Q1 before rebounding. The OBR carries an
+# add-factor on the same identity (TYWHH_A, l.613). Closing it imposes the
+# data TYWHH path: it removes a data-basis artefact, not a model error.
+RECEIPTS_IDENTITIES = ("CETAX", "PUBSTIW", "PUBSTPD", "BPAPS", "TPRODPS", "TYWHH")
 
 
 class DroppedEquationError(RuntimeError):

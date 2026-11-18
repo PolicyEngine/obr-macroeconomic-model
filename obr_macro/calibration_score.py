@@ -1,6 +1,8 @@
 """Calibration scorecard.
 
-How well does the *raw* model (residuals/add-factors OFF) reproduce the OBR's
+How well does the *raw* model (anchoring residuals OFF; the structural identity
+closures in FullOBRSolver, such as the receipts and TYWHH identity residuals
+and the OSHH anchor, stay on) reproduce the OBR's
 published baseline? The anchored model matches by construction (the residuals
 absorb every error), so it says nothing; the raw-vs-OBR gap is what is left.
 
