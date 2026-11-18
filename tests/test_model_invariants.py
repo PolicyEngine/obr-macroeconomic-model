@@ -658,10 +658,12 @@ def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
     investment closure) is held on the EFO by a level add-factor
     (_anchor_published_levels), so the reform baseline must track the EFO as
     closely as the standalone anchored baseline does, and the shocked clone
-    must carry the same residuals. Measured 16 Nov 2026 on the October 2026
-    EFO: standalone GDP 0.44% / CONS 0.72%, reform baseline GDP 0.46% / CONS
-    0.76% (March 2026 EFO: 0.30% / 0.49% standalone); the bounds are about
-    1.2x the reform-baseline values.
+    must carry the same residuals. Measured 18 Nov 2026 on the October 2026
+    EFO, with the forecast population on the EFO-implied path: standalone
+    GDP 0.24% / CONS 0.40%, reform baseline GDP 0.26% / CONS 0.42% (16 Nov,
+    population held flat: 0.44% / 0.72% and 0.46% / 0.76%; March 2026 EFO:
+    0.30% / 0.49% standalone); the bounds are about 1.2x the reform-baseline
+    values and were tightened with them (0.55 -> 0.32, 0.90 -> 0.52).
     """
     from obr_macro import reform_analysis as ra
     from obr_macro.data import load_obr_data
@@ -672,8 +674,8 @@ def test_reform_baseline_is_the_anchored_baseline(var, investment_closure):
     base.solve("2025Q1", "2027Q4")
     t0, t1 = base.period_idx("2025Q1"), base.period_idx("2027Q4")
     mape = {c: _mape(base.data, efo, c, t0, t1) for c in ("GDPM", "CONS", "HHDI")}
-    assert mape["GDPM"] < 0.55, f"reform baseline GDP {mape['GDPM']:.2f}% off EFO"
-    assert mape["CONS"] < 0.90, f"reform baseline CONS {mape['CONS']:.2f}% off EFO"
+    assert mape["GDPM"] < 0.32, f"reform baseline GDP {mape['GDPM']:.2f}% off EFO"
+    assert mape["CONS"] < 0.52, f"reform baseline CONS {mape['CONS']:.2f}% off EFO"
     assert mape["HHDI"] < 0.10, f"reform baseline HHDI {mape['HHDI']:.2f}% off EFO"
     if investment_closure:
         assert _mape(base.data, efo, "IF", t0, t1) < 0.05
