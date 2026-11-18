@@ -1,0 +1,1 @@
+`docs/decisions.md` records the three code changes left open by the 17 November review: two adopted in their own pull requests, and `monetary_conditioning=True` as the default rejected, with the arithmetic in `docs/monetary_conditioning.md`. The README no longer calls the default Bank Rate run a lower bound.

@@ -23,6 +23,18 @@ By default the conditioning inputs stay at the EFO path. A Bank Rate shock then 
 | RX (sterling) | no | — | No sourced coefficient was found. Exports and imports have no equation, so sterling moves only trade prices (PXNOG, PMNOG), never volumes. |
 | APH (house prices) | no | — | No sourced coefficient from Bank Rate to house prices was found in BoE or OBR documentation. |
 
+### Why the default stays `False` (decided 18 Nov 2026)
+
+Making `monetary_conditioning=True` the default was considered and rejected. The reasons:
+
+- **A default `R` shock should move `R` and nothing else.** Every other instrument in `run_reform` is a shock to one exogenous variable with the rest of the databank on the EFO path. With the overlay on by default, a Bank Rate shock would silently become a compound shock to `R` and `RMORT`, and a caller supplying their own mortgage-rate path would have it moved twice. The other two overlays (`published_conventions`, `price_passthrough`) are opt-in for the same reason.
+- **The overlay completes the payments side only.** It makes interest paid consistent with the OBR's l.623 (which is why the docs lead with it for Bank Rate questions), but interest received, DIRHH, has no equation and does not move in either mode (see the audit below). The conditioned run therefore books the whole rise in household interest payments, £4.68bn a quarter per 100bp, with no rise in deposit income.
+- **So neither mode is the net household effect, and the default is not clearly the worse of the two.** Households hold about £2.25tn of deposits. A 1pp rise in Bank Rate passed through at the 40% to 80% Michael Saunders cited (table above) would add roughly £2.3bn to £4.5bn a quarter of interest income (2,250,000 × 1% ÷ 4 × pass-through). Set against the conditioned £4.68bn that leaves a net fall of about £0.2bn to £2.4bn a quarter. The default run's £1.41bn sits inside that range. This is arithmetic on figures already in this note, not a model result, and the deposit pass-through is not sourced well enough to build in; it shows only that switching the default would replace one partial treatment with another while multiplying the reported GDP effect by 2.6 (−0.057% to −0.149%).
+- **Both modes stay below the BoE benchmark** (−0.2% to −0.35%), and CPI and unemployment respond in neither, so the choice of default does not make the Bank Rate channel usable as a monetary-policy estimate.
+- **The hosted bridge contract pins the default.** `tests/test_bridge_contract.py` asserts `monetary_conditioning` defaults to `False`; PolicyEngine/macro calls `run_reform` through that contract and already exposes the overlay as an option.
+
+What would change the decision: a sourced pass-through from Bank Rate to the effective deposit rate (so both sides of the household interest account can move together), or an OBR statement of how it conditions RMORT and RDEP on Bank Rate.
+
 The frame's `attrs` record which inputs moved (`monetary_conditioning_on`, with each source), which did not (`monetary_conditioning_off`), and `inflation_unemployment_note`.
 
 ## Results: +25 / +100 / −100bp, held for 4 quarters
@@ -40,7 +52,7 @@ Measured 6 Nov 2026 on the March 2026 EFO under the default nominal-GDP pin, wit
 
 The conditioning response is proportional to size (+25bp × 4 = −0.1475%) and symmetric in sign.
 
-The BoE benchmark is in the Bank of England's *The transmission mechanism of monetary policy* (Quarterly Bulletin 1999 Q2). It gives GDP −0.2% to −0.35% after about a year, and inflation −0.2pp to −0.4pp a year after that. With only the mortgage rate moved, GDP reaches −0.15%, below that range. The conditioning run is the reading consistent with the OBR's own listing (the 0.9 mortgage pass-through is its l.623 coefficient); the default run, which holds the mortgage rate at the EFO path, is a lower bound.
+The BoE benchmark is in the Bank of England's *The transmission mechanism of monetary policy* (Quarterly Bulletin 1999 Q2). It gives GDP −0.2% to −0.35% after about a year, and inflation −0.2pp to −0.4pp a year after that. With only the mortgage rate moved, GDP reaches −0.15%, below that range. The conditioning run is the reading consistent with the OBR's own listing on interest paid (the 0.9 mortgage pass-through is its l.623 coefficient); the default run, which holds the mortgage rate at the EFO path, is the smaller of the two. Neither moves interest received, so neither is a bound on the full effect (see "Why the default stays `False`" above).
 
 - Round 3's illustrative "all channels" run gave −0.25%, inside the range. It used unsourced pass-throughs for gilts, sterling and house prices, so it is not adopted here.
 - Inflation stays at 0 in every run, so the inflation half of the benchmark cannot be compared at all.
