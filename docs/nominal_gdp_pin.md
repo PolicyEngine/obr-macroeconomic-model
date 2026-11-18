@@ -38,8 +38,9 @@ regression gates now pin the right-hand column.
   +£1.25bn a quarter of CGG, FYCPR rises £1.33bn to £1.46bn a quarter (nominal
   GDP rises at the fixed PGDP while compensation is exogenous). In this model
   corporation-tax receipts do not follow: `CT = NSCTP + NNSCTP` (l.408) and
-  neither component has an equation, so no in-model receipt or borrowing
-  figure moves. Nothing in this repo or in the hosted PolicyEngine/macro
+  neither component has an equation, so no in-model receipt moves, and
+  borrowing moves only by the cash cost of the spending itself (since 18 Nov
+  2026; not at all under the real-only shock). Nothing in this repo or in the hosted PolicyEngine/macro
   scoring reads FYCPR. A downstream scorer that applied the 25% main rate to
   the FYCPR delta would book about £0.33bn to £0.37bn a quarter of extra
   corporation tax per £1.25bn of spending, which is an artefact of the
