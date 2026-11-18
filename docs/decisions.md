@@ -116,12 +116,13 @@ per 100bp at the peak instead of −0.057%).
 `monetary_conditioning.md`, "Why the default stays `False`". In short,
 strongest reason first:
 
-- A default `R` shock should move `R` and nothing else, as every other
-  instrument does and as the listing treats retail rates (conditioning
-  assumptions set outside the model). The overlay is a labelled judgement;
-  the other two overlays are opt-in for the same reason.
-- The published interface pins the default
-  (`tests/test_bridge_contract.py`).
+- A default run should not carry a behavioural assumption. The overlay
+  moves a different variable, the mortgage rate, by an assumed pass-through
+  coefficient (0.9); the listing treats retail rates as conditioning
+  assumptions set outside the model. The other two overlays are opt-in for
+  the same reason. The nominal-consistent `CGG` shock in section 2 is a
+  different kind of thing: it moves the nominal side of the same
+  transaction at the data deflator, with no coefficient.
 - Both modes are below the Bank of England benchmark, and CPI and
   unemployment respond in neither. Switching would multiply the reported
   GDP effect by 2.6 without making it an estimate.
