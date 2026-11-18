@@ -268,7 +268,7 @@ References: "L" = line in the OBR's published EViews code (`obr_model_code_octob
 ### H11. "Durables user cost inside a logarithm; undefined if quarterly durable inflation is high." (Low)
 - **Verdict:** True
 - **Why:** The durables equation (l.8) takes the log of a user cost: the quarterly Bank Rate (about 0.99% at R = 4), plus a quarterly depreciation term of 5.74% (from 1.25^0.25 − 1), minus quarterly durables inflation. The argument turns negative, and the log undefined, once quarterly durables inflation exceeds about **6.7%** (about 30% annualised). Durables prices follow non-oil import prices one for one (l.341, dict 199), so one possible trigger is a large, fast fall in sterling. This has not occurred in recent data, but nothing in the code guards against it.
-- **Our adapted model:** Inherited. The failure mode differs: in our solver a log of a negative number returns NaN, and the equation is dropped for that period without an error (`obr_macro/full_solver.py`; see `docs/stage1b_chain_trace.md`).
+- **Our adapted model:** Inherited. The failure mode differs: in our solver a log of a negative number returns NaN, and the equation is dropped for that period without an error (`obr_macro/full_solver.py`; see `docs/history/stage1b_chain_trace.md`).
 
 ## Non-financial corporations
 

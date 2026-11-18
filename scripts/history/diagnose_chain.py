@@ -13,7 +13,7 @@ the equations that are being silently skipped (errored or NaN), which is the
 suspected cause.
 
 Run from the repo root:
-    uv run python -m obr_macro.diagnose_chain
+    uv run python scripts/history/diagnose_chain.py
 """
 
 from __future__ import annotations
@@ -141,7 +141,7 @@ def main():
             lines.append(f"| `{nm}` | {n} |")
         lines.append("")
 
-    out = "docs/stage1b_chain_trace.md"
+    out = "docs/history/stage1b_chain_trace.md"
     with open(out, "w") as f:
         f.write("\n".join(lines))
     print("\n".join(lines))

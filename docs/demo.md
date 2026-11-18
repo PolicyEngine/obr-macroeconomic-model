@@ -45,7 +45,7 @@ Sizes come from HMRC's ready reckoner (June 2025, 2026-27 column, divided by fou
 
 The OBR multipliers are the interim OBR's June 2010 estimates, restated in EFO July 2015 Box 3.2, all tapering over five years. The Bank of England range is for a 1pp rise held for one year, from its 1999 Quarterly Bulletin ("The transmission mechanism of monetary policy"), which is the same experiment as row 6.
 
-Receipts (`PSCR`) and central government net borrowing (`CGNB`) move one for one with the revenue in rows 2–4 (+1,725 / −1,725 for income tax; +1,337.5 / −1,337.5 for NICs; +2,200 / −2,200 for VAT, every quarter). There is no second round: lower consumption does not reduce other receipts. In rows 1 and 6 `PSCR` and `CGNB` do not move at all, so the extra government consumption does not appear in borrowing and borrowing does not respond to Bank Rate. Imports do not respond either: in rows 2–4 and 6 the GDP change equals the consumption change to the pound.
+Receipts (`PSCR`) and central government net borrowing (`CGNB`) move one for one with the revenue in rows 2–4 (+1,725 / −1,725 for income tax; +1,337.5 / −1,337.5 for NICs; +2,200 / −2,200 for VAT, every quarter). There is no second round: lower consumption does not reduce other receipts. In rows 1, 5 and 6 `PSCR` and `CGNB` do not move at all, so the extra government consumption does not appear in borrowing, the corporation-tax rate rise raises no receipts (it works through the cost of capital only), and borrowing does not respond to Bank Rate. Imports do not respond either: in rows 2–4 and 6 the GDP change equals the consumption change to the pound.
 
 ## One line on each
 
@@ -81,4 +81,4 @@ Receipts (`PSCR`) and central government net borrowing (`CGNB`) move one for one
 
 ## October 2026 EFO re-anchor
 
-- Moving the baseline from the March 2026 EFO to the October 2026 EFO changes the shock figures by revision size only: GDP deltas by at most £9m a quarter (row 6b q4), the household ratio from 0.37 to 0.38 at q12, VAT from 0.044 to 0.043 at q12. Every baseline and shocked solve still converges in 12 of 12 quarters, and the same 82 equations are dropped.
+- Moving the baseline from the March 2026 EFO to the October 2026 EFO changes the shock figures by revision size only: GDP deltas by at most £8.8m a quarter (row 6b, q5), the household ratio from 0.37 to 0.38 at q12, VAT from 0.044 to 0.043 at q12. Every baseline and shocked solve still converges in 12 of 12 quarters, and the same 82 equations are dropped.

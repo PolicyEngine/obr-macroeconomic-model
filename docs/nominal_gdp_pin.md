@@ -49,8 +49,8 @@ regression gates now pin the right-hand column.
   the demand closure IBUS is the residual `IF − GGI − …` with IF exogenous.
   A real CGG shock with nominal CGGPS held makes l.337 absorb the nominal
   gap in PIF (about +0.94), which raises GGIDEF and lowers real GGI, so IBUSX
-  reads +17.5% of the shock (2026Q1–2027Q4; 0.09% under the published
-  closure). This is deflator propagation, not an investment response. GDP
+  reads +17.5% of the shock on the March 2026 EFO (16.9% on the October
+  2026 EFO, 2026Q1–2027Q4; 0.09% under the published closure). This is deflator propagation, not an investment response. GDP
   is unaffected. A nominal-consistent shock (CGGPS moved too) removes it.
 
 ## The problem it solves
@@ -187,7 +187,9 @@ inflation (1.71pp) are unchanged. The table above is kept as the 6 Nov
 record. The PIF-held column was not re-run.
 
 Re-measured on 16 Nov 2026 after the re-anchor to the October 2026 EFO
-(calibration-scorecard job of CI run 43866052221, commit 5eccd49). Pinned: real GDP 4.25%, consumption 7.24%, business
+(calibration-scorecard job of CI run 43866052221, commit 5eccd49; that run's
+hard-gate jobs failed on the pins re-set in 41dd8f1, whose full CI run
+43885876247 is green). Pinned: real GDP 4.25%, consumption 7.24%, business
 investment 7.34%, household income 4.30%, real household income 4.52%,
 company profits 12.32%, unemployment 1.17pp, RPI inflation 2.32pp, current
 account 0.91% and trade balance 0.41% of GDP; 8 of 11 within band. Published

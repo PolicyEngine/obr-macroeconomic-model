@@ -20,22 +20,21 @@ What each block measures, and the window it uses:
   EFO's 4.17% by 2031Q1 (March 2026 EFO: 0.67%, 0.9% against 4.14%).
 * ``bank_rate`` -- Bank Rate (``R``) +/-1.0 (100bp) sustained for 12 quarters
   from 2025Q1, scored around the anchored reform baseline (``run_reform``'s
-  default window). Site claim: GDP -121/-431/-482/-416 GBP m at q1/4/8/12; a
-  cut +126 to +579.
+  default window). Current figures: GDP -128.4/-406.3/-474.9/-503.1 GBP m at
+  q1/4/8/12; a cut +133.6 to +522.5.
 * ``corporation_tax_5pp`` -- TCPRO +0.05 for 12 quarters from 2025Q1 under the
-  investment closure. Site claim: FYCPR moves by -1,780m and NDIVHH by zero;
-  IBUSX -0.24bn at q8, -0.38bn at q12.
+  investment closure. Current figures: FYCPR -190m on average and -409m at
+  q12, NDIVHH by zero; IBUSX -0.24bn at q8, -0.38bn at q12.
 * ``cgips_size_sweep`` -- CGIPS +1500/+3000/+6000 GBP m per quarter for 8
   quarters from 2026Q1 (the window ``tests/test_sign_conventions.py`` pins).
-  Site claim: IBUSX mean -6.8/-8.8/-11.6bn; IF exactly zero.
+  Current figures: IBUSX mean -1.40/-2.81/-5.61bn (proportional, the mirror of
+  real government investment); IF exactly zero.
 
-The site claims above were measured at e4d7faa, under the published closure.
-Recomputed 15 Nov 2026 under the default nominal-GDP pin, after #65 (Actions
-run 43720935064, a4e06f8): every quarter now converges; Bank Rate +100bp gives
-GDP -129/-405/-481/-522 GBP m at q1/4/8/12 and a cut +134 to +541; the CGIPS
-sweep is proportional, IBUSX mean -1,387/-2,773/-5,547 (-0.924 of the shock,
-= -100/GGIDEF); corporation tax and the anchored horizon are unchanged to the
-first decimal. The JSON is the source; the site text needs updating to it.
+The current figures above are from the October 2026 EFO run (Actions run
+43866056708, 16 Nov 2026), under the default nominal-GDP pin; every quarter
+converges. The JSON is the source of record. Earlier site text (measured at
+e4d7faa under the published closure, then on the March 2026 EFO) is
+superseded.
 
 Each shock is a baseline/shocked pair cloned from the same cached template,
 exactly as ``run_reform`` and the sign-convention tests do, so the deltas

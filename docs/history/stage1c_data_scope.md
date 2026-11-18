@@ -46,7 +46,7 @@ This is the single highest-leverage task in the roadmap: it is the difference
 between running ~22% of the model and running all of it. It is also well-defined
 — a finite list of ONS series with known codes — and is exactly how the OBR
 populates the model in EViews. The scoping script
-(`obr_macro/stage1c_scope.py`) prints the full lists and can regenerate them as
+(`scripts/history/stage1c_scope.py`) prints the full lists and can regenerate them as
 the data lands.
 
 ## Outcome (after the pull + constant seeding)

@@ -123,11 +123,16 @@ default closure, 6 under the published closure (net balances as % of GDP).** No 
   two-year projection — **but see caveat 4**. GDP and consumption are within
   band largely because household income is handed to the model rather than
   forecast by it, so this is not evidence of forecast skill. Unemployment
-  (0.69pp) is the one line here that is both computed and not downstream of a
-  held income series.
-- **Over band: company profits (13.5%) and the current account (1.51% of
-  GDP); business investment sits on the 10% edge.** Finite and in the right
-  ballpark, not usable.
+  (0.82pp) is the one line here that is both computed and not downstream of a
+  held income series, and it is within band only over this two-year window:
+  on the anchored long horizon it drifts to 3.75% against the EFO's 5.07% by
+  2027Q4 and 1.05% against 4.17% by 2031Q1 (`results/site_figures.json`),
+  because the labour-force identities `ULFS` (l.163) and `PART16` (l.175)
+  are one identity written twice and nothing anchors the participation rate.
+- **Over band: company profits (17.7%).** Business investment (8.5%) and the
+  current account (0.33% of GDP) are within band on the October 2026 EFO
+  (10.0% and 1.51% on the March 2026 EFO). Finite and in the right ballpark;
+  profits are not usable.
 - **Not forecast at all: household income and real household income** — held at
   their EFO values by `_PUBLISHED_LEVEL_ANCHORS`.
 - A few remain passthrough (exports, imports, CPI) — exogenous in this setup,
