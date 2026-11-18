@@ -7,6 +7,8 @@ This document checks a list of 53 points raised about the OBR's published macroe
 
 **Sources.** All verdicts are checked against the OBR's own published files: the EViews model code (`obr_model_code_october_2025.txt`) and the variable list (`obr_model_variables_october_2025.xlsx`), both dated 15 October 2025. On 7 October 2026 these were still the latest files on obr.uk. "l." means a line in the code file and "Dict" means a row in the variable list. A line starting with `'` is commented out in EViews and does not take part in the solve.
 
+**Refreshed 18 Nov 2026 against main 0fe04c9.** The "Our adapted model" column and entries were re-checked against the current code, including the nominal-GDP pin (#42), the receipts identities (#56) and the ended EU payments (#62). Where an entry says an equation is "dropped", it evaluates to NaN in our anchored baseline (checked at 2026Q1 with `FullOBRSolver.diagnose_period` and in the dropped set of a 2026Q1–Q4 solve), so the variable keeps its data path. The verdicts on the OBR's code and the summary counts are unchanged.
+
 **What the verdicts mean.**
 
 | Verdict | Meaning |
@@ -20,7 +22,7 @@ This document checks a list of 53 points raised about the OBR's published macroe
 |---|---|
 | Inherited | Our replication behaves as the OBR's code does. |
 | Changed | We altered the closure or equations, explained in the entry. |
-| Bypassed by accident | The equation does not run in our build, usually because an input has no published data. |
+| Bypassed by accident | The equation does not run in our build, usually because an input has no published data. "In part" means only some of the equations involved are affected. |
 | Not applicable | The point is outside what our replication models. |
 
 **Scope.** The published model is the OBR's framework for keeping its forecast consistent across the economy and the public finances. The OBR forecasts GDP, trade, prices and receipts using other models and judgement, then imposes them as inputs. Many points below describe that design. Whether that design is a good one is a separate question from whether the published code works as printed, and the verdicts try to keep the two apart.
@@ -48,9 +50,9 @@ Among the design choices, the one with the clearest behavioural consequence is H
 | G3 | CPI has no active equation; producer prices exogenous; retail and wholesale margins computed… | High | True but openly documented | Inherited |
 | G4 | Fiscal forecast uses pre-measures interest-rate curve while GDP path assumes an offsetting p… | High | Can't be checked from the code (process claim) | Not applicable |
 | G5 | Taper implications for temporary measures undocumented. | Mid | Can't be checked from the code (process claim) | Changed |
-| G6 | Published code does not close: nominal GDP and investment deflator defined by the same ident… | Mid | True | Inherited |
+| G6 | Published code does not close: nominal GDP and investment deflator defined by the same ident… | Mid | True | Changed |
 | G7 | Unemployment and participation identities duplicated; unemployment undetermined as printed. | Mid | True | Inherited |
-| G8 | Two employment measures unreconciled: hours-based total drives unemployment, behavioural mar… | Mid | True | Inherited |
+| G8 | Two employment measures unreconciled: hours-based total drives unemployment, behavioural mar… | Mid | True | Bypassed by accident in part |
 | G9 | Potential output exogenous; output gap computed but feeds no equation. | Mid | True but openly documented | Inherited |
 | G10 | Supply effects limited to public investment and individually scored policies; demand-led hys… | Mid | Can't be checked from the code (process claim) | Inherited |
 | G11 | Multiplier ranking (public services 0.45, welfare 0.6) inconsistent with model's import-cont… | Mid | Partly true | Changed, with an open discrepancy |
@@ -59,7 +61,7 @@ Among the design choices, the one with the clearest behavioural consequence is H
 | G14 | Bank Rate follows market curve; exchange rate held flat. | Low | Partly true | Inherited |
 | G15 | Several constants expressed in nominal £m levels. | Low | True | Inherited |
 | G16 | Four-quarter identities carry last historical quarterly pattern through forecast. | Low | True | Inherited |
-| G17 | Ratios of interest rates in some equations unstable near zero. | Low | True | Inherited |
+| G17 | Ratios of interest rates in some equations unstable near zero. | Low | True | Bypassed by accident |
 | G18 | Deterministic time trends extrapolated in trade-price and other equations. | Low | True | Inherited |
 | G19 | Cost indices use 2009 input-output weights; gas and electricity prices listed but unused. | Low | Partly true | Inherited |
 | G20 | Add factors attached to identities (household benefits, taxes, contributions). | Low | True but openly documented | Changed |
@@ -67,14 +69,14 @@ Among the design choices, the one with the clearest behavioural consequence is H
 | H1 | Single aggregate consumption function; no distributional dimension. | Mid | True but openly documented | Inherited |
 | H2 | Long-run consumption elasticities sum to 0.77; consumption-to-income ratio drifts downward. | Mid | True | Inherited |
 | H3 | Interest payments modelled from stocks and rates; interest receipts exogenous. | Mid | True but openly documented | Inherited |
-| H4 | DB pension entitlements revalue with gilt yields, affecting consumption through financial we… | Mid | True but openly documented | Inherited |
+| H4 | DB pension entitlements revalue with gilt yields, affecting consumption through financial we… | Mid | True but openly documented | Bypassed by accident |
 | H5 | Mortgage debt and house prices exogenous. | Mid | True but openly documented | Inherited |
 | H6 | Employer social contributions fully shifted onto wages in the long run by coefficient restri… | Mid | True | Inherited |
 | H7 | Short-run income elasticity 0.10; real interest rate effect negligible. | Low | True | Inherited |
-| H8 | Financial balance sheet closes on residual 'other assets'. | Low | True but openly documented | Inherited |
-| H9 | Deposit equation contains highly convex exponential terms; error-correction mixes adjusted a… | Low | Partly true | Inherited |
+| H8 | Financial balance sheet closes on residual 'other assets'. | Low | True but openly documented | Bypassed by accident |
+| H9 | Deposit equation contains highly convex exponential terms; error-correction mixes adjusted a… | Low | Partly true | Bypassed by accident |
 | H10 | Insurance asset acquisition driven only by the insurance premium tax rate. | Low | True | Bypassed by accident |
-| H11 | Durables user cost inside a logarithm; undefined if quarterly durable inflation is high. | Low | True | Inherited |
+| H11 | Durables user cost inside a logarithm; undefined if quarterly durable inflation is high. | Low | True | Bypassed by accident |
 | N1 | Business investment equation switched off; investment is residual of exogenous total investm… | High | True but openly documented | Changed |
 | N2 | Cost-of-capital block unused; capital allowances cannot affect investment in code. | Mid | Partly true | Changed |
 | N3 | Financial account not linked to net lending; balance sheet not stock-flow consistent. | Mid | True | Inherited |
@@ -88,14 +90,14 @@ Among the design choices, the one with the clearest behavioural consequence is H
 | F3 | Broad money is a sum of independently determined series. | Low | True but openly documented | Inherited |
 | V1 | Most tax receipts exogenous; no automatic stabilisers within the code. | Mid | True but openly documented | Inherited |
 | V2 | Debt interest and gilt stock exogenous; no in-code link to rates or borrowing. | Mid | True but openly documented | Inherited |
-| V3 | Total current spending exogenous; product subsidies computed as residual, feeding basic pric… | Mid | True but openly documented | Bypassed by accident |
+| V3 | Total current spending exogenous; product subsidies computed as residual, feeding basic pric… | Mid | True but openly documented | Inherited |
 | V4 | Two exogenous government consumption series share one ONS code; equality not enforced. | Low | True | Inherited |
-| V5 | EU-budget payment equations remain live; formulas dimensionally questionable. | Low | True | Inherited |
+| V5 | EU-budget payment equations remain live; formulas dimensionally questionable. | Low | True | Changed (#62) |
 | V6 | Add factor on seasonally adjusted borrowing shifts corporate net lending without affecting d… | Low | True but openly documented | Bypassed by accident |
 | R1 | Export and import volumes exogenous; world trade series maintained but unused. | High | True but openly documented | Inherited |
 | R2 | Exchange rate exogenous; current account and external position feed no equation. | Mid | Partly true | Inherited |
-| R3 | Services import equation only reallocates a fixed import total between goods and services. | Low | True but openly documented | Inherited |
-| R4 | Secondary income retains EU-era transfer items. | Low | True | Inherited |
+| R3 | Services import equation only reallocates a fixed import total between goods and services. | Low | True but openly documented | Bypassed by accident |
+| R4 | Secondary income retains EU-era transfer items. | Low | True | Changed (#62) |
 
 ## General
 
@@ -113,7 +115,7 @@ Among the design choices, the one with the clearest behavioural consequence is H
 ### G3. "CPI has no active equation; producer prices exogenous; retail and wholesale margins computed as residuals." (High)
 - **Verdict:** True but openly documented
 - **Why:** The CPI equation is commented out at l.314. Dict 185 shows CPI with "No Equation" (typed "Calibrated/technical relationship"). The producer price equation is commented out at l.286, and dict 165 lists PPIY as Exogenous. Both margins are backed out from the imposed prices: wholesale margins at l.280 (`MKGW = 100*(PPIY/(MCOST/100))/PPIYBASE`) and retail margins at l.284 (`dlog(MKR) = (dlog(CPI) - W1*dlog(CPIRENT) - (1-W1)*dlog(RPCOST))/(1-W1)`). CPI still drives the consumer expenditure deflator through l.333.
-- **Our adapted model:** Inherited. CPI and PPIY are taken from the data as inputs, and the margin identities are solved as published.
+- **Our adapted model:** Inherited. CPI and PPIY are taken from the data as inputs. The margin identities are transpiled as published but are dropped in our solve: MKGW because MCOST does not evaluate (the cost-index block is dropped, see G19) and MKR because RPCOST does not. Neither margin feeds another live equation, so other results are unaffected.
 
 ### G4. "Fiscal forecast uses pre-measures interest-rate curve while GDP path assumes an offsetting policy response." (High)
 - **Verdict:** Can't be checked from the code (process claim)
@@ -125,25 +127,25 @@ Among the design choices, the one with the clearest behavioural consequence is H
 - **Why:** The taper is not represented in the model file. The OBR's November 2023 dynamic-scoring article describes the taper for policy measures in general. In our reading it says nothing specific about temporary measures, but that should be confirmed against the full set of OBR costing documents.
 - **Our adapted model:** Changed (convention only). `obr_macro/published_conventions.py` starts the taper at the shock start, treating announcement and implementation as the same date. It has no separate treatment for temporary measures.
 
-### G6. "Published code does not close: nominal GDP and investment deflator defined by the same identity." (Mid)
+### G6. "Published code does not close: nominal GDP and investment deflator defined by the same identity." (Mid; flagged by the critic as unverified)
 - **Verdict:** True
 - **Why:** The investment deflator at l.337 is `PIF = (GDPMPS - CGGPS - CONSPS - DINVPS - VALPS - XPS + MPS - SDEPS)*100/IF`. Substituting IFPS = IF·PIF/100 (l.114) and TFEPS (l.681) into nominal GDP at l.688 (`GDPMPS = TFEPS - MPS + SDEPS`) gives l.337 again. The two equations are one identity, so nominal GDP and PIF are not separately determined. The alternative pin, `GDPMPS = PGDP*GDPM/100` at l.690, is commented out. The "indirect T2 fix" comments suggest the OBR fixes nominal GDP in its working file in a way the published file does not show.
-- **Our adapted model:** Inherited. The equations have different left-hand sides, so our duplicate-equation check does not flag them, and the iterative solver keeps whatever starting value PIF has. In a test on 2026Q1, raising the PIF starting value by 5% moved nominal GDP by about £13bn and the change persisted. When the investment closure is used, `obr_macro/reform_analysis.py` holds PIF at its baseline path, for a separate stability reason.
+- **Our adapted model:** Changed. Since #42 our default closure swaps l.688 for the OBR's commented-out l.690, `GDPMPS = PGDP*GDPM/100`, which fixes nominal GDP and leaves PIF as the residual of l.337 (`apply_nominal_gdp_pin` in `obr_macro/reform_analysis.py`, called by `obr_macro/baseline.py`; see `docs/nominal_gdp_pin.md`). In a test on 2026Q1, raising the PIF starting value by 5% leaves nominal GDP unchanged under the pin. With the published closure (`nominal_gdp_pin=False`) the pair is still undetermined: the same test moves nominal GDP by about +£9.8bn in the raw solve (about −£1.8bn in the anchored baseline). Under the investment closure the pin is off and `obr_macro/reform_analysis.py` holds PIF at its baseline path instead, which also determines nominal GDP.
 
-### G7. "Unemployment and participation identities duplicated; unemployment undetermined as printed." (Mid)
+### G7. "Unemployment and participation identities duplicated; unemployment undetermined as printed." (Mid; flagged by the critic as unverified)
 - **Verdict:** True
 - **Why:** l.163 (`ULFS = (POP16*PART16/100) - ETLFS`) and l.175 (`PART16 = 100*(ULFS + ETLFS)/POP16`) are the same identity rearranged. Dict 98 and 105 type both as identities. With employment given, one of ULFS or PART16 has to be set from outside the model, and the published file does not say which.
-- **Our adapted model:** Inherited. In effect our solver treats participation as given at its starting value, which comes from the data path. That is probably close to OBR practice, but it is not stated in the published file. In a test on 2026Q1, raising the PART16 starting value by 2% raised the unemployment rate from 5.4% to 7.3%, and the change persisted.
+- **Our adapted model:** Inherited. In effect our solver treats participation as given at its starting value, which comes from the data path. That is probably close to OBR practice, but it is not stated in the published file. In a test on 2026Q1 in the anchored baseline, raising the PART16 starting value by 2% raised the unemployment rate from 5.0% to 6.9%, and the change persisted. The nominal-GDP pin (G6) does not affect this.
 
 ### G8. "Two employment measures unreconciled: hours-based total drives unemployment, behavioural market employment drives wage bill." (Mid)
 - **Verdict:** True
 - **Why:** Total employment comes from hours: `ETLFS = 1000*(HWA/AVH)` (l.153). That feeds unemployment (l.163, l.165). Market-sector employment EMS has its own estimated equation (l.145) and drives the private wage bill WFP (l.589), average earnings PSAVEI (l.232) and unit labour costs ULCPS (l.240). No equation links EMS to ETLFS or to private-sector employment EPS (l.143), and EPS feeds no other equation.
-- **Our adapted model:** Inherited. Both employment measures are solved as published, with no reconciliation added.
+- **Our adapted model:** Bypassed by accident in part. ETLFS (l.153) and EMS (l.145) both solve, with no reconciliation added, and EMS still drives average earnings PSAVEI (l.232). But the private wage bill WFP (l.589) is dropped because ADJW has no data, so WFP stays on its data path and EMS does not drive the wage bill in our build. EPS (l.143) is also dropped, because it has no level history to grow from.
 
 ### G9. "Potential output exogenous; output gap computed but feeds no equation." (Mid)
 - **Verdict:** True but openly documented
 - **Why:** Dict 551 lists trend output TRGDP as "Exogenous / No Equation". The output gap is computed at l.743 (`GAP = GDPM/TRGDP*100 - 100`), but no other equation in the file uses GAP. It is a reporting variable.
-- **Our adapted model:** Inherited. TRGDP is an input path and GAP is computed but not used. Because no equation responds to the output gap, nothing in the model brings a demand shock back to zero. That is why we use the published taper convention (G2).
+- **Our adapted model:** Inherited. GAP is not computed in our build: TRGDP has no data, so l.743 is dropped. Since no equation uses GAP, this changes nothing else. Because no equation responds to the output gap, nothing in the model brings a demand shock back to zero. That is why we use the published taper convention (G2).
 
 ### G10. "Supply effects limited to public investment and individually scored policies; demand-led hysteresis excluded." (Mid)
 - **Verdict:** Can't be checked from the code (process claim)
@@ -174,7 +176,7 @@ Among the design choices, the one with the clearest behavioural consequence is H
 ### G14. "Bank Rate follows market curve; exchange rate held flat." (Low)
 - **Verdict:** Partly true
 - **Why:** Bank Rate R (dict 459) and the sterling effective exchange rate RX (dict 344) are both exogenous, so their paths are imposed. The model file cannot show whether RX is held flat or follows another convention, such as interest-rate parity. The conditioning-assumptions section of the relevant Economic and fiscal outlook would settle that part.
-- **Our adapted model:** Inherited. Both are input paths. Our data loader forward-fills series past their last published value (`obr_macro/data.py`), so a flat RX in our databank is not evidence of the OBR's convention.
+- **Our adapted model:** Inherited. Both are input paths. RX is not flat in our databank: it is 84.8 in 2026Q1 and 85.7 from 2026Q4 (85.7 in 2028Q1). Where our data loader extends ONS snapshot series past their last observation, it holds the trailing four-quarter mean, and it forward-fills only internal gaps (`obr_macro/data.py`, `_merge_ons_snapshot`). Neither path is evidence of the OBR's convention.
 
 ### G15. "Several constants expressed in nominal £m levels." (Low)
 - **Verdict:** True
@@ -189,7 +191,7 @@ Among the design choices, the one with the clearest behavioural consequence is H
 ### G17. "Ratios of interest rates in some equations unstable near zero." (Low)
 - **Verdict:** True
 - **Why:** l.416, `d(CGC)/CGC(-1) = 0.21*d(ROCB)/ROCB(-1)`, scales by the proportional change in the world short rate, which becomes very large as ROCB approaches zero. l.316 uses `RMORT/RMORT(-1)` in the same way. Neither equation has a guard against rates near zero.
-- **Our adapted model:** Inherited. No guard has been added.
+- **Our adapted model:** Bypassed by accident. No guard has been added, but neither equation runs in our build: CGC (l.416) is dropped because ROCB has no data, and PRMIP (l.316) is dropped because HH has no data. Both stay on their data paths.
 
 ### G18. "Deterministic time trends extrapolated in trade-price and other equations." (Low)
 - **Verdict:** True
@@ -199,7 +201,7 @@ Among the design choices, the one with the clearest behavioural consequence is H
 ### G19. "Cost indices use 2009 input-output weights; gas and electricity prices listed but unused." (Low)
 - **Verdict:** Partly true
 - **Why:** The cost indices at l.262–276 are normalised to 2009 averages (base terms at l.248–260). That their weights come from 2009 input-output tables is plausible but cannot be confirmed from the code. Gas prices (GAS, dict 204) and wholesale electricity prices (PELEC, dict 205) are listed in the dictionary but appear nowhere in the code, not even in a commented-out line.
-- **Our adapted model:** Inherited. Because the 2009 history needed for the base terms is not in our data, `obr_macro/full_solver.py` sets those normalising constants directly.
+- **Our adapted model:** Inherited. Because the 2009 history needed for the base terms is not in our data, `obr_macro/full_solver.py` sets some normalising constants directly. The cost indices themselves (MCOST, SCOST, CCOST, UTCOST, RPCOST, ICOST, XGCOST, XSCOST) are still dropped in our solve, because they depend on each other and none has a starting value, and some base terms (ULCPSBASE, ULCMSBASE, CPIXBASE) also evaluate to NaN. The block feeds nothing live (G21), so other results are unaffected.
 
 ### G20. "Add factors attached to identities (household benefits, taxes, contributions)." (Low)
 - **Verdict:** True but openly documented
@@ -209,7 +211,7 @@ Among the design choices, the one with the clearest behavioural consequence is H
 ### G21. "Several computed blocks feed no equation (cost indices, relative prices, home improvements)." (Low)
 - **Verdict:** Partly true
 - **Why:** The cost-index block feeds nothing in practice. MCOST feeds only the wholesale margin MKGW (l.280), which no equation uses. RPCOST feeds the retail margin and CPIX (l.288), which feeds only its own 2009 base term. ICOST, XGCOST and XSCOST (l.272–276) are unused. Among relative prices, RPRICE (l.186) and PMGREL (l.213) are unused, but PMSREL (l.221) does feed services imports (l.223). Home improvements HIMPROV (l.102) feeds nothing. The cost-of-capital chain (TAF, COC, KSTAR, KGAP at l.50–76) also feeds nothing, because the business investment equation that would use it is commented out at l.92 (that line is also missing a closing parenthesis).
-- **Our adapted model:** Changed in part. `obr_macro/reform_analysis.py` (`IBUSX_EQ`) reconstructs the commented-out business investment equation at l.92, with the parenthesis restored, for corporation-tax scoring. The other unused blocks are solved as published and have no effect.
+- **Our adapted model:** Changed in part. `obr_macro/reform_analysis.py` (`IBUSX_EQ`) reconstructs the commented-out business investment equation at l.92, with the parenthesis restored, for corporation-tax scoring. The other unused blocks have no effect either way. Most of them are dropped in our solve: the cost indices (G19), RPRICE (l.186), PMGREL (l.213) and PMSREL (l.221), which lack PINV, and HIMPROV (l.102), which lacks PD.
 
 ## Households
 
@@ -227,13 +229,13 @@ References: "L" = line in the OBR's published EViews code (`obr_model_code_octob
 
 ### H3. "Interest payments modelled from stocks and rates; interest receipts exogenous." (Mid)
 - **Verdict:** True but openly documented
-- **Why:** Household interest payments (l.623, `DIPHH = (LHP(-1)+OLPE(-1))*((1+(0.9*R+0.2)/100)^0.25-1)`) apply 0.9 × Bank Rate to the entire mortgage and unsecured debt stock at once. That is about +£5.2bn a quarter per +1pp on current stocks. Household interest receipts (DIRHH, dict 493) and other investment income (APIIH, dict 503) are listed as exogenous. The deposit-margin term DIRHHf (l.627) responds to rates but only feeds FISIM (l.729), because the adjustment that would carry it into income (FSMADJ, l.621) is commented out. In the model a Bank Rate rise therefore lowers household income, although on the snapshot households receive slightly more interest (about £23–24bn a quarter) than they pay (about £21bn).
+- **Why:** Household interest payments (l.623, `DIPHH = (LHP(-1)+OLPE(-1))*((1+(0.9*R+0.2)/100)^0.25-1)`) apply 0.9 × Bank Rate to the entire mortgage and unsecured debt stock at once. That is about +£5.2bn a quarter per +1pp on current stocks. Household interest receipts (DIRHH, dict 493) and other investment income (APIIH, dict 503) are listed as exogenous. The deposit-margin term DIRHHf (l.627) responds to rates but feeds only FISIM (l.729) and DIRHHx (l.625), which no equation uses, because the adjustment that would carry it into income (FSMADJ, l.621) is commented out. In the model a Bank Rate rise therefore lowers household income, although on the snapshot households receive slightly more interest (about £23–24bn a quarter) than they pay (about £21bn).
 - **Our adapted model:** Inherited. Bank Rate comes from the EFO market-assumptions table (`obr_macro/data.py`, table 1.9), and the consumption response in `docs/transmission_audit.md` runs through the payments side only.
 
 ### H4. "DB pension entitlements revalue with gilt yields, affecting consumption through financial wealth." (Mid)
 - **Verdict:** True but openly documented
 - **Why:** The pension and insurance stock PIHH (l.795) revalues with weight 0.574 on `DBR = 1/(1+RL/100)^15` (l.797; dict 580, "15 year discount rate for DB pensions"). PIHH flows into gross financial wealth (l.803), then net financial wealth (l.829), then consumption (long-run coefficient 0.2216, l.4). On our figures, a 100bp rise in the gilt yield from 4.5% lowers PIHH by about 7.6% (about £228bn) and net financial wealth by about 5.2%, which lowers long-run consumption by about **1.2%**. The 0.574 weight applies to the whole pension-and-insurance stock, insurance included.
-- **Our adapted model:** Inherited. The gilt yield RL is exogenous (dict 462) and is taken from the EFO path (`obr_macro/data.py`), so this channel works only when the gilt yield itself is changed.
+- **Our adapted model:** Bypassed by accident. The gilt yield RL is exogenous (dict 462) and is taken from the EFO path (`obr_macro/data.py`), but PIHH (l.795) is dropped in our solve because the equity price indices EQPR and WEQPR have no data. PIHH stays on its data path, so the channel does not operate: in the anchored baseline a sustained +1pp on RL over 2026 changes DBR but moves PIHH by 0, and consumption by less than £0.001m a quarter through other routes.
 
 ### H5. "Mortgage debt and house prices exogenous." (Mid)
 - **Verdict:** True but openly documented
@@ -253,26 +255,26 @@ References: "L" = line in the OBR's published EViews code (`obr_model_code_octob
 ### H8. "Financial balance sheet closes on residual 'other assets'." (Low)
 - **Verdict:** True but openly documented
 - **Why:** The household balance-sheet residual (l.822, HHRES, dict 593) is the gap between household net lending and the modelled asset and liability flows. It is assigned to the other-assets adjustment (l.824, OAHHADJ, dict 597, listed as an identity). Other assets therefore close the household financial account by construction.
-- **Our adapted model:** Inherited. l.822 and l.824 are transpiled as published (`obr_macro/transpiler.py`).
+- **Our adapted model:** Bypassed by accident. l.822 and l.824 are transpiled as published (`obr_macro/transpiler.py`), but HHRES is dropped in our solve because NAOLPEx does not evaluate (it needs unsecured debt DEBTU, which itself lacks history and PD). HHRES stays on its data path, so other assets do not close the household account in our runs.
 
 ### H9. "Deposit equation contains highly convex exponential terms; error-correction mixes adjusted and unadjusted stocks." (Low)
 - **Verdict:** Partly true
 - **Why:** The household deposits equation (l.779) contains `exp(5.1811*(RDEP-R))`, `exp(0.8206*LFSUR)` and `exp(106.3011*GMF)`. In £m, the unemployment terms are about £40m and £130m at 4.5% unemployment, which is small against a stock of about £2.3tn. They rise to about £3.7bn and £50bn at 10% unemployment, so the convexity matters only in severe scenarios. The second point is correct: the left-hand side is the unadjusted change `d(DEPHHx)`, but the error-correction term uses the adjusted stock `DEPHH(-1)`, which includes the exogenous DEPHHADJ (l.781, dict 594). Past adjustments therefore stay in the error-correction term. We could not size the house-transactions term (GMF, l.777) because its inputs are not in our data snapshot.
-- **Our adapted model:** Inherited. l.779–781 are transpiled as published (`obr_macro/transpiler.py`); we have not checked whether this equation solves in our runs.
+- **Our adapted model:** Bypassed by accident. l.779–781 are transpiled as published (`obr_macro/transpiler.py`), but DEPHHx is dropped in our solve because GMF (l.777) does not evaluate (PD has no data). Household deposits stay on their data path.
 
 ### H10. "Insurance asset acquisition driven only by the insurance premium tax rate." (Low)
 - **Verdict:** True
 - **Why:** The equation (l.791, dict 577) is `NAINSx = 13293.71 + 0.627*NAINSx(-1) - 236267.3*SIPT(-3)`, so the lagged dependent variable and the lagged IPT rate are its only drivers. The dictionary does not give SIPT's units (dict 576). **Assuming SIPT is the standard rate as a decimal** (0.12 today), the equation's steady state is about **−£40bn a quarter**, against recent outturn of about **+£1.2bn**; matching outturn would need SIPT of about 0.054. If that assumption holds, the level of insurance acquisitions is carried mostly by the exogenous adjustment NAINSADJ (dict 596).
-- **Our adapted model:** Bypassed by accident (likely). Our data pipeline (`obr_macro/data.py`, `obr_macro/seeds/`) has no source for SIPT, so the equation cannot be evaluated and NAINS appears to stay on the data path; we have not confirmed this with a solver run.
+- **Our adapted model:** Bypassed by accident. Our data pipeline (`obr_macro/data.py`, `obr_macro/seeds/`) has no source for SIPT, so NAINSx is dropped in our solve and stays on its data path.
 
 ### H11. "Durables user cost inside a logarithm; undefined if quarterly durable inflation is high." (Low)
 - **Verdict:** True
 - **Why:** The durables equation (l.8) takes the log of a user cost: the quarterly Bank Rate (about 0.99% at R = 4), plus a quarterly depreciation term of 5.74% (from 1.25^0.25 − 1), minus quarterly durables inflation. The argument turns negative, and the log undefined, once quarterly durables inflation exceeds about **6.7%** (about 30% annualised). Durables prices follow non-oil import prices one for one (l.341, dict 199), so one possible trigger is a large, fast fall in sterling. This has not occurred in recent data, but nothing in the code guards against it.
-- **Our adapted model:** Inherited. The failure mode differs: in our solver a log of a negative number returns NaN, and the equation is dropped for that period without an error (`obr_macro/full_solver.py`; see `docs/history/stage1b_chain_trace.md`).
+- **Our adapted model:** Bypassed by accident. CDUR (l.8) is already dropped in our baseline, because the durables deflator PD has no data, so durables stay on their data path. If PD were sourced, the failure mode would differ from EViews: in our solver a log of a negative number returns NaN, and the equation is dropped for that period (`obr_macro/full_solver.py`; see `docs/history/stage1b_chain_trace.md`).
 
 ## Non-financial corporations
 
-Several items refer to the "T2 fix". This is the OBR's own label in the code ("Changed to enable indirect T2 fix", l.17, 82, 110; "Switched off…", l.702; "exogenised…", l.706). It marks the configuration in which GDP, total investment and the GDP deflator are inputs rather than model outputs.
+Several items refer to the "T2 fix". This is the OBR's own label in the code ("Changed to enable indirect T2 fix", l.17, 82, 110; "Switched off…", l.701; "exogenised…", l.711). It marks the configuration in which GDP, total investment and the GDP deflator are inputs rather than model outputs.
 
 ### N1. "Business investment equation switched off; investment is residual of exogenous total investment." (High)
 - **Verdict:** True but openly documented
@@ -310,18 +312,18 @@ Several items refer to the "T2 fix". This is the OBR's own label in the code ("C
             - STLIC(-1)*(((1+(RIC(-1)-R(-1))/100)^0.25)-1) - FXLIC(-1)*(((1+2.9/100)^0.25)-1)
   ```
 
-  Neighbouring equations follow the same differencing pattern, including the foreign-currency term of the PNFC interest-paid equation `DIPIC` (l.631 and 639). With g = 1.029^0.25 − 1 ≈ 0.0072 and foreign-currency lending of about £235bn, the printed form adds about £3.3bn a quarter, cumulatively. The level is only about £2.4bn a quarter, and the consistently differenced term is tens of millions. The drift passes into total FISIM (l.729) and so lowers profits (l.731). We can't tell from the code whether the OBR offsets it with add-factors in practice.
+  Neighbouring equations follow the same differencing pattern, including the PNFC deposit-margin equation `DIRICf` (l.631) and the foreign-currency term of the PNFC interest-paid equation `DIPIC` (l.639). With g = 1.029^0.25 − 1 ≈ 0.0072 and foreign-currency lending of about £235bn, the printed form adds about £3.3bn a quarter, cumulatively. The level is only about £2.4bn a quarter, and the consistently differenced term is tens of millions. The drift passes into total FISIM (l.729) and so lowers profits (l.731). We can't tell from the code whether the OBR offsets it with add-factors in practice.
 - **Our adapted model:** Bypassed by accident. Our transpiler keeps the published sign. But the PNFC loan rate `RIC` has no data in our dataset, so the equation evaluates to missing, is skipped, and `DIPICf` stays flat. If `RIC` data are added, the sign will need correcting.
 
 ### N6. "No income account; interest costs do not affect dividends or retained earnings." (Low)
 - **Verdict:** True
-- **Why:** PNFC interest paid and received (`DIPIC`, `DIRIC`, `DIPICx`, l.629–639) is computed but feeds no other equation, apart from FISIM. Household dividend income depends on gross profits and an exogenous series: `log(NDIVHH) = -8.605599 + 0.8092696*log(FYCPR(-4)) + 0.6597959*log(CORP)` (l.643, dict 501). Company saving `SAVCO` (l.676) is derived from the capital account and used nowhere. There is no PNFC income account that runs from profits through interest and tax to retained earnings.
+- **Why:** PNFC interest paid and received (`DIPIC`, `DIRIC`, l.633, l.639) feeds only `DIPICx` and `DIRICx` (l.635, l.629), which no equation uses. The margin terms `DIPICf` and `DIRICf` (l.637, l.631) feed FISIM (l.729) and nothing else. Household dividend income depends on gross profits and an exogenous series: `log(NDIVHH) = -8.605599 + 0.8092696*log(FYCPR(-4)) + 0.6597959*log(CORP)` (l.643, dict 501). Company saving `SAVCO` (l.676) is derived from the capital account and used nowhere. There is no PNFC income account that runs from profits through interest and tax to retained earnings.
 - **Our adapted model:** Inherited. In our version the dividend equation itself does not run because `CORP` is missing from the published data (README, "Known inert equations").
 
 ### N7. "Stock appreciation derived from residual inventory series." (Low)
 - **Verdict:** True but openly documented
 - **Why:** Stock appreciation is `SA = BV(-1) * (PINV / PINV(-1) - 1)` (l.25). The inventory price `PINV = 100 * BV / INV` (l.331) comes from the book value of inventories `BV` and their volume `INV`, which build up from `DINVPS` and `DINV` (l.21, 23). `DINV` is the expenditure-side residual of GDP (l.19), part of the T2-fix configuration (comment at l.17).
-- **Our adapted model:** Changed. For policy simulations, our version replaces the inventories equation with an equation that makes GDP endogenous (`swap_closure("DINV", GDPM_EQ)` in `obr_macro/baseline.py` and `obr_macro/full_solver.py`).
+- **Our adapted model:** Changed. For policy simulations, our version replaces the inventories equation with an equation that makes GDP endogenous (`swap_closure("DINV", GDPM_EQ)` in `obr_macro/baseline.py` and `obr_macro/full_solver.py`). The stock-appreciation chain is not computed in our build: BV and INV have no level history, so BV, INV, PINV and SA (l.21–25, l.331) are dropped and SA stays on its data path.
 
 ### N8. "Financial asset equation subtracts change in money holdings; rationale unclear." (Low)
 - **Verdict:** True
@@ -356,27 +358,27 @@ Several items refer to the "T2 fix". This is the OBR's own label in the code ("C
 ### V2. "Debt interest and gilt stock exogenous; no in-code link to rates or borrowing." (Mid)
 - **Verdict:** True but openly documented
 - **Why:** The debt interest variables DICGOP, DILAPR and DIPCOP are labelled Exogenous with no equation (dict 244, 245, 385). They enter the code only as inputs at l.504, l.524, l.526 and l.532. The gilt stocks CGGILTS and MKTIG are exogenous (dict 435–436) and lead only to PSFL (l.553) and PSNW (l.557), which no other equation uses. PSND (l.567) and GGGD (l.571) are computed but never used elsewhere. The conventional and index-linked gilt interest series DIPLDC and IILG are listed in the dictionary (dict 240–241) but do not appear in the code.
-- **Our adapted model:** Inherited. Debt interest has no link to gilt yields in `obr_macro/full_solver.py`. PSND and GGGD are not computed in our runs, because their residual inputs PSNDRES and GGGDRES have no published data.
+- **Our adapted model:** Inherited. Debt interest has no link to gilt yields in `obr_macro/full_solver.py`. PSND and GGGD are not computed in our runs. Their residuals PSNDRES and GGGDRES are 0 in the databank, and the right-hand sides of l.567 and l.571 (the changes) evaluate, but both are first-difference equations and the databank has no level history for PSND or GGGD, so there is no lagged level to add the change to. The level evaluates to NaN and both are dropped.
 
 ### V3. "Total current spending exogenous; product subsidies computed as residual, feeding basic prices and profits." (Mid)
 - **Verdict:** True but openly documented
 - **Why:** PSCE is exogenous (dict 395). CGSUBP is the residual of PSCE after the other spending lines (l.504), and the code comment at l.502 says this was "Changed to enable indirect T2 fix". CGSUBP feeds the basic-price adjustment BPAPS (l.695). BPAPS then feeds basic-price GVA (l.697), operating surplus (l.719) and corporate profits FYCPR (l.731). Any spending component that is modelled, such as CGWS, GNP4 or EUVAT, is therefore offset one-for-one by a change in subsidies, which then shows up in basic prices and profits.
-- **Our adapted model:** Bypassed by accident. The CGSUBP equation is kept, but the BPAPS equation is dropped during our solve because one of its inputs (CCLACA) has no data. BPAPS stays at its data value, so the link through to basic prices and profits does not currently operate (`obr_macro/full_solver.py`).
+- **Our adapted model:** Inherited (since #56). CCLACA has no published data, so it is seeded at 0 (`ZERO_RECEIPT_COMPONENTS` in `obr_macro/data.py`), and an additive identity residual holds BPAPS on its data path in the baseline (`FullOBRSolver._close_receipts_identities` in `obr_macro/full_solver.py`). BPAPS now solves, so a change in CGSUBP passes one for one into basic prices and profits, as in the OBR's code; the residual cancels in a base-vs-shock comparison.
 
 ### V4. "Two exogenous government consumption series share one ONS code; equality not enforced." (Low)
 - **Verdict:** True
 - **Why:** CGGPSPSF and CGGPS are both exogenous and both mapped to ONS code NMRP (dict 225–226). The identity that would tie them together is commented out (l.379–381). CGGPSPSF is used only for CGP (l.377). CGGPS feeds real government consumption, the investment deflator and nominal final expenditure (l.337, l.383, l.385, l.681). Nothing in the code keeps the two series equal.
-- **Our adapted model:** Inherited. The two series differ in the data we load from 2024Q1 (146,223 vs 146,499 in 2024Q1; 166,176 vs 164,862 in 2026Q1). Our government consumption shock is applied to real CGG directly and moves neither series (`obr_macro/full_solver.py`, `obr_macro/reform_analysis.py`).
+- **Our adapted model:** Inherited. The two series differ in the data we load from 2024Q1 (CGGPS 146,164 vs CGGPSPSF 146,499 in 2024Q1; 165,801 vs 164,862 in 2026Q1). Our government consumption shock is applied to real CGG directly and moves neither series (`obr_macro/full_solver.py`, `obr_macro/reform_analysis.py`).
 
 ### V5. "EU-budget payment equations remain live; formulas dimensionally questionable." (Low; marked unverified by the author)
 - **Verdict:** True
 - **Why:** GNP4 (l.469) and EUVAT (l.471) are active equations, and unlike the other EU items they do not depend on their own past values. They set payments in proportion to UK national income and VAT receipts. Both divide a sterling amount by ECUPO, which the dictionary defines as euros per pound. That looks inverted for a currency conversion, although the calibrated constants (0.010, 0.0325, 0.8267) may absorb it. GNP4 feeds transfer debits (l.485), the subsidy residual (l.504) and central government net borrowing (l.524). The ONS data for both series is zero from 2021, but the equations as printed produce positive values whenever they are solved.
-- **Our adapted model:** Fixed (#62). Our replication used to regenerate GNP4 at about £6.3–7.4bn and EUVAT at about £1.5bn a quarter after 2021, where the data is zero, which made the current balance about £8bn a quarter weaker; public sector net borrowing was unchanged because the subsidy residual offset it. `FullOBRSolver` now drops both equations (`ENDED_EU_PAYMENTS` in `obr_macro/full_solver.py`), so both hold their data path.
+- **Our adapted model:** Changed (#62). Our replication used to regenerate GNP4 at about £6.3–7.4bn and EUVAT at about £1.5bn a quarter after 2021, where the data is zero, which made the current balance about £8bn a quarter weaker; public sector net borrowing was unchanged because the subsidy residual offset it. `FullOBRSolver` now drops both equations (`ENDED_EU_PAYMENTS` in `obr_macro/full_solver.py`), so both hold their data path.
 
 ### V6. "Add factor on seasonally adjusted borrowing shifts corporate net lending without affecting debt." (Low)
 - **Verdict:** True but openly documented
 - **Why:** The add-factor is declared openly in the code (`@ADD(V) PSNBCY PSNBCY_A`, l.539; dict 420). Seasonally adjusted borrowing (PSNBCY) feeds only corporate net lending (NAFCO, l.670). Debt builds from the non-seasonally-adjusted measure through the net cash requirement (l.536, l.563, l.567), so the add-factor changes sector balances but not debt.
-- **Our adapted model:** Bypassed by accident. PSNBCY_A has no data in our loaded databank, so the add-factor is zero in our runs. Seasonally adjusted borrowing therefore equals the non-seasonally-adjusted measure, which shifts corporate net lending (about −£23bn in 2025Q1).
+- **Our adapted model:** Bypassed by accident. PSNBCY_A has no data in our loaded databank, so the add-factor is zero in our runs and seasonally adjusted borrowing equals the non-seasonally-adjusted measure. In the data the two series are £30.8bn apart in 2025Q1 (PSNBCY £41.7bn, PSNBNSA £10.8bn). In a 2025Q1 solve PSNBNSA itself moves to £18.2bn, so PSNBCY comes out £23.4bn below its data value, and corporate net lending NAFCO is about £22bn lower than in the data (−£31.0bn against −£9.2bn in the anchored baseline).
 
 ## Rest of world
 
@@ -387,15 +389,15 @@ Several items refer to the "T2 fix". This is the OBR's own label in the code ("C
 
 ### R2. "Exchange rate exogenous; current account and external position feed no equation." (Mid)
 - **Verdict:** Partly true
-- **Why:** The sterling effective exchange rate RX is exogenous (dict 344). However, the current balance does feed other equations. CB flows into the rest of the world's net lending (l.497), then its net acquisition of assets (l.840, l.861) and its asset stocks (l.849, l.853). Those stocks drive investment income credits and debits (l.445, l.449), which make up net investment income NIPD (l.455). NIPD feeds back into CB (l.493) and into the EU contribution GNP4 (l.469). What is true is that the net international investment position (NIIP, l.889) is not used by any other equation, and nothing feeds back to the exchange rate or to real activity.
-- **Our adapted model:** Inherited. The same equations are transpiled unchanged in `obr_macro/transpiler.py` and solved in `obr_macro/full_solver.py`.
+- **Why:** The sterling effective exchange rate RX is exogenous (dict 344). However, the current balance does feed other equations. CB flows into the rest of the world's net lending (l.497), then its net acquisition of assets (l.840, l.861) and its asset stocks (l.849, l.853). The asset stock AROW (l.859) drives investment income debits DIPD (l.449), which enter net investment income NIPD (l.455). NIPD feeds back into CB (l.493) and into the EU contribution GNP4 (l.469). The loop runs only through AROW: investment income credits CIPD (l.445) depend on the liability stock LROW, which CB does not drive. What is true is that the net international investment position (NIIP, l.889) is not used by any other equation, and nothing feeds back to the exchange rate or to real activity.
+- **Our adapted model:** Inherited. The same equations are transpiled unchanged in `obr_macro/transpiler.py` and solved in `obr_macro/full_solver.py`, with two gaps. The rates of return REXC (l.447) and REXD (l.451) are dropped because ROCB (and, for REXC, WEQPR) has no data, so they stay on their data paths and the CB loop runs through the stocks only. NIIP (l.889) is dropped because it has no level history; it feeds nothing.
 
 ### R3. "Services import equation only reallocates a fixed import total between goods and services." (Low)
 - **Verdict:** True but openly documented
 - **Why:** Services imports MS are econometrically estimated (l.223). Non-oil goods imports are then the residual MNOG = M − MS − MOIL (l.217), and total imports M are exogenous. The code comment at l.215 marks this as a deliberate change ("Changed to enable indirect T2 fix"). A change in MS therefore only changes the split between goods and services; total import volumes stay fixed.
-- **Our adapted model:** Inherited. The same equations are used in `obr_macro/full_solver.py`.
+- **Our adapted model:** Bypassed by accident. The same equations are transpiled, but MS (l.223) is dropped in our solve because PMSREL and SPECX have no data (PMSREL itself needs PINV, see N7). MS stays on its data path, so MNOG is the residual of fixed totals.
 
 ### R4. "Secondary income retains EU-era transfer items." (Low)
 - **Verdict:** True
 - **Why:** Transfer credits TRANC (l.483) and debits TRAND (l.485) still include EU items. Three of them (EUSUBPR, EUSF, ECNET, l.463–467) depend only on their own past values, so they stay at zero once the data is zero. EU subsidies on products are set to zero (EUSUBP = 0, l.461), and EU product-tax payments (EUOT) are exogenous. The two live items are GNP4 and EUVAT, which share the problem described in V5.
-- **Our adapted model:** Fixed with V5 (#62): GNP4 and EUVAT now hold their data path (zero from 2021Q1), so they no longer add to transfer debits.
+- **Our adapted model:** Changed with V5 (#62): GNP4 and EUVAT now hold their data path (zero from 2021Q1), so they no longer add to transfer debits.
