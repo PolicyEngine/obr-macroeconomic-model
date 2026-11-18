@@ -8,12 +8,13 @@ Newest first.
 The 17 November review (#72) left three code changes open, each of which
 changes a default or moves figures the PolicyEngine Macro site quotes. Each
 was decided on a run. Two are adopted, in their own pull requests; one is
-rejected here.
+rejected here. Sections 1 and 2 describe those pull requests: until they
+merge, main still has the behaviour in their "before" columns.
 
 | Change | Decision | Where |
 |---|---|---|
-| Anchor unemployment to the EFO ("anchor `PART16`") | Adopted, as a population fix | #74 |
-| Nominal-consistent government-consumption shock | Adopted as the default for `CGG` | #75 (stacked on #74) |
+| Anchor unemployment to the EFO ("anchor `PART16`") | Adopted, as a population fix | implemented in #74; not on main until it merges |
+| Nominal-consistent government-consumption shock | Adopted as the default for `CGG` | implemented in #75 (stacked on #74); not on main until it merges |
 | Default `monetary_conditioning=True` | Rejected | this note, `monetary_conditioning.md` |
 | Regenerate `fig_outturn` on the current ONS vintage | Not possible from this repo | this note |
 
@@ -112,23 +113,29 @@ shock moves the mortgage rate at the OBR's l.623 pass-through (GDP −0.149%
 per 100bp at the peak instead of −0.057%).
 
 **Decision.** Rejected. The full reasoning and arithmetic are in
-`monetary_conditioning.md`, "Why the default stays `False`". In short:
+`monetary_conditioning.md`, "Why the default stays `False`". In short,
+strongest reason first:
 
 - A default `R` shock should move `R` and nothing else, as every other
-  instrument does. The overlay would make it a compound shock.
+  instrument does and as the listing treats retail rates (conditioning
+  assumptions set outside the model). The overlay is a labelled judgement;
+  the other two overlays are opt-in for the same reason.
+- The published interface pins the default
+  (`tests/test_bridge_contract.py`).
+- Both modes are below the Bank of England benchmark, and CPI and
+  unemployment respond in neither. Switching would multiply the reported
+  GDP effect by 2.6 without making it an estimate.
 - The overlay makes interest paid consistent with l.623 but leaves interest
   received unmoved (it has no equation), so it books the full £4.68bn a
-  quarter rise in household interest payments against no rise in deposit
-  income on £2.25tn of deposits. On the pass-through range the note
-  already cites, the net fall would be about £0.2bn to £2.4bn a quarter;
-  the default's £1.41bn is inside that range. Switching the default would
-  swap one partial treatment for another and multiply the reported GDP
-  effect by 2.6.
-- Both modes are below the Bank of England benchmark, and CPI and
-  unemployment respond in neither.
-- The hosted bridge contract pins the default.
+  quarter rise in household interest payments against no rise in income on
+  about £2.25tn of deposits. An illustration in the note, using a
+  sight-deposit pass-through range for the whole stock, puts the net fall
+  at about £0.2bn to £2.4bn a quarter, with the default's £1.41bn inside
+  it. That is not a model result; it shows only that the conditioned run
+  is not obviously nearer the net household effect.
 
-The docs keep quoting both runs side by side. The wording that called the
+The docs keep quoting both runs side by side (`results/demo_shocks.json`,
+rows `bank_rate` and `bank_rate_conditioned`). The wording that called the
 default run "a lower bound" is corrected: neither run bounds the full
 effect.
 
@@ -140,10 +147,12 @@ rates on Bank Rate.
 
 The outturn chart, its script (`papers/obr-macro/figures/fig_outturn.py`),
 its data file and its vintage pin (`validation/figures/chart_data.json`)
-all live in PolicyEngine/macro, not here. That script refuses to run on
-anything but the November 2025 EFO study it documents, and the site's
-chart already takes its ONS column from the pinned vintage file. Nothing
-in this repository generates or feeds the figure, and the ONS snapshot
+all live in PolicyEngine/macro, not here (checked with a code search of
+the organisation and a read of a local PolicyEngine/macro working copy on
+a round branch, not main). That script's docstring says it refuses to run
+on anything but the November 2025 EFO study it documents and that the
+site's chart takes its ONS column from the pinned vintage file. Nothing in
+this repository generates or feeds the figure, and the ONS snapshot
 vendored here was pulled on 11 July 2026, so it could not supply a current
 vintage without a new download. The regeneration belongs with the site
 work in PolicyEngine/macro.
