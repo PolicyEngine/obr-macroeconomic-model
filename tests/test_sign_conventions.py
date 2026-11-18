@@ -78,6 +78,9 @@ def respond():
         HOUSEHOLD_COSTING_VAR,
         _apply_household_costing,
         _build_reform_template,
+        apply_spending_shock,
+        resolve_nominal_consistent,
+        resolve_nominal_gdp_pin,
     )
 
     cache = {}
@@ -88,8 +91,16 @@ def respond():
         periods=QUARTERS,
         investment_closure=None,
         nominal_gdp_pin=_CLOSURE_DEFAULT,
+        nominal_consistent=None,
     ):
-        key = (var, shock, periods, investment_closure, nominal_gdp_pin)
+        key = (
+            var,
+            shock,
+            periods,
+            investment_closure,
+            nominal_gdp_pin,
+            nominal_consistent,
+        )
         if key in cache:
             return cache[key]
         ic = (var == "TCPRO") if investment_closure is None else investment_closure
@@ -101,7 +112,21 @@ def respond():
         if var == HOUSEHOLD_COSTING_VAR:
             _apply_household_costing(shocked, shock, START, periods)
         else:
-            shocked.apply_shock(var, shock, START, periods=periods)
+            # As run_reform does: a CGG shock carries its nominal legs by
+            # default under the nominal-GDP pin (resolve_nominal_consistent).
+            pin = resolve_nominal_gdp_pin(
+                None if nominal_gdp_pin is _CLOSURE_DEFAULT else nominal_gdp_pin, ic
+            )
+            apply_spending_shock(
+                shocked,
+                var,
+                shock,
+                START,
+                periods,
+                nominal_consistent=resolve_nominal_consistent(
+                    nominal_consistent, var, pin
+                ),
+            )
         baseline.solve(START, END)
         shocked.solve(START, END)
         out = _Response()
@@ -112,6 +137,17 @@ def respond():
             "IF",
             "IBUSX",
             "GGIDEF",
+            "GGFCD",
+            "PIF",
+            "CGGPS",
+            "CGP",
+            "CGSUBP",
+            "PSCE",
+            "PSCB",
+            "CGNB",
+            "GGNB",
+            "PSNBNSA",
+            "TME",
             "LFSUR",
             "ETLFS",
             "RPI",
@@ -236,26 +272,85 @@ def test_government_consumption_response_scales_linearly(respond):
 def test_government_consumption_moves_little_but_gdp(respond):
     """DEFECT (pinned). The spending second round is nearly empty.
 
-    Under the default nominal-GDP pin consumption moves by 2.7% of the shock
-    (6 Nov 2026), through profits -> household income; under the published
-    closure it moved by 0.002%. A spending increase does not change
-    employment or prices. Pinned at 1-5% of the shock: outside that band, a
-    channel changed.
+    Under the default nominal-GDP pin consumption moves by about 2.5% of the
+    shock (18 Nov 2026, nominal-consistent shock; 2.7% real-only), through
+    profits -> household income; under the published closure it moved by
+    0.002%. A spending increase does not change employment or prices. Pinned
+    at 1-5% of the shock: outside that band, a channel changed.
 
-    Business investment (IBUSX) reads +17.5% of the shock under the pin
-    (0.09% under the published closure). That is deflator propagation, not
-    an investment response: under the demand closure IBUS is the residual
-    IF - GGI - ..., with IF exogenous, and a real-only CGG shock moves PIF
-    (l.337 absorbs the nominal gap, about +0.94), which raises GGIDEF and so
-    lowers real GGI. GDP is unaffected (IF is exogenous). Pinned at 10-25%
-    so the artefact cannot grow silently.
+    Business investment (IBUSX) does not move: with the nominal legs applied
+    the government deflator is unchanged, so nothing is pushed into the
+    investment deflator (measured -0.1% to -0.3% of the shock, PIF within
+    0.02 index points). Pinned inside 1% of the shock. The real-only shock,
+    which reads +16% to +24%, is pinned in
+    test_real_only_government_consumption_shock_keeps_its_deflator_artefact.
     """
     shock = 1250.0
     r = respond("CGG", shock)
     cons = share_of_shock(r, "CONS", shock)
     assert 1.0 <= cons <= 5.0, f"CONS responds at {cons:.3f}% of the shock"
     ibusx = share_of_shock(r, "IBUSX", shock)
+    assert abs(ibusx) < NOISE_FLOOR_PCT, f"IBUSX responds at {ibusx:.3f}% of the shock"
+    assert max(abs(x) for x in r["PIF"]["path"]) < 0.05, r["PIF"]["path"]
+
+
+def test_government_consumption_is_paid_for(respond):
+    """A default CGG shock raises borrowing by its cash cost, every quarter.
+
+    The cash cost is the real shock times the baseline government deflator
+    (CGGPS/CGG, about 1.10-1.13 over 2026Q1-2027Q4). With the nominal legs
+    applied (CGGPS, CGGPSPSF, PSCE) procurement CGP rises by it (l.377), the
+    subsidy residual CGSUBP does not offset it (l.504), and central
+    government net borrowing CGNB (l.524), general government GGNB, public
+    sector net borrowing PSNBNSA (l.536) and TME (l.522) all rise by exactly
+    that amount, while the current budget PSCB (l.510) falls by it. The
+    government deflator GGFCD does not move. Accounting, not behaviour:
+    receipts have no equation and do not respond, so there is no second
+    round on borrowing.
+    """
+    shock = 1250.0
+    r = respond("CGG", shock)
+    cash = r["CGGPS"]["path"]
+    assert all(1.05 * shock < c < 1.20 * shock for c in cash), cash
+    for col, sign in (
+        ("CGP", 1),
+        ("PSCE", 1),
+        ("CGNB", 1),
+        ("GGNB", 1),
+        ("PSNBNSA", 1),
+        ("TME", 1),
+        ("PSCB", -1),
+    ):
+        gaps = [abs(sign * x - c) for x, c in zip(r[col]["path"], cash)]
+        assert max(gaps) < 0.5, f"{col} misses the cash cost by {max(gaps):.2f}m"
+    assert max(abs(x) for x in r["CGSUBP"]["path"]) < 0.5, r["CGSUBP"]["path"]
+    assert max(abs(x) for x in r["GGFCD"]["path"]) < 1e-3, r["GGFCD"]["path"]
+    # The GDP multiplier stays in the passthrough-plus-income band.
+    mult = [x / shock for x in r["GDPM"]["path"]]
+    assert all(1.01 <= m <= 1.05 for m in mult), mult
+
+
+def test_real_only_government_consumption_shock_keeps_its_deflator_artefact(respond):
+    """``nominal_consistent=False``: the pre-18-Nov default, pinned.
+
+    Real CGG moves and nominal spending is held, so the government deflator
+    falls (about -0.9 index points), no borrowing aggregate moves at all, and
+    the investment deflator absorbs the nominal gap (PIF about +0.94), which
+    raises GGIDEF, lowers real GGI and makes IBUSX read +16% to +24% of the
+    shock. That is deflator propagation, not an investment response. Pinned
+    at 10-25% so the artefact cannot grow silently; GDP is within 1% of the
+    nominal-consistent run.
+    """
+    shock = 1250.0
+    r = respond("CGG", shock, nominal_consistent=False)
+    ibusx = share_of_shock(r, "IBUSX", shock)
     assert 10.0 <= ibusx <= 25.0, f"IBUSX responds at {ibusx:.3f}% of the shock"
+    for col in ("CGGPS", "PSCE", "CGNB", "GGNB", "PSNBNSA", "TME", "PSCB"):
+        assert all(x == 0.0 for x in r[col]["path"]), f"{col} moved: {r[col]['path']}"
+    assert all(-1.2 < x < -0.6 for x in r["GGFCD"]["path"]), r["GGFCD"]["path"]
+    consistent = respond("CGG", shock)
+    gap = abs(r["GDPM"]["mean"] / consistent["GDPM"]["mean"] - 1)
+    assert gap < 0.01, f"real-only and nominal-consistent GDP differ by {gap:.2%}"
 
 
 # ---------------------------------------------------------------------------

@@ -57,6 +57,11 @@ EXPECTED_RUN_REFORM_KWARGS = [
     "monetary_conditioning",
     # Added Nov 2026 (#60), last and defaulting to False.
     "price_passthrough",
+    # Added 18 Nov 2026, last. Default None = on for a CGG shock under the
+    # nominal-GDP pin: unlike the three overlays above this one changes what a
+    # default CGG run does to the nominal side (borrowing moves, the IBUSX
+    # deflator artefact goes); delta_gdp_m moves by under 1%.
+    "nominal_consistent",
 ]
 
 
@@ -102,6 +107,8 @@ def test_run_reform_defaults_are_stable():
     assert sig.parameters["monetary_conditioning"].default is False
     # #60: the indirect-tax price pass-through overlay is strictly opt-in.
     assert sig.parameters["price_passthrough"].default is False
+    # The nominal-consistent CGG shock resolves from the closure (None).
+    assert sig.parameters["nominal_consistent"].default is None
 
 
 # --- Fake template: a solvable stand-in with a plausible shock response ------
@@ -130,6 +137,11 @@ class _BridgeTemplate:
                 self.VAR: [self.BASE] * periods,
                 "CONS": [self.BASE] * periods,
                 "IF": [self.BASE] * periods,
+                # The nominal legs a default CGG shock also moves
+                # (reform_analysis.NOMINAL_SPENDING_LEGS).
+                "CGGPS": [self.BASE * 1.1] * periods,
+                "CGGPSPSF": [self.BASE * 1.1] * periods,
+                "PSCE": [self.BASE * 3.0] * periods,
             },
             index=index,
         )

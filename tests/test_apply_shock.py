@@ -377,3 +377,79 @@ def test_log_lhs_equations_get_anchoring_residuals():
     assert s.residuals, "log(X) equation got no anchoring residual"
     assert all(k[0] == "X" for k in s.residuals)
     assert all(abs(r - 2.0) < 1e-12 for r in s.residuals.values())
+
+
+# --- Nominal-consistent government-consumption shock -------------------------
+
+
+def _spending_solver(periods: int = 8):
+    """A bare solver carrying CGG and the nominal totals a CGG shock moves."""
+    s = _bare_solver(periods)
+    s.data["CGGPS"] = [110.0, 112.0, 114.0, 116.0] * (periods // 4)
+    s.data["CGGPSPSF"] = 120.0
+    s.data["PSCE"] = 300.0
+    s.data["CGNB"] = 50.0
+    return s
+
+
+def test_spending_shock_moves_the_nominal_legs_by_the_cash_cost():
+    from obr_macro.reform_analysis import NOMINAL_SPENDING_LEGS, apply_spending_shock
+
+    s = _spending_solver()
+    legs = apply_spending_shock(s, "CGG", 10.0, "2025Q1", periods=4)
+    assert legs == list(NOMINAL_SPENDING_LEGS["CGG"]) == ["CGGPS", "CGGPSPSF", "PSCE"]
+    # cash = shock x baseline CGGPS/CGG, quarter by quarter
+    cash = [11.0, 11.2, 11.4, 11.6]
+    assert list(s.data["CGG"][:5]) == [110, 110, 110, 110, 100]
+    for leg, base in (("CGGPSPSF", 120.0), ("PSCE", 300.0)):
+        assert list(s.data[leg][:4]) == pytest.approx([base + c for c in cash])
+        assert list(s.data[leg][4:]) == [base] * 4
+    assert list(s.data["CGGPS"][:4]) == pytest.approx(
+        [110 + 11.0, 112 + 11.2, 114 + 11.4, 116 + 11.6]
+    )
+    # the implied government deflator is unchanged by construction
+    assert list((s.data["CGGPS"] / s.data["CGG"])[:4]) == pytest.approx(
+        [1.10, 1.12, 1.14, 1.16]
+    )
+
+
+def test_spending_shock_per_quarter_path_and_real_only_mode():
+    from obr_macro.reform_analysis import apply_spending_shock
+
+    s = _spending_solver()
+    apply_spending_shock(s, "CGG", [10.0, -20.0], "2025Q1")
+    assert list(s.data["PSCE"][:3]) == pytest.approx([311.0, 300 - 22.4, 300.0])
+
+    real_only = _spending_solver()
+    legs = apply_spending_shock(
+        real_only, "CGG", 10.0, "2025Q1", periods=4, nominal_consistent=False
+    )
+    assert legs == []
+    assert list(real_only.data["PSCE"]) == [300.0] * 8
+    assert list(real_only.data["CGGPS"]) == [110.0, 112.0, 114.0, 116.0] * 2
+
+
+def test_spending_shock_refuses_a_half_applied_nominal_leg():
+    """A missing leg must raise, not be skipped: a shock with CGGPS moved but
+    PSCE held reports a borrowing delta that is neither mode."""
+    from obr_macro.reform_analysis import apply_spending_shock
+
+    s = _spending_solver()
+    s.data = s.data.drop(columns=["PSCE"])
+    with pytest.raises(KeyError, match="PSCE"):
+        apply_spending_shock(s, "CGG", 10.0, "2025Q1", periods=4)
+
+
+def test_nominal_consistent_default_follows_the_closure():
+    from obr_macro.reform_analysis import resolve_nominal_consistent
+
+    # Default: on for CGG under the nominal-GDP pin only.
+    assert resolve_nominal_consistent(None, "CGG", True) is True
+    assert resolve_nominal_consistent(None, "CGG", False) is False
+    assert resolve_nominal_consistent(None, "TYEM", True) is False
+    # Explicit choices are honoured for CGG; True elsewhere raises.
+    assert resolve_nominal_consistent(False, "CGG", True) is False
+    assert resolve_nominal_consistent(True, "CGG", False) is True
+    assert resolve_nominal_consistent(False, "R", True) is False
+    with pytest.raises(ValueError, match="nominal_consistent applies only"):
+        resolve_nominal_consistent(True, "TYEM", True)
