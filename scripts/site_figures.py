@@ -15,15 +15,19 @@ What each block measures, and the window it uses:
 
 * ``anchored_horizon`` -- the anchored baseline (``baseline.build``) solved
   over 2025Q1..2031Q1 (the October 2026 EFO databank runs to 2032Q1; the
-  window is kept for comparability), against the October 2026 EFO. Site
-  claim: GDP MAPE 0.77% out to 2031Q1; LFSUR drifts to 1.05% against the
-  EFO's 4.17% by 2031Q1 (March 2026 EFO: 0.67%, 0.9% against 4.14%).
+  window is kept for comparability), against the October 2026 EFO. Current
+  figures: GDP MAPE 0.45% out to 2031Q1 (gap 0.77% at 2031Q1); LFSUR equals
+  the EFO in every quarter (4.17% at 2031Q1), by construction since the
+  forecast population followed the EFO (18 Nov 2026). Before: 0.77%, gap
+  1.24%, LFSUR 1.05% against 4.17% (March 2026 EFO: 0.67%, 0.9% against
+  4.14%).
 * ``bank_rate`` -- Bank Rate (``R``) +/-1.0 (100bp) sustained for 12 quarters
   from 2025Q1, scored around the anchored reform baseline (``run_reform``'s
-  default window). Current figures: GDP -128.4/-406.3/-474.9/-503.1 GBP m at
-  q1/4/8/12; a cut +133.6 to +522.5.
+  default window). Current figures: GDP -128.4/-406.3/-472.2/-499.6 GBP m at
+  q1/4/8/12; a cut +133.6 to +518.8 (before 18 Nov 2026: -474.9/-503.1 at
+  q8/q12 and +522.5).
 * ``corporation_tax_5pp`` -- TCPRO +0.05 for 12 quarters from 2025Q1 under the
-  investment closure. Current figures: FYCPR -190m on average and -409m at
+  investment closure. Current figures: FYCPR -191m on average and -413m at
   q12, NDIVHH by zero; IBUSX -0.24bn at q8, -0.38bn at q12.
 * ``cgips_size_sweep`` -- CGIPS +1500/+3000/+6000 GBP m per quarter for 8
   quarters from 2026Q1 (the window ``tests/test_sign_conventions.py`` pins).
@@ -31,7 +35,7 @@ What each block measures, and the window it uses:
   real government investment); IF exactly zero.
 
 The current figures above are from the October 2026 EFO run (Actions run
-43866056708, 16 Nov 2026), under the default nominal-GDP pin; every quarter
+44392261807, 18 Nov 2026; the 16 Nov run was 43866056708), under the default nominal-GDP pin; every quarter
 converges. The JSON is the source of record. Earlier site text (measured at
 e4d7faa under the published closure, then on the March 2026 EFO) is
 superseded.

@@ -55,20 +55,42 @@ identity** (`ETLFS = HWA/AVH`, both passthrough inputs), not as a behavioural wi
 
 | Variable | Error (3yr), default (nominal-GDP pin) | Status | Published closure |
 |---|--:|---|--:|
-| Real GDP | 4.05% | computed — fair | 3.82% |
-| Consumption | 6.92% | computed — fair | 6.55% |
-| Business investment | 7.34% | computed — fair | 22.13% (poor) |
+| Real GDP | 4.24% | computed — fair | 4.28% |
+| Consumption | 7.23% | computed — fair | 7.30% |
+| Business investment | 7.34% | computed — fair | 14.19% (poor) |
 | Employment | 0.00% | computed — **trivial identity** | 0.00% |
-| Unemployment rate | 1.17pp | computed — poor | 1.17pp |
+| Unemployment rate | 0.62pp | computed — fair | 0.62pp |
 | RPI inflation | 2.32pp | computed — poor | 2.32pp |
-| Household income | 3.08% | computed — fair | 3.69% |
-| Real household income | 3.29% | computed — fair | 3.82% |
-| Company profits | 11.66% | computed — poor | 47.74% (off) |
-| Current account | 0.91% of GDP | computed — fair | 1.03% of GDP (fair) |
+| Household income | 3.10% | computed — fair | 4.04% |
+| Real household income | 3.30% | computed — fair | 4.25% |
+| Company profits | 12.88% | computed — poor | 22.47% (poor) |
+| Current account | 0.91% of GDP | computed — fair | 1.33% of GDP (fair) |
 | Trade balance | 0.41% of GDP | computed — good | 0.41% of GDP (good) |
 | Investment, Exports, Imports, Employees, Avg earnings, CPI, CPI inflation, GDP deflator, Wages, Compensation | 0.00% | **passthrough** (held at OBR value) | 0.00% |
 
-Within band: 8 of 11 under the default, 7 of 11 under the published closure.
+Within band: 9 of 11 under the default, 8 of 11 under the published closure
+(CI run 44392267520, 18 Nov 2026).
+
+> **Forecast population on the EFO-implied path (18 Nov 2026).** Beyond its
+> last ONS observation (2026Q1) the 16+ population `POP16` had been held at
+> its trailing four-quarter mean, 56.4m, like every other snapshot series.
+> The EFO's employment kept rising, so the labour-force identity (l.163)
+> drained unemployment. `POP16` now follows the path the EFO's own
+> unemployment, employment and participation rate imply through l.175,
+> which equals the ONS series over history to 1 part in 100,000
+> (`tests/test_efo_ground_truth.py`). Default closure: unemployment 1.17pp →
+> 0.62pp (poor → fair), real GDP 4.05% → 4.24%, consumption 6.92% → 7.23%,
+> household income 3.08% → 3.10%, real household income 3.29% → 3.30%,
+> company profits 11.66% → 12.88%; business investment, RPI and the external
+> balances unchanged; 8 → 9 of 11. Published closure: 3.82% → 4.28%, 6.55% →
+> 7.30%, business investment 22.13% → 14.19%, 3.69% → 4.04%, 3.82% → 4.25%,
+> company profits 47.74% → 22.47%, current account 1.03% → 1.33% of GDP;
+> 7 → 8 of 11. GDP and consumption read worse because the drained
+> unemployment had been lifting raw consumption through the −0.0084·d(LFSUR)
+> term of l.4; that was an artefact of the frozen population, not fit. The
+> remaining 0.62pp is the raw solve's own: de-seeded, `ULFS` and `PART16`
+> (one identity written twice) carry the previous quarter's participation
+> rate forward. Notes below that quote the 16 November figures predate this.
 
 > **Household taxes held on their data path (16 Nov 2026).** `TYWHH`
 > (l.612) sums ONS components that are not seasonally adjusted (self-
@@ -180,12 +202,12 @@ scored here.
 Default closure (nominal-GDP pin), October 2026 EFO, 2025Q1–2027Q4:
 - **11 of 21** headline variables are actually computed; the other **10 are passthrough**.
 - Of the 11 computed: 2 are good (the trivial employment identity and the
-  trade balance), 6 are fair, 3 are poor, and none is off.
-- **8 of 11 land within band (73%)**: Real GDP, Consumption, Business
-  investment, Household income, Real household income and the current account
-  (as % of GDP) are fair, plus the two good lines. The unemployment rate, RPI
-  inflation and Company profits are poor.
-- Under the published closure 7 of 11 are within band. Its business
+  trade balance), 7 are fair, 2 are poor, and none is off.
+- **9 of 11 land within band (82%)**: Real GDP, Consumption, Business
+  investment, the unemployment rate, Household income, Real household income
+  and the current account (as % of GDP) are fair, plus the two good lines.
+  RPI inflation and Company profits are poor.
+- Under the published closure 8 of 11 are within band. Its business
   investment is poor and its Company profits are off; both measure solver
   drift (nominal GDP and the investment deflator `PIF` are one identity
   written twice, so `PIF` random-walks in the de-seeded solve and profits
@@ -277,7 +299,8 @@ Raw (un-add-factored) calibration is **partial but honest**. Under the default
 closure on the October 2026 EFO, Real GDP, consumption, business investment,
 the incomes block and the current account sit within band (fair), the trade
 balance is good, and the trivial employment identity is exact. The
-unemployment rate, RPI inflation and Company profits are poor but no longer
+unemployment rate is fair since the forecast population followed the EFO
+(18 Nov 2026). RPI inflation and Company profits are poor but no longer
 diverging. The ~10 dead or exogenous channels (exports, imports, prices,
 labour demand, wages) are held at the OBR value.
 

@@ -544,7 +544,47 @@ def load_obr_data(merge_snapshot: bool = True) -> pd.DataFrame:
     # Skipped via merge_snapshot=False when deriving what still needs pulling.
     if merge_snapshot:
         df = _merge_ons_snapshot(df)
+        df = _extend_pop16_on_efo_path(df)
 
+    return df
+
+
+def efo_implied_pop16(df: pd.DataFrame) -> pd.Series:
+    """The 16+ population the EFO labour-market table implies.
+
+    The listing's l.175 is ``PART16 = 100*(ULFS + ETLFS)/POP16``. The EFO
+    publishes unemployment (ULFSU), employment (ETLFS) and the participation
+    rate (PART16) each quarter but not the population itself, so the identity
+    gives it: ``POP16 = 100*(ULFSU + ETLFS)/PART16``. Over history this equals
+    the ONS series MGSL to rounding (tests/test_efo_ground_truth.py), which is
+    what makes it a derivation and not a judgement.
+    """
+    return 100.0 * (df["ULFSU"] + df["ETLFS"]) / df["PART16"]
+
+
+def _extend_pop16_on_efo_path(df: pd.DataFrame) -> pd.DataFrame:
+    """Beyond the last ONS observation, put POP16 on the EFO-implied path.
+
+    ``_merge_ons_snapshot`` holds every snapshot series at its trailing
+    four-quarter mean beyond the data. For the 16+ population that froze the
+    forecast at 56.4m (below the last observation) while the EFO's employment
+    kept rising, so the labour-force identity ``ULFS = POP16*PART16/100 -
+    ETLFS`` (l.163) drained unemployment: 3.75% against the EFO's 5.07% at
+    2027Q4 and 1.05% against 4.17% by 2031Q1, with employment, participation
+    and the (frozen) population all on their databank paths. Published
+    observations are never altered; only the extrapolated tail is replaced,
+    and only where the three EFO series are present.
+    """
+    need = ("POP16", "ULFSU", "ETLFS", "PART16")
+    if any(c not in df.columns for c in need):
+        return df
+    edge = ons_snapshot_edge("POP16")
+    if edge is None:
+        return df
+    implied = efo_implied_pop16(df)
+    tail = (df.index > edge) & np.isfinite(implied.to_numpy(dtype=float))
+    df = df.copy()
+    df.loc[tail, "POP16"] = implied[tail]
     return df
 
 

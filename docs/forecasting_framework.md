@@ -25,7 +25,8 @@ Net balances scored as % of GDP; everything else as MAPE (%) or abs pp.
 > accurate only for the level variables.
 
 Recomputed on the October-2026 EFO vintage (`python -m obr_macro.forecast`,
-17 Nov 2026, with household taxes held on their data path). The fit window
+18 Nov 2026, with household taxes held on their data path and the forecast
+16+ population on the EFO-implied path). The fit window
 2024Q1–2025Q4 and projection 2026Q1–2027Q4 are unchanged; on this vintage
 2026Q1–2026Q2 are outturn, so the first two projected quarters are scored
 against outturn rather than forecast. The default closure is the nominal-GDP pin (l.690, #42; see
@@ -34,16 +35,27 @@ figures in the last column.
 
 | Variable | Error (held-AF forecast) | band | Published closure |
 |---|--:|---|--:|
-| Real GDP | 0.35% | within | 0.35% |
-| Consumption | 0.39% | within | 0.39% |
+| Real GDP | 0.63% | within | 0.63% |
+| Consumption | 0.85% | within | 0.84% |
 | Employment | 0.00% | **trivial identity** | 0.00% |
 | Real household income | — | **held at EFO (not forecast)** | — |
 | Household income | — | **held at EFO (not forecast)** | — |
-| Unemployment rate | 0.82pp | within | 0.82pp |
-| Business investment | 8.48% | within | 10.68% (over) |
-| Company profits | 17.66% | **over** | 17.42% (over) |
+| Unemployment rate | 0.00pp | **identity on EFO inputs** | 0.00pp |
+| Business investment | 8.48% | within | 8.49% (within) |
+| Company profits | 15.77% | **over** | 17.97% (over) |
 | Trade balance | 0.23% of GDP | within | 0.23% of GDP |
-| Current account | 0.33% of GDP | within | 0.41% of GDP (within) |
+| Current account | 0.33% of GDP | within | 0.36% of GDP (within) |
+
+> **Before the forecast population followed the EFO (17 Nov 2026):** GDP
+> 0.35%, consumption 0.39%, unemployment 0.82pp, business investment 8.48%
+> (published closure 10.68%), company profits 17.66% (17.42%), current
+> account 0.33% of GDP (0.41%); 7 of 8 within band (6 of 8). The 16+
+> population was held flat at 56.4m, so unemployment drained while
+> employment rose, and through the unemployment term of the consumption
+> equation (l.4, −0.0084·d(LFSUR)) that lifted projected consumption
+> towards the EFO path. With unemployment on the EFO path that lift is
+> gone: GDP and consumption score 0.3 to 0.5 points worse, and the
+> unemployment line becomes an identity on EFO inputs.
 
 > **March 2026 EFO (6 Nov 2026), for comparison:** GDP 0.28% (published
 > closure 0.27%), consumption 0.19%, unemployment 0.69pp, business investment
@@ -60,8 +72,9 @@ figures in the last column.
 > Consumption 0.33%, Business investment 15.11%, Company profits 12.40%,
 > Trade balance 0.25% and Current account 1.36% of GDP.
 
-**8 of 16 headline variables computed; 7 of those within band under the
-default closure, 6 under the published closure (net balances as % of GDP).** No explosions — the financial blocks are bounded by their real data.
+**8 of 16 headline variables computed; 7 of those within band under both
+closures (net balances as % of GDP). Two of the seven are identities on EFO
+inputs (employment and, since 18 Nov 2026, unemployment).** No explosions — the financial blocks are bounded by their real data.
 
 > **Superseded numbers.** Earlier revisions of this table read Real GDP 2.22%,
 > Consumption 3.55%, Business investment 17.85%, Company profits 47.42%,
@@ -79,8 +92,10 @@ default closure, 6 under the published closure (net balances as % of GDP).** No 
    The number here is best read as "how far the held-add-factor dynamics drift
    from the OBR path once anchored at it", not a from-scratch forecast.
 2. **Employment is a trivial identity** (`ETLFS = HWA/AVH`, both passthrough
-   inputs), not an independent behavioural channel — so the "within band" count
-   includes one free pass.
+   inputs), not an independent behavioural channel, and so is unemployment
+   (`ULFS = POP16·PART16/100 − ETLFS`, with the forecast population implied
+   by the EFO's own labour-market table) — so the "within band" count
+   includes two free passes.
 3. **The add-factor base window ends inside the OBR's forecast.** Add-factors
    are fit over 2024Q1–2025Q4, but the November-2025 EFO tables only contain
    outturn for the early part of that window: the later quarters (2025H2) are
@@ -93,14 +108,14 @@ default closure, 6 under the published closure (net balances as % of GDP).** No 
    published EFO values for the whole projection. `RHHDI` is the income driver
    of the one live behavioural aggregate, `dlog(CONS)`; and under the demand
    closure every other term in `GDPM = CGG + CONS + IF + DINV + VAL + X − M +
-   SDE` is exogenous and likewise held at EFO. So "Real GDP forecasts to 0.35%"
+   SDE` is exogenous and likewise held at EFO. So "Real GDP forecasts to 0.63%"
    decomposes as: the model is given household income, uses it to project
    consumption, and adds seven EFO series. It is a statement about the
    consumption equation's short-run dynamics, not about the model forecasting
    GDP. The un-anchored version of the same question is the raw calibration
-   scorecard (GDP 4.05%, consumption 6.92%, household income 3.08% under the
-   default nominal-GDP pin; 3.82%, 6.55% and 3.69% under the published
-   closure; re-measured 16 Nov 2026 on the October 2026 EFO, see
+   scorecard (GDP 4.24%, consumption 7.23%, household income 3.10% under the
+   default nominal-GDP pin; 4.28%, 7.30% and 4.04% under the published
+   closure; re-measured 18 Nov 2026 on the October 2026 EFO, see
    `calibration_scorecard.md`). That is
    not a forecast-skill number either, and not an OBR error: in the OBR's
    model GDP is an input, so it cannot miss it. It measures this emulator —
@@ -119,17 +134,18 @@ default closure, 6 under the published closure (net balances as % of GDP).** No 
 
 - The machinery works: add-factors are fit, held and projected, nothing
   explodes, and the financial blocks stay bounded by their real data.
-- The macro core (GDP, consumption, unemployment) lands within band over a
-  two-year projection — **but see caveat 4**. GDP and consumption are within
-  band largely because household income is handed to the model rather than
+- The macro core (GDP, consumption) lands within band over a two-year
+  projection — **but see caveat 4**. GDP and consumption are within band
+  largely because household income is handed to the model rather than
   forecast by it, so this is not evidence of forecast skill. Unemployment
-  (0.82pp) is the one line here that is both computed and not downstream of a
-  held income series, and it is within band only over this two-year window:
-  on the anchored long horizon it drifts to 3.75% against the EFO's 5.07% by
-  2027Q4 and 1.05% against 4.17% by 2031Q1 (`results/site_figures.json`),
-  because the labour-force identities `ULFS` (l.163) and `PART16` (l.175)
-  are one identity written twice and nothing anchors the participation rate.
-- **Over band: company profits (17.7%).** Business investment (8.5%) and the
+  scores 0.00pp because it is an identity on EFO inputs (employment, the
+  participation rate and the population they imply), not because the model
+  forecasts it. Until 18 Nov 2026 the forecast population was held flat and
+  the rate drained to 3.75% against the EFO's 5.07% by 2027Q4 and 1.05%
+  against 4.17% by 2031Q1; the labour-force identities `ULFS` (l.163) and
+  `PART16` (l.175) are one identity written twice, so the population path is
+  what pins the rate.
+- **Over band: company profits (15.8%).** Business investment (8.5%) and the
   current account (0.33% of GDP) are within band on the October 2026 EFO
   (10.0% and 1.51% on the March 2026 EFO). Finite and in the right ballpark;
   profits are not usable.
@@ -254,7 +270,7 @@ and `solve_period` skips the update — so `HHTFA` and `NDIVHH` remain frozen fo
 second, independent reason. Every validation number is therefore **bitwise
 unchanged** by this fix: anchored GDPM MAPE 0.1756% / CONS 0.2888% on the
 November-2025 vintage current when that check was run (0.30% / 0.49% on the
-March-2026 vintage, after the recovered-series revision; 0.44% / 0.72% on the
+March-2026 vintage, after the recovered-series revision; 0.24% / 0.40% on the
 current October-2026 vintage), the full
 calibration scorecard, and the standard `CGG +£1.25bn × 4q` shock path.
 

@@ -131,6 +131,62 @@ def test_unemployment_rate_matches_published_counts(efo):
     assert gap < 0.01, f"LFSUR inconsistent with counts: max gap {gap:.4f}pp"
 
 
+@pytest.fixture(scope="module")
+def databank():
+    """The EFO tables with the ONS snapshot merged: what the solver loads."""
+    from obr_macro.data import load_obr_data
+
+    return load_obr_data()
+
+
+def test_efo_implied_population_matches_the_ons_series_over_history(databank):
+    """The 16+ population implied by the EFO labour-market table,
+    100*(ULFSU + ETLFS)/PART16 (l.175 rearranged), must equal the ONS series
+    MGSL wherever MGSL is observed. Measured 18 Nov 2026 on 2019Q1 to the
+    snapshot edge (2026Q1): the two agree to the nearest thousand people
+    (max relative gap about 1e-5). That agreement is what licenses using
+    the implied path beyond the edge; if it breaks, the EFO's participation
+    rate is no longer on the MGSL basis and the forecast population must not
+    be derived this way."""
+    from obr_macro.data import efo_implied_pop16, ons_snapshot_edge
+
+    edge = ons_snapshot_edge("POP16")
+    assert edge is not None, "POP16 is missing from the ONS snapshot"
+    implied = efo_implied_pop16(databank).loc["2019Q1":edge]
+    observed = databank["POP16"].loc["2019Q1":edge]
+    assert len(observed) >= 20, "too few observed population quarters"
+    gap = (implied / observed - 1).abs().max()
+    assert gap < 5e-5, f"EFO-implied POP16 off the ONS series by {gap:.2e}"
+
+
+def test_forecast_population_follows_the_efo_and_closes_the_labour_identity(databank):
+    """Beyond the last ONS observation POP16 is the EFO-implied path, not the
+    trailing-mean hold every other snapshot series gets, so the labour-force
+    identity ULFS = POP16*PART16/100 - ETLFS (l.163) returns the EFO's own
+    unemployment. Held flat, the population sat at 56.4m (below its last
+    observation, 56.6m) while employment rose, and the identity drained
+    unemployment to 1.05% by 2031Q1 against the EFO's 4.17%."""
+    from obr_macro.data import efo_implied_pop16, ons_snapshot_edge
+
+    edge = ons_snapshot_edge("POP16")
+    tail = databank.loc[edge + 1 : "2031Q1"]
+    assert len(tail) >= 16, "the forecast horizon is shorter than expected"
+    pd.testing.assert_series_equal(
+        tail["POP16"], efo_implied_pop16(databank).loc[tail.index], check_names=False
+    )
+    # It grows: about 70-80 thousand a quarter, never flat, never falling.
+    step = tail["POP16"].diff().dropna()
+    assert (step > 20).all() and (step < 200).all(), step.describe()
+    # No jump at the splice from observations to the implied path.
+    splice = databank.loc[edge + 1, "POP16"] - databank.loc[edge, "POP16"]
+    assert 20 < splice < 200, f"POP16 jumps {splice:.0f} thousand at the splice"
+    # The identity closes on the EFO unemployment rate.
+    ulfs = tail["POP16"] * tail["PART16"] / 100 - tail["ETLFS"]
+    rate = 100 * ulfs / (tail["ETLFS"] + ulfs)
+    gap = (rate - tail["LFSUR"]).abs().max()
+    assert gap < 0.01, f"labour identity misses EFO unemployment by {gap:.4f}pp"
+
+
 # --- 2. Pinned published spot values (unit-conversion guard) -----------------
 
 # Transcribed from obr_macro/_data/obr_efo_october_2026_economy.xlsx,
