@@ -11,7 +11,7 @@ template (as ``tests/test_tax_scenarios.py`` does) and checked against
 
     uv run python scripts/demo_shocks.py
 
-About 55 solves (14 run_reform calls plus 12 rebuilt pairs; the pass-through rows re-solve three times; about 35 minutes): run it on GitHub Actions (``.github/workflows/demo.yml``).
+About 60 solves (15 run_reform calls plus 13 rebuilt pairs; the pass-through rows re-solve three times; 45 to 55 minutes on Actions): run it on GitHub Actions (``.github/workflows/demo.yml``).
 """
 
 from __future__ import annotations
@@ -31,6 +31,9 @@ from obr_macro.reform_analysis import (
     _apply_household_costing,
     _apply_price_passthrough,
     _build_reform_template,
+    apply_spending_shock,
+    resolve_nominal_consistent,
+    resolve_nominal_gdp_pin,
 )
 
 warnings.filterwarnings("ignore")
@@ -47,6 +50,11 @@ COLS = (
     "HHDI",
     "PSCR",
     "CGNB",
+    "PSNBNSA",
+    "PSCE",
+    "CGGPS",
+    "GGFCD",
+    "PIF",
     "CPI",
     "BPAPS",
     "CB",
@@ -65,6 +73,14 @@ SHOCKS = [
         1250.0,
         12,
         {},
+    ),
+    (
+        "cgg_real_only",
+        "Same, real-only (nominal spending held; the default before 18 Nov 2026)",
+        "CGG",
+        1250.0,
+        12,
+        {"nominal_consistent": False},
     ),
     (
         "cgg_conventions",
@@ -176,13 +192,29 @@ def _attrs(df):
     return keep
 
 
-def pair(var, shock, periods, investment_closure, price_passthrough=False):
+def pair(
+    var,
+    shock,
+    periods,
+    investment_closure,
+    price_passthrough=False,
+    nominal_consistent=None,
+):
     tpl = _build_reform_template(var, START, END, investment_closure)
     base, k = tpl.clone(), tpl.clone()
     if var == HOUSEHOLD_COSTING_VAR:
         _apply_household_costing(k, shock, START, periods)
     else:
-        k.apply_shock(var, shock, START, periods=periods)
+        # As run_reform does: a CGG shock carries its nominal legs by default.
+        pin = resolve_nominal_gdp_pin(None, investment_closure)
+        apply_spending_shock(
+            k,
+            var,
+            shock,
+            START,
+            periods,
+            nominal_consistent=resolve_nominal_consistent(nominal_consistent, var, pin),
+        )
     base.solve(START, END)
     k.solve(START, END)
     if price_passthrough:
@@ -240,6 +272,7 @@ def main():
                 periods,
                 kw.get("investment_closure", False),
                 kw.get("price_passthrough", False),
+                kw.get("nominal_consistent"),
             )
             g_rr = np.array(rec["run_reform"]["delta_gdp_m"], dtype=float)
             g_pair = np.array(rec["pair"]["deltas_m"]["GDPM"], dtype=float)

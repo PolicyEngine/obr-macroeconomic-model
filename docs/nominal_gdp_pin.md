@@ -38,8 +38,9 @@ regression gates now pin the right-hand column.
   +£1.25bn a quarter of CGG, FYCPR rises £1.33bn to £1.46bn a quarter (nominal
   GDP rises at the fixed PGDP while compensation is exogenous). In this model
   corporation-tax receipts do not follow: `CT = NSCTP + NNSCTP` (l.408) and
-  neither component has an equation, so no in-model receipt or borrowing
-  figure moves. Nothing in this repo or in the hosted PolicyEngine/macro
+  neither component has an equation, so no in-model receipt moves, and
+  borrowing moves only by the cash cost of the spending itself (since 18 Nov
+  2026; not at all under the real-only shock). Nothing in this repo or in the hosted PolicyEngine/macro
   scoring reads FYCPR. A downstream scorer that applied the 25% main rate to
   the FYCPR delta would book about £0.33bn to £0.37bn a quarter of extra
   corporation tax per £1.25bn of spending, which is an artefact of the
@@ -51,7 +52,12 @@ regression gates now pin the right-hand column.
   gap in PIF (about +0.94), which raises GGIDEF and lowers real GGI, so IBUSX
   reads +17.5% of the shock on the March 2026 EFO (16.9% on the October
   2026 EFO, 2026Q1–2027Q4; 0.09% under the published closure). This is deflator propagation, not an investment response. GDP
-  is unaffected. A nominal-consistent shock (CGGPS moved too) removes it.
+  is unaffected. A nominal-consistent shock (CGGPS moved too) removes it,
+  and since 18 Nov 2026 that is what a default `CGG` shock under the pin
+  is (`reform_analysis.NOMINAL_SPENDING_LEGS`): `run_reform` also moves
+  CGGPS, CGGPSPSF and PSCE by shock × baseline CGGPS/CGG, so IBUSX stays
+  within 0.3% of the shock and borrowing rises by the cash cost. The
+  real-only shock described in this bullet is `nominal_consistent=False`.
 
 ## The problem it solves
 
@@ -285,7 +291,15 @@ absorbs the nominal gap (+0.94 index points per £1.25bn). Shocking CGGPS by
 `shock × GGFCD/100` as well, so the shock is consistent in nominal terms,
 removes the PIF move (at most 0.015) and leaves GDP almost unchanged
 (1.013 → 1.042, then 0.031 at q12). So the multiplier above 1 is the model's
-income side, live for the first time, and not a PIF artifact. Under the
+income side, live for the first time, and not a PIF artifact. Since 18 Nov
+2026 this is the default `CGG` shock under the pin, with CGGPSPSF and PSCE
+moved by the same cash amount so that borrowing moves too: on the October
+2026 EFO, +£1.25bn a quarter for 12 quarters gives a multiplier of 1.013 on
+impact and 1.040 at q12 (1.013 and 1.047 real-only), CGNB and PSNBNSA up by
+£1.34bn to £1.42bn a quarter (exactly zero real-only), and IBUSX within £4m
+of zero (+£200m to +£295m real-only). Moving CGGPS alone leaves borrowing
+unchanged, and moving CGGPS and CGGPSPSF without PSCE still does: the
+subsidy residual CGSUBP (l.504) offsets procurement one for one. Under the
 published closure the same nominal-consistent shock is erratic: +£445m at
 q16, four quarters after the shock ends, with PIF −3.6.
 

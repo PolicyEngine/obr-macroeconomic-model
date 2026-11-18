@@ -789,6 +789,7 @@ def _impose_published_convention(
     periods: int,
     t_start: int,
     t_end: int,
+    nominal_consistent: bool = False,
 ):
     """Impose the OBR's published multiplier convention as a GDPM add-factor path.
 
@@ -868,7 +869,9 @@ def _impose_published_convention(
         # A fresh clone each pass: every pass is the same solve from the same
         # start, differing only in the add-factor path.
         conv = template.clone()
-        conv.apply_shock(var, shock, start, periods=periods)
+        apply_spending_shock(
+            conv, var, shock, start, periods, nominal_consistent=nominal_consistent
+        )
         for q in range(horizon):
             key = ("GDPM", t_start + q)
             # += so the structural add-factors already on the template (e.g.
@@ -1003,6 +1006,100 @@ def _apply_price_passthrough(shocked, baseline_data, start, end, t_start, t_end)
     return shocked.data.copy(), report, detail
 
 
+# --- Nominal-consistent government-consumption shock -------------------------
+# ``CGG`` is real government consumption. The listing has no live equation for
+# its nominal counterpart: l.381 (CGGPS = pay + procurement + depreciation) is
+# commented out, and the "indirect T2 fix" imposes the spending totals instead
+# (CGP = CGGPSPSF - pay - ..., l.377; CGSUBP = PSCE - ..., l.504). A shock to
+# CGG alone therefore raises real spending with nominal spending held, which
+# (i) lowers the government deflator GGFCD = 100*CGGPS/CGG (l.383) by about
+# 0.9 index points per GBP 1.25bn, (ii) leaves every borrowing aggregate
+# exactly unchanged, and (iii) under the nominal-GDP pin pushes the nominal
+# gap into the investment deflator (l.337), so measured business investment
+# IBUSX moves by 16-24% of the shock with no investment response behind it.
+#
+# The nominal-consistent shock moves the three imposed nominal totals by the
+# same cash amount, ``shock * CGGPS/CGG`` (the baseline deflator):
+#   CGGPS     nominal government consumption (GDP expenditure side, l.681)
+#   CGGPSPSF  its public-sector-finances counterpart -> procurement CGP (l.377)
+#   PSCE      public sector current expenditure      -> PSCB (l.510), PSNB
+# so GGFCD is unchanged, CGNB/GGNB/PSNBNSA/TME rise by the cash cost, and the
+# IBUSX artefact disappears. Moving CGGPSPSF without PSCE is not enough: the
+# subsidy residual CGSUBP (l.504) then falls one for one and borrowing is
+# unchanged. This is accounting (the spending is paid for), not a behavioural
+# fiscal response: receipts do not move in this model.
+NOMINAL_SPENDING_LEGS = {"CGG": ("CGGPS", "CGGPSPSF", "PSCE")}
+NOMINAL_CONSISTENT_NOTE = (
+    "The real CGG shock is matched by the same cash amount (shock x baseline "
+    "CGGPS/CGG) on nominal government consumption CGGPS, its public-finances "
+    "counterpart CGGPSPSF and public sector current expenditure PSCE, so the "
+    "government deflator is unchanged and borrowing (CGNB, GGNB, PSNBNSA) "
+    "rises by the cash cost. Accounting only: receipts have no equation in "
+    "the listing and do not respond. Pass nominal_consistent=False for the "
+    "real-only shock (nominal spending held, borrowing unchanged)."
+)
+
+
+def resolve_nominal_consistent(
+    nominal_consistent: "bool | None", var: str, nominal_gdp_pin: bool
+) -> bool:
+    """Default None: on for a CGG shock under the nominal-GDP pin, else off.
+
+    Under the published closure (l.688, PIF free) the same shock was erratic
+    when measured (docs/nominal_gdp_pin.md), so it is not the default there;
+    an explicit True is honoured. True for any other instrument raises.
+    """
+    if nominal_consistent is None:
+        return var in NOMINAL_SPENDING_LEGS and bool(nominal_gdp_pin)
+    if nominal_consistent and var not in NOMINAL_SPENDING_LEGS:
+        raise ValueError(
+            "nominal_consistent applies only to a government-consumption shock "
+            f"({', '.join(sorted(NOMINAL_SPENDING_LEGS))}); got var={var!r}."
+        )
+    return bool(nominal_consistent)
+
+
+def apply_spending_shock(
+    solver, var, shock, start, periods=12, nominal_consistent=True
+):
+    """Apply a real ``var`` shock and, if asked, its nominal legs.
+
+    Returns the list of nominal legs moved (empty for the real-only shock).
+    The cash path is ``shock * CGGPS/CGG`` on the solver's pre-shock data, so
+    it must be computed before the real shock is applied. A leg that is
+    missing or non-finite in the databank raises through ``apply_shock``
+    rather than being skipped: a half-applied nominal shock would report a
+    borrowing delta that is neither the real-only nor the consistent one.
+    """
+    values = shock_path(shock, periods)
+    legs = NOMINAL_SPENDING_LEGS.get(var, ()) if nominal_consistent else ()
+    cash = None
+    if legs:
+        # Validate every leg before mutating anything.
+        missing = [leg for leg in legs if leg not in solver.data.columns]
+        if missing:
+            raise KeyError(
+                f"cannot build the nominal-consistent {var} shock: "
+                f"{', '.join(missing)} not in the databank. Pass "
+                "nominal_consistent=False for the real-only shock."
+            )
+        t0 = solver.period_idx(start)
+        n = min(len(values), len(solver.data) - t0)
+        nominal = solver.data["CGGPS"].iloc[t0 : t0 + n].to_numpy(dtype=float)
+        real = solver.data[var].iloc[t0 : t0 + n].to_numpy(dtype=float)
+        ratio = nominal / real
+        if not np.all(np.isfinite(ratio)) or np.any(ratio <= 0):
+            raise ValueError(
+                f"cannot build the nominal-consistent {var} shock: baseline "
+                "CGGPS/CGG is non-finite or non-positive in the shocked window."
+            )
+        cash = [float(values[q]) * float(ratio[q]) for q in range(n)]
+    solver.apply_shock(var, shock, start, periods=periods)
+    for leg in legs:
+        solver.apply_shock(leg, cash, start)
+    return list(legs)
+
+
 def run_reform(
     name: str,
     var: str,
@@ -1015,6 +1112,7 @@ def run_reform(
     nominal_gdp_pin: "bool | None" = None,
     monetary_conditioning: bool = False,
     price_passthrough: bool = False,
+    nominal_consistent: "bool | None" = None,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -1071,6 +1169,17 @@ def run_reform(
             solved indirect-tax take. A labelled judgement overlay, not the
             shipped listing (which holds CPI exogenous). Default False
             (unchanged). See issue #60.
+        nominal_consistent: Only for ``var="CGG"``. If True, the real shock
+            is matched by the same cash amount on the imposed nominal
+            spending totals (CGGPS, CGGPSPSF, PSCE; NOMINAL_SPENDING_LEGS),
+            so the government deflator is unchanged and borrowing rises by
+            the cash cost. If False, only real CGG moves: nominal spending
+            and every borrowing aggregate stay at baseline and the
+            investment deflator absorbs the gap. Default None: True under
+            the nominal-GDP pin, False under the published or investment
+            closure (see resolve_nominal_consistent). The GDP delta differs
+            by under 1% between the two; the borrowing and IBUSX deltas
+            differ completely. See docs/nominal_gdp_pin.md.
     """
     if monetary_conditioning and var != "R":
         raise ValueError(
@@ -1108,6 +1217,9 @@ def run_reform(
     # and unsolved, so the baseline and shocked clones are structurally
     # identical and the delta isolates the shock.
     nominal_gdp_pin = resolve_nominal_gdp_pin(nominal_gdp_pin, investment_closure)
+    nominal_consistent = resolve_nominal_consistent(
+        nominal_consistent, var, nominal_gdp_pin
+    )
     template = _build_reform_template(
         var, start, end, investment_closure, nominal_gdp_pin
     )
@@ -1118,7 +1230,9 @@ def run_reform(
     if var == HOUSEHOLD_COSTING_VAR:
         _apply_household_costing(shocked, shock, start, periods)
     else:
-        shocked.apply_shock(var, shock, start, periods=periods)
+        apply_spending_shock(
+            shocked, var, shock, start, periods, nominal_consistent=nominal_consistent
+        )
     if monetary_conditioning:
         r_path = shock_path(shock, periods)
         for _input, (_coef, _src) in MONETARY_CONDITIONING.items():
@@ -1163,6 +1277,7 @@ def run_reform(
             periods,
             t_start,
             t_end,
+            nominal_consistent=nominal_consistent,
         )
 
     results = []
@@ -1196,6 +1311,12 @@ def run_reform(
     # Which nominal-GDP closure produced this frame (#42): True = l.690 pin
     # (the default under the demand closure), False = published l.688.
     out.attrs["nominal_gdp_pin"] = nominal_gdp_pin
+    # Whether a CGG shock carried its nominal legs (borrowing moves) or was
+    # real-only (borrowing unchanged). Always False for other instruments.
+    out.attrs["nominal_consistent"] = nominal_consistent
+    if nominal_consistent:
+        out.attrs["nominal_consistent_legs"] = list(NOMINAL_SPENDING_LEGS[var])
+        out.attrs["nominal_consistent_note"] = NOMINAL_CONSISTENT_NOTE
 
     # A shock path longer than the [start, end] window is applied to the data
     # but never solved or reported, so a caller summing "the shocked quarters"
@@ -1354,7 +1475,7 @@ def run_reform(
                 "Demand-closure shock: GDP delta is mechanical passthrough via the "
                 "expenditure identity (multiplier 1.0 under the published closure; "
                 "under the default nominal-GDP pin about 1.01 on impact, drifting "
-                "up to about 1.05 by q12 because the extra nominal GDP lands in "
+                "up to about 1.04 by q12 because the extra nominal GDP lands in "
                 "profits and a small part reaches household income and "
                 "consumption; no decay). Import leakage and crowding-out channels "
                 "are structurally inert in the published model file/data. This "

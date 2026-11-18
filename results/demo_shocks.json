@@ -1,9 +1,9 @@
 {
  "source": "scripts/demo_shocks.py",
- "model_commit": "b56fe3b236b80849f2a03d1a69002dafa06902a5",
+ "model_commit": "a8220455b17e5211913388f93095f3a2b36dca70",
  "machine": "Linux x86_64",
  "python": "3.14.4",
- "runtime_s": 2775.4,
+ "runtime_s": 2930.6,
  "window": [
   "2025Q1",
   "2027Q4"
@@ -16,6 +16,542 @@
    "shock": 1250.0,
    "shocked_quarters": 12,
    "kwargs": {},
+   "periods": [
+    "2025Q1",
+    "2025Q2",
+    "2025Q3",
+    "2025Q4",
+    "2026Q1",
+    "2026Q2",
+    "2026Q3",
+    "2026Q4",
+    "2027Q1",
+    "2027Q2",
+    "2027Q3",
+    "2027Q4"
+   ],
+   "run_reform": {
+    "delta_gdp_m": [
+     1266.014,
+     1270.872,
+     1275.132,
+     1280.012,
+     1283.872,
+     1287.094,
+     1290.017,
+     1292.52,
+     1294.702,
+     1296.613,
+     1298.34,
+     1299.854
+    ],
+    "pct_gdp": [
+     0.18,
+     0.18,
+     0.181,
+     0.181,
+     0.181,
+     0.18,
+     0.18,
+     0.18,
+     0.18,
+     0.18,
+     0.179,
+     0.179
+    ],
+    "delta_cons_m": [
+     16.014,
+     20.872,
+     25.132,
+     30.012,
+     33.872,
+     37.094,
+     40.017,
+     42.52,
+     44.702,
+     46.613,
+     48.34,
+     49.854
+    ],
+    "delta_if_m": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "attrs": {
+    "nominal_gdp_pin": true,
+    "nominal_consistent": true,
+    "nominal_consistent_legs": "['CGGPS', 'CGGPSPSF', 'PSCE']",
+    "nominal_consistent_note": "The real CGG shock is matched by the same cash amount (shock x baseline CGGPS/CGG) on nominal government consumption CGGPS, its public-finances counterpart CGGPSPSF and public sector current expenditure PSCE, so the government deflator is unchanged and borrowing (CGNB, GGNB, PSNBNSA) rises by the cash cost. Accounting only: receipts have no equation in the listing and do not respond. Pass nominal_consistent=False for the real-only shock (nominal spending held, borrowing unchanged).",
+    "shock_quarters": 12,
+    "shock_quarters_beyond_horizon": 0,
+    "solver_converged": true,
+    "solver_nonconverged_periods": [],
+    "solver_exit_status": {
+     "baseline": {
+      "2025Q1": "tol",
+      "2025Q2": "tol",
+      "2025Q3": "tol",
+      "2025Q4": "tol",
+      "2026Q1": "tol",
+      "2026Q2": "tol",
+      "2026Q3": "tol",
+      "2026Q4": "tol",
+      "2027Q1": "tol",
+      "2027Q2": "tol",
+      "2027Q3": "tol",
+      "2027Q4": "tol"
+     },
+     "shocked": {
+      "2025Q1": "tol",
+      "2025Q2": "tol",
+      "2025Q3": "tol",
+      "2025Q4": "tol",
+      "2026Q1": "tol",
+      "2026Q2": "tol",
+      "2026Q3": "tol",
+      "2026Q4": "tol",
+      "2027Q1": "tol",
+      "2027Q2": "tol",
+      "2027Q3": "tol",
+      "2027Q4": "tol"
+     }
+    },
+    "solver_eq_failures": {
+     "baseline": 0,
+     "shocked": 0
+    },
+    "published_conventions": false,
+    "mechanical_passthrough": true,
+    "obr_published_impact_multiplier": {
+     "current_spending": 0.6,
+     "capital_spending": 1.0,
+     "personal_tax_and_nics": 0.3
+    },
+    "multiplier_warning": "Demand-closure shock: GDP delta is mechanical passthrough via the expenditure identity (multiplier 1.0 under the published closure; under the default nominal-GDP pin about 1.01 on impact, drifting up to about 1.04 by q12 because the extra nominal GDP lands in profits and a small part reaches household income and consumption; no decay). Import leakage and crowding-out channels are structurally inert in the published model file/data. This does NOT match the OBR's published impact multiplier for current spending (0.6, decaying to zero as the output gap closes) \u2014 it is ~69% too large on impact under the default pin (~67% under the published closure) and drifts up where the OBR's decays. Do not read the path as a multiplier profile.",
+    "dead_channel": false,
+    "price_passthrough": false,
+    "monetary_conditioning": false
+   },
+   "pair": {
+    "status": {
+     "baseline": {
+      "tol": 12,
+      "quarters": 12,
+      "not_tol": {},
+      "dropped": 82
+     },
+     "shocked": {
+      "tol": 12,
+      "quarters": 12,
+      "not_tol": {},
+      "dropped": 82
+     }
+    },
+    "deltas_m": {
+     "GDPM": [
+      1266.014,
+      1270.872,
+      1275.132,
+      1280.012,
+      1283.872,
+      1287.094,
+      1290.017,
+      1292.52,
+      1294.702,
+      1296.613,
+      1298.34,
+      1299.854
+     ],
+     "GDPMPS": [
+      1345.772,
+      1363.646,
+      1379.692,
+      1392.653,
+      1412.259,
+      1420.952,
+      1433.586,
+      1445.29,
+      1455.054,
+      1465.573,
+      1473.851,
+      1482.387
+     ],
+     "CONS": [
+      16.014,
+      20.872,
+      25.132,
+      30.012,
+      33.872,
+      37.094,
+      40.017,
+      42.52,
+      44.702,
+      46.613,
+      48.34,
+      49.854
+     ],
+     "IF": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "IBUSX": [
+      -1.604,
+      -1.955,
+      -1.822,
+      -2.288,
+      -0.688,
+      -3.29,
+      -3.928,
+      -3.886,
+      -2.903,
+      -1.593,
+      -0.988,
+      -0.551
+     ],
+     "HHDI": [
+      174.418,
+      163.828,
+      157.627,
+      168.894,
+      165.956,
+      163.623,
+      163.323,
+      163.351,
+      162.676,
+      161.999,
+      161.154,
+      159.929
+     ],
+     "PSCR": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGNB": [
+      1336.085,
+      1345.676,
+      1358.464,
+      1364.488,
+      1371.998,
+      1392.936,
+      1406.314,
+      1414.7,
+      1414.756,
+      1413.816,
+      1415.597,
+      1419.123
+     ],
+     "PSNBNSA": [
+      1336.085,
+      1345.676,
+      1358.464,
+      1364.488,
+      1371.998,
+      1392.936,
+      1406.314,
+      1414.7,
+      1414.756,
+      1413.816,
+      1415.597,
+      1419.123
+     ],
+     "PSCE": [
+      1336.085,
+      1345.676,
+      1358.464,
+      1364.488,
+      1371.998,
+      1392.936,
+      1406.314,
+      1414.7,
+      1414.756,
+      1413.816,
+      1415.597,
+      1419.123
+     ],
+     "CGGPS": [
+      1336.085,
+      1345.676,
+      1358.464,
+      1364.488,
+      1371.998,
+      1392.936,
+      1406.314,
+      1414.7,
+      1414.756,
+      1413.816,
+      1415.597,
+      1419.123
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -0.0,
+      0.0,
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "PIF": [
+      -0.005,
+      -0.011,
+      -0.01,
+      -0.01,
+      -0.002,
+      -0.015,
+      -0.018,
+      -0.018,
+      -0.014,
+      -0.008,
+      -0.005,
+      -0.003
+     ],
+     "CPI": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "BPAPS": [
+      0.0,
+      0.0,
+      0.0,
+      -0.0,
+      -0.0,
+      0.0,
+      0.0,
+      -0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CB": [
+      0.0,
+      6.068,
+      5.032,
+      7.571,
+      6.402,
+      10.366,
+      11.978,
+      13.148,
+      14.504,
+      15.762,
+      16.951,
+      18.109
+     ],
+     "FYCPR": [
+      1326.466,
+      1344.112,
+      1359.685,
+      1372.221,
+      1392.414,
+      1401.137,
+      1413.779,
+      1425.482,
+      1435.258,
+      1445.799,
+      1454.106,
+      1462.697
+     ],
+     "EUVAT": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GNP4": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "LFSUR": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "baseline_levels": {
+     "GDPM": [
+      704245.788,
+      704746.941,
+      705757.212,
+      706653.916,
+      711070.399,
+      714321.8,
+      716276.535,
+      717778.48,
+      719734.789,
+      721923.548,
+      724257.125,
+      727416.674
+     ],
+     "GDPMPS": [
+      748613.273,
+      756193.467,
+      763629.303,
+      768839.461,
+      782177.439,
+      788611.267,
+      795992.687,
+      802617.026,
+      808875.644,
+      815996.374,
+      822162.862,
+      829564.723
+     ],
+     "PGDP": [
+      106.3,
+      107.3,
+      108.2,
+      108.8,
+      110.0,
+      110.4,
+      111.129,
+      111.82,
+      112.385,
+      113.031,
+      113.518,
+      114.043
+     ],
+     "IBUSX": [
+      61048.411,
+      75789.788,
+      74011.42,
+      69877.346,
+      59730.224,
+      72079.032,
+      74228.535,
+      74355.395,
+      73870.456,
+      73302.457,
+      73083.11,
+      73050.364
+     ],
+     "CB": [
+      -23286.161,
+      -26320.692,
+      -26943.004,
+      -25542.068,
+      -31687.301,
+      -30369.144,
+      -32822.241,
+      -33656.42,
+      -32265.04,
+      -31005.236,
+      -30487.327,
+      -30338.575
+     ],
+     "EUVAT": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GNP4": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "pair_matches_run_reform_max_abs_m": 0.0,
+   "runtime_s": 209.1
+  },
+  "cgg_real_only": {
+   "label": "Same, real-only (nominal spending held; the default before 18 Nov 2026)",
+   "var": "CGG",
+   "shock": 1250.0,
+   "shocked_quarters": 12,
+   "kwargs": {
+    "nominal_consistent": false
+   },
    "periods": [
     "2025Q1",
     "2025Q2",
@@ -90,6 +626,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -135,7 +672,7 @@
      "capital_spending": 1.0,
      "personal_tax_and_nics": 0.3
     },
-    "multiplier_warning": "Demand-closure shock: GDP delta is mechanical passthrough via the expenditure identity (multiplier 1.0 under the published closure; under the default nominal-GDP pin about 1.01 on impact, drifting up to about 1.05 by q12 because the extra nominal GDP lands in profits and a small part reaches household income and consumption; no decay). Import leakage and crowding-out channels are structurally inert in the published model file/data. This does NOT match the OBR's published impact multiplier for current spending (0.6, decaying to zero as the output gap closes) \u2014 it is ~69% too large on impact under the default pin (~67% under the published closure) and drifts up where the OBR's decays. Do not read the path as a multiplier profile.",
+    "multiplier_warning": "Demand-closure shock: GDP delta is mechanical passthrough via the expenditure identity (multiplier 1.0 under the published closure; under the default nominal-GDP pin about 1.01 on impact, drifting up to about 1.04 by q12 because the extra nominal GDP lands in profits and a small part reaches household income and consumption; no decay). Import leakage and crowding-out channels are structurally inert in the published model file/data. This does NOT match the OBR's published impact multiplier for current spending (0.6, decaying to zero as the output gap closes) \u2014 it is ~69% too large on impact under the default pin (~67% under the published closure) and drifts up where the OBR's decays. Do not read the path as a multiplier profile.",
     "dead_channel": false,
     "price_passthrough": false,
     "monetary_conditioning": false
@@ -267,6 +804,76 @@
       0.0,
       0.0,
       0.0
+     ],
+     "PSNBNSA": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      -0.901,
+      -0.898,
+      -0.904,
+      -0.907,
+      -0.901,
+      -0.917,
+      -0.917,
+      -0.917,
+      -0.917,
+      -0.917,
+      -0.917,
+      -0.917
+     ],
+     "PIF": [
+      0.942,
+      0.942,
+      0.958,
+      0.939,
+      0.953,
+      0.941,
+      0.936,
+      0.939,
+      0.944,
+      0.953,
+      0.957,
+      0.961
      ],
      "CPI": [
       0.0,
@@ -469,7 +1076,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 205.9
+   "runtime_s": 121.2
   },
   "cgg_conventions": {
    "label": "Same, OBR published conventions",
@@ -523,18 +1130,18 @@
      0.046
     ],
     "delta_cons_m": [
-     9.971,
-     12.825,
-     15.169,
-     17.605,
-     19.336,
-     20.585,
-     21.529,
-     22.136,
-     22.48,
-     22.588,
-     22.516,
-     22.265
+     9.155,
+     11.2,
+     12.733,
+     14.399,
+     15.353,
+     15.84,
+     16.031,
+     15.898,
+     15.508,
+     14.897,
+     14.103,
+     13.128
     ],
     "delta_if_m": [
      0.0,
@@ -553,6 +1160,9 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": true,
+    "nominal_consistent_legs": "['CGGPS', 'CGGPSPSF', 'PSCE']",
+    "nominal_consistent_note": "The real CGG shock is matched by the same cash amount (shock x baseline CGGPS/CGG) on nominal government consumption CGGPS, its public-finances counterpart CGGPSPSF and public sector current expenditure PSCE, so the government deflator is unchanged and borrowing (CGNB, GGNB, PSNBNSA) rises by the cash cost. Accounting only: receipts have no equation in the listing and do not respond. Pass nominal_consistent=False for the real-only shock (nominal spending held, borrowing unchanged).",
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -630,7 +1240,7 @@
       337.49999999999994
      ],
      "imposition_solves": 3,
-     "max_abs_miss_m": 0.03805307135911562,
+     "max_abs_miss_m": 0.037832727190050264,
      "solver_exit_status": {
       "2025Q1": "tol",
       "2025Q2": "tol",
@@ -651,7 +1261,7 @@
     "price_passthrough": false,
     "monetary_conditioning": false
    },
-   "runtime_s": 148.5
+   "runtime_s": 152.7
   },
   "income_tax": {
    "label": "Income tax basic rate +1p (GBP 6.9bn/yr)",
@@ -733,6 +1343,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -910,6 +1521,76 @@
       -1725.0,
       -1725.0,
       -1725.0
+     ],
+     "PSNBNSA": [
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0,
+      -1725.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      -0.001,
+      -0.001,
+      -0.001,
+      -0.001,
+      -0.003,
+      -0.002,
+      -0.001,
+      -0.001,
+      0.001,
+      0.001,
+      0.002,
+      0.003
      ],
      "CPI": [
       0.0,
@@ -1112,7 +1793,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 208.3
+   "runtime_s": 210.5
   },
   "household_costing": {
    "label": "Household costing path GBP 1,616m a quarter (README)",
@@ -1194,6 +1875,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -1458,6 +2140,76 @@
       0.0,
       0.0
      ],
+     "PSNBNSA": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      -0.001,
+      -0.001,
+      -0.001,
+      -0.001,
+      -0.003,
+      -0.002,
+      -0.001,
+      -0.0,
+      0.001,
+      0.001,
+      0.002,
+      0.002
+     ],
      "CPI": [
       0.0,
       0.0,
@@ -1659,7 +2411,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 210.9
+   "runtime_s": 213.4
   },
   "employee_nics": {
    "label": "Employee NICs main rate +1pp (GBP 5.35bn/yr)",
@@ -1741,6 +2493,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -1918,6 +2671,76 @@
       -1337.5,
       -1337.5,
       -1337.5
+     ],
+     "PSNBNSA": [
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5,
+      -1337.5
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      -0.001,
+      -0.0,
+      -0.001,
+      -0.001,
+      -0.002,
+      -0.001,
+      -0.001,
+      -0.0,
+      0.001,
+      0.001,
+      0.002,
+      0.002
      ],
      "CPI": [
       0.0,
@@ -2120,7 +2943,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 209.6
+   "runtime_s": 211.3
   },
   "vat": {
    "label": "VAT standard rate +1pp (GBP 8.8bn/yr)",
@@ -2202,6 +3025,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -2379,6 +3203,76 @@
       -2200.0,
       -2200.0,
       -2200.0
+     ],
+     "PSNBNSA": [
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      -0.0,
+      0.001,
+      0.0,
+      0.001,
+      0.0,
+      0.0,
+      0.0,
+      0.001,
+      0.001,
+      0.001,
+      0.001,
+      0.001
      ],
      "CPI": [
       0.0,
@@ -2581,7 +3475,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 207.9
+   "runtime_s": 209.6
   },
   "fuel_duty": {
    "label": "Fuel duty +5% (GBP 1.2bn/yr)",
@@ -2663,6 +3557,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -2840,6 +3735,76 @@
       -300.0,
       -300.0,
       -300.0
+     ],
+     "PSNBNSA": [
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      -0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
      ],
      "CPI": [
       0.0,
@@ -3042,7 +4007,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 209.5
+   "runtime_s": 210.7
   },
   "corporation_tax_receipts": {
    "label": "Corporation tax +1pp as receipts (GBP 3.6bn/yr)",
@@ -3124,6 +4089,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -3301,6 +4267,76 @@
       -900.0,
       -900.0,
       -900.0
+     ],
+     "PSNBNSA": [
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0,
+      -900.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -0.0,
+      0.0,
+      -0.0,
+      0.0,
+      -0.0,
+      -0.0
      ],
      "CPI": [
       0.0,
@@ -3503,7 +4539,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 209.1
+   "runtime_s": 210.7
   },
   "corporation_tax_rate": {
    "label": "Corporation tax rate +5pp, investment closure (README)",
@@ -3587,6 +4623,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": false,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -3753,6 +4790,76 @@
       0.0
      ],
      "CGNB": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PSNBNSA": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
       0.0,
       0.0,
       0.0,
@@ -3967,7 +5074,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 198.8
+   "runtime_s": 200.6
   },
   "bank_rate": {
    "label": "Bank Rate +1pp for 4 quarters",
@@ -4049,6 +5156,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 4,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -4223,6 +5331,76 @@
       0.0,
       0.0,
       0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PSNBNSA": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      -0.001,
+      -0.002,
+      -0.001,
+      -0.001,
+      -0.002,
+      0.001,
+      -0.0,
       0.0,
       0.0,
       0.0,
@@ -4430,7 +5608,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 209.0
+   "runtime_s": 211.9
   },
   "bank_rate_conditioned": {
    "label": "Bank Rate +1pp for 4 quarters, monetary_conditioning",
@@ -4514,6 +5692,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 4,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -4579,7 +5758,7 @@
     },
     "monetary_conditioning_note": "Judgement overlay, not model dynamics: Bank Rate's pass-through to the listed conditioning inputs is imposed from the cited sources; channels without a sourced coefficient stay at the EFO path."
    },
-   "runtime_s": 60.8
+   "runtime_s": 61.5
   },
   "vat_passthrough": {
    "label": "VAT standard rate +1pp, price_passthrough (#60)",
@@ -4663,6 +5842,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -4863,6 +6043,76 @@
       -2200.0,
       -2200.0,
       -2200.0
+     ],
+     "PSNBNSA": [
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0,
+      -2200.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      -1.316,
+      -1.265,
+      -1.262,
+      -1.21,
+      -1.31,
+      -1.267,
+      -1.292,
+      -1.305,
+      -1.278,
+      -1.277,
+      -1.269,
+      -1.264
      ],
      "CPI": [
       0.556,
@@ -5065,7 +6315,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 256.5
+   "runtime_s": 260.9
   },
   "fuel_duty_passthrough": {
    "label": "Fuel duty +5%, price_passthrough (#60)",
@@ -5149,6 +6399,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": true,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -5349,6 +6600,76 @@
       -300.0,
       -300.0,
       -300.0
+     ],
+     "PSNBNSA": [
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0,
+      -300.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      -0.182,
+      -0.175,
+      -0.174,
+      -0.167,
+      -0.181,
+      -0.175,
+      -0.179,
+      -0.18,
+      -0.177,
+      -0.176,
+      -0.175,
+      -0.175
      ],
      "CPI": [
       0.077,
@@ -5551,7 +6872,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 241.4
+   "runtime_s": 245.8
   },
   "cgips_investment_closure": {
    "label": "Government investment +GBP 3bn a quarter, investment closure",
@@ -5635,6 +6956,7 @@
    },
    "attrs": {
     "nominal_gdp_pin": false,
+    "nominal_consistent": false,
     "shock_quarters": 12,
     "shock_quarters_beyond_horizon": 0,
     "solver_converged": true,
@@ -5814,6 +7136,76 @@
       3000.0,
       3000.0,
       3000.0
+     ],
+     "PSNBNSA": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PSCE": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "CGGPS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "GGFCD": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "PIF": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
      ],
      "CPI": [
       0.0,
@@ -6016,7 +7408,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 199.3
+   "runtime_s": 200.7
   }
  }
 }

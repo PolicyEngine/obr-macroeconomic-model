@@ -371,8 +371,10 @@ def test_cgg_default_run_is_unchanged_raw_passthrough():
     multiplier warning naming the published 0.6 it fails to match.
 
     Convention stated (#42, #54). The default closure is the nominal-GDP pin,
-    the OBR's commented-out l.690. Under it the raw passthrough is 1.0136 on
-    impact and drifts up to 1.0493 by q11 (measured 11 Nov 2026), because the
+    the OBR's commented-out l.690. Under it the raw passthrough is 1.013 on
+    impact and drifts up to about 1.040 by q11 (measured 18 Nov 2026 with the
+    nominal-consistent shock, the default since then; 1.0136 and 1.0493
+    real-only, 11 Nov), because the
     extra nominal GDP lands in profits and a small part reaches household
     income and consumption. Under the published l.688 closure it is 1.000 and
     flat (0.9988 at q11), which is what this test pinned before the default
@@ -384,6 +386,7 @@ def test_cgg_default_run_is_unchanged_raw_passthrough():
 
     df = run_reform("cgg raw", "CGG", 1250.0, periods=12)
     assert df.attrs["nominal_gdp_pin"] is True  # the default closure
+    assert df.attrs["nominal_consistent"] is True  # and so the default shock
     mult = df["delta_gdp_m"].to_numpy(dtype=float) / 1250.0
     assert 1.00 <= mult[0] <= 1.03, f"impact passthrough {mult[0]:.4f}"
     drift = mult[-1] - mult[0]
