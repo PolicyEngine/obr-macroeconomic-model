@@ -137,8 +137,8 @@ Partly, and the difference matters.
   not the OBR's configuration, because PIF is a residual there and not an
   input. Both closures are tabled below.
 
-The ~4% raw GDP error in the scorecard (4.05% under the pin, 3.82% under the
-published closure, 16 Nov 2026 on the October 2026 EFO) is a closure artifact of this
+The ~4% raw GDP error in the scorecard (4.24% under the pin, 4.28% under the
+published closure, 18 Nov 2026 on the October 2026 EFO) is a closure artifact of this
 emulator (GDPM is exogenous in the OBR's published model). It is not an OBR
 forecast error, under either closure.
 
@@ -201,12 +201,20 @@ moves nominal GDP off the published path by at most that much.
 Re-measured later on 16 Nov 2026 after household taxes `TYWHH` (l.612) were
 held on their data path (their ONS components are not seasonally adjusted;
 the gap had put a first-quarter dip of 11% to 13% into raw household
-income). These are the current figures. Pinned: real GDP 4.05%,
+income). Pinned: real GDP 4.05%,
 consumption 6.92%, business investment 7.34%, household income 3.08%, real
 household income 3.29%, company profits 11.66%; the rest unchanged; 8 of 11.
 Published closure: real GDP 3.82%, consumption 6.55%, business investment 22.13%, 3.69%, 3.82%, 47.74%,
 current account 1.03% of GDP; 7 of 11. The fall is the removal of a
 data-basis artefact, not better fit.
+
+Re-measured 18 Nov 2026 with the forecast 16+ population on the EFO-implied
+path instead of held flat (`calibration_scorecard.md`). These are the current
+figures. Pinned: real GDP 4.24%, consumption 7.23%, business investment
+7.34%, unemployment 0.62pp, household income 3.10%, real household income
+3.30%, company profits 12.88%; the rest unchanged; 9 of 11. Published
+closure: 4.28%, 7.30%, 14.19%, 0.62pp, 4.04%, 4.25%, 22.47%, current account
+1.33% of GDP; 8 of 11.
 
 Employment (a trivial identity) scores 0.00% in all three. Under the pin PIF
 runs 3–6% above the EFO path, because real GDP does (the closure artifact).
