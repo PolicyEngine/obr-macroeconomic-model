@@ -1,12 +1,12 @@
 # Demo script
 
-Six shocks that show what the emulator does and where it stops. Every number below comes from `results/demo_shocks.json`, produced by `scripts/demo_shocks.py` on GitHub Actions (run 44392261807, 18 Nov 2026, commit b56fe3b on the forecast-population branch; the 16 Nov run was 43974120540). That hash is a branch commit; after merging, rerun `.github/workflows/demo.yml` and update it. The baseline is the OBR's October 2026 EFO. The window still starts in 2025Q1 so the figures compare like for like with the March 2026 runs; 2025Q1–2026Q2 are now outturn quarters in that EFO, so read those quarters as counterfactual history.
+Six shocks that show what the emulator does and where it stops. Every number below comes from `results/demo_shocks.json`, produced by `scripts/demo_shocks.py` on GitHub Actions (run 44394699022, 18 Nov 2026, commit a822045 on the nominal-consistent spending branch; the 16 Nov run was 43974120540). That hash is a branch commit; after merging, rerun `.github/workflows/demo.yml` and update it. The baseline is the OBR's October 2026 EFO. The window still starts in 2025Q1 so the figures compare like for like with the March 2026 runs; 2025Q1–2026Q2 are now outturn quarters in that EFO, so read those quarters as counterfactual history.
 
 **Closure.** Rows 1–4 and 6 use the default closure, the nominal-GDP pin. It sets current-price GDP equal to real GDP times the GDP deflator (the OBR's commented-out l.690), with the deflator on the OBR's forecast path. Row 5 uses the investment closure, which cannot be combined with the pin and holds the investment deflator instead. Every shock is sustained from 2025Q1 to the end of the window (2027Q4) unless stated otherwise. All baseline and shocked solves converged to tolerance in 12 of 12 quarters. "Converged" covers the equations that evaluate: 82 of the 372 are dropped because their inputs are missing, and they keep their data values.
 
 **Units.** GDP is chained-volume £m per quarter. For the tax rows (2–4) the ratio column is current-price GDP per pound of current-price revenue, the basis of the OBR's multipliers. Rows 1 and 1b are real GDP per real pound of spending.
 
-To regenerate: `uv run python scripts/demo_shocks.py` (about 25 minutes of solves; allow 35 for the Actions job in `.github/workflows/demo.yml`).
+To regenerate: `uv run python scripts/demo_shocks.py` (about 60 solves; the Actions job in `.github/workflows/demo.yml` took 45 to 55 minutes on 18 Nov 2026).
 
 ## Setup for the room
 
@@ -28,7 +28,7 @@ The first `run_reform` call builds the model template and takes a few minutes; t
 
 | # | Shock (`var`, size per quarter) | GDP £m: q1 / q4 / q12 | Ratio | Published benchmark |
 |---|---|--:|--:|---|
-| 1 | Government consumption (`CGG`, +1,250) | +1,267 / +1,283 / +1,309 | 1.01 / 1.03 / 1.05 | OBR 0.6, fading |
+| 1 | Government consumption (`CGG`, +1,250) | +1,266 / +1,280 / +1,300 | 1.01 / 1.02 / 1.04 | OBR 0.6, fading |
 | 1b | Same, `published_conventions=True` | +750 / +637 / +337 | 0.60 / 0.51 / 0.27 | imposed OBR 0.6 convention |
 | 2 | Income tax basic rate +1p (`TYEM`, 1,725) | −161 / −335 / −565 | 0.10 / 0.21 / 0.37 | OBR 0.3, fading |
 | 3 | Employee NICs +1pp (`EENIC`, 1,337.5) | −125 / −259 / −438 | 0.10 / 0.21 / 0.37 | OBR 0.3, fading |
@@ -45,11 +45,11 @@ Sizes come from HMRC's ready reckoner (June 2025, 2026-27 column, divided by fou
 
 The OBR multipliers are the interim OBR's June 2010 estimates, restated in EFO July 2015 Box 3.2, all tapering over five years. The Bank of England range is for a 1pp rise held for one year, from its 1999 Quarterly Bulletin ("The transmission mechanism of monetary policy"), which is the same experiment as row 6.
 
-Receipts (`PSCR`) and central government net borrowing (`CGNB`) move one for one with the revenue in rows 2–4 (+1,725 / −1,725 for income tax; +1,337.5 / −1,337.5 for NICs; +2,200 / −2,200 for VAT, every quarter). There is no second round: lower consumption does not reduce other receipts. In rows 1, 5 and 6 `PSCR` and `CGNB` do not move at all, so the extra government consumption does not appear in borrowing, the corporation-tax rate rise raises no receipts (it works through the cost of capital only), and borrowing does not respond to Bank Rate. Imports do not respond either: in rows 2–4 and 6 the GDP change equals the consumption change to the pound.
+Receipts (`PSCR`) and central government net borrowing (`CGNB`) move one for one with the revenue in rows 2–4 (+1,725 / −1,725 for income tax; +1,337.5 / −1,337.5 for NICs; +2,200 / −2,200 for VAT, every quarter). There is no second round: lower consumption does not reduce other receipts. In row 1 borrowing (`CGNB`, and public sector net borrowing) rises by the cash cost of the spending, +1,336 / +1,364 / +1,419, and receipts do not move: since 18 Nov 2026 the default `CGG` shock carries its nominal legs (`nominal_consistent=False` gives the earlier real-only shock, with borrowing at exactly zero). In rows 5 and 6 `PSCR` and `CGNB` do not move at all: the corporation-tax rate rise raises no receipts (it works through the cost of capital only), and borrowing does not respond to Bank Rate. Imports do not respond either: in rows 2–4 and 6 the GDP change equals the consumption change to the pound.
 
 ## One line on each
 
-1. **Government consumption.** GDP rises by the shock and a little more (1.01 on impact, 1.05 by q12), because the shock enters the expenditure identity directly. Extra nominal GDP lands in profits, and a small part reaches consumption (+17m in q1, +59m by q12). This is accounting, not a multiplier: the OBR's figure is 0.6, fading. `published_conventions=True` imposes that convention as a labelled judgement adjustment (add-factor) path: 0.60 on impact, falling by 0.03 a quarter.
+1. **Government consumption.** GDP rises by the shock and a little more (1.01 on impact, 1.04 by q12), because the shock enters the expenditure identity directly. Extra nominal GDP lands in profits, and a small part reaches consumption (+16m in q1, +50m by q12). Borrowing rises by the cash cost and nothing else on the fiscal side responds. This is accounting, not a multiplier: the OBR's figure is 0.6, fading. `published_conventions=True` imposes that convention as a labelled judgement adjustment (add-factor) path: 0.60 on impact, falling by 0.03 a quarter.
 2. **Income tax.** The main live behavioural channel: household income to consumption. Household income falls by the revenue, and the published consumption equation lowers spending. Current-price GDP per pound is 0.10 on impact, 0.21 at q4 and 0.37 at q12 (0.16 averaged over year 1). The OBR's 0.3 is an impact multiplier that fades to zero. The order of magnitude is right but the profile is the reverse: consumption adjusts gradually to lower income, and nothing in the published equations (no output gap closing, no monetary response) pulls it back.
 3. **NICs.** The same channel as income tax and the same ratios.
 4. **VAT.** Receipts and borrowing move one for one, but GDP barely moves (0.026 at q4, 0.043 at q12). CPI is exogenous in the OBR's listing, so the model cannot pass VAT into prices. The tax lands on profits, and only the income the self-employed and partnerships draw from their businesses (quasi-corporation withdrawals), which follows profits, reaches households.

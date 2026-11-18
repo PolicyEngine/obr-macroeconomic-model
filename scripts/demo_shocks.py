@@ -11,7 +11,7 @@ template (as ``tests/test_tax_scenarios.py`` does) and checked against
 
     uv run python scripts/demo_shocks.py
 
-About 55 solves (14 run_reform calls plus 12 rebuilt pairs; the pass-through rows re-solve three times; about 35 minutes): run it on GitHub Actions (``.github/workflows/demo.yml``).
+About 60 solves (15 run_reform calls plus 13 rebuilt pairs; the pass-through rows re-solve three times; 45 to 55 minutes on Actions): run it on GitHub Actions (``.github/workflows/demo.yml``).
 """
 
 from __future__ import annotations
