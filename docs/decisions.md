@@ -13,8 +13,8 @@ merge, main still has the behaviour in their "before" columns.
 
 | Change | Decision | Where |
 |---|---|---|
-| Anchor unemployment to the EFO ("anchor `PART16`") | Adopted, as a population fix | implemented in #74; not on main until it merges |
-| Nominal-consistent government-consumption shock | Adopted as the default for `CGG` | implemented in #75 (stacked on #74); not on main until it merges |
+| Anchor unemployment to the EFO ("anchor `PART16`") | Adopted, as a population fix | implemented in #74, merged 18 Nov 2026 (6f21531) |
+| Nominal-consistent government-consumption shock | Adopted as the default for `CGG` | implemented in #75, merged 18 Nov 2026 (0e44ec8) |
 | Default `monetary_conditioning=True` | Rejected | this note, `monetary_conditioning.md` |
 | Regenerate `fig_outturn` on the current ONS vintage | Not possible from this repo | this note |
 
