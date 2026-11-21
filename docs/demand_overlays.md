@@ -68,7 +68,9 @@ Same shock, with the overlay. £m a quarter.
 
 - Not the OBR's current-spending multiplier (0.6, fading). Leakage of 10% to 14% takes the figure to about 0.9, and nothing makes it fade.
 - Import prices and exports do not respond. Relative prices are held at baseline in l.223.
-- Oil imports already responded in the listing; with the overlay they now add to total imports.
+- Oil imports already responded in the listing; with the overlay they now add to total imports. The l.211 weights are scaled against all imports, oil included (l.209), so some oil may be counted twice: oil is £165m to £227m of the £940m to £980m total.
+- The services leg and the inverted identity rest on the listing alone. The goods leg rests on the unit-elasticity assumption and carries about half to two-thirds of the response (£428m to £492m).
+- Measured under the default nominal-GDP pin only; `nominal_gdp_pin=False` is refused. The nominal side (investment deflator, borrowing) was not checked with the overlay on.
 - It cannot be combined with `published_conventions` or the investment closure.
 
 ## Employment
@@ -112,7 +114,7 @@ Changes from baseline. Employment in thousands, unemployment rate in percentage 
 - The listing's labour demand covers the market sector only.
 - Government GVA rises with government consumption (l.760, `GGVA/GGVA(-1) = CGG/CGG(-1)`) from a level this repo seeds at 20% of GDP. It takes 94% to 96% of the shock, so market sector GVA moves by −£257m to +£33m on a £7bn shock.
 - Government employment has no equation.
-- So the overlay returns close to nothing for a spending shock: at most 7,000 jobs for 1% of GDP. With imports also responding, GDP rises by less than government GVA, market sector GVA falls and employment falls by 23,000.
+- So the overlay returns close to nothing for a spending shock: at most 7,000 jobs for 1% of GDP. Even that is not an output effect. The market sector GVA deflator `PMSGVA` jumps by about 1.3% with the shock, the real product wage `PSAVEI/PMSGVA` falls by 0.95% on impact and 0.2% by q12, and the wage term of l.145 lifts `EMS`. With imports also responding, GDP rises by less than government GVA, market sector GVA falls and employment falls by 23,000.
 - That is a property of the listing and of our GVA seed, not an estimate of the jobs effect of public spending. A run with `var="CGG"` carries `employment_response_warning` in `df.attrs`.
 
 ## Reproduce
