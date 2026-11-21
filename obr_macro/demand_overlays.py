@@ -242,3 +242,32 @@ def employment_response_detail(baseline_data, shocked_data, t_start, t_end) -> d
         "delta_ulfs_thousands": deltas["ULFS"],
         "delta_lfsur_pp": deltas["LFSUR"],
     }
+
+
+def services_imports_partial_response(ms_base, mstfe_base, mstfe_shocked):
+    """Services-import change l.223 implies for a given MSTFE path.
+
+    A partial calculation with no feedback: it applies the deviation form of
+    l.223 to baseline and shocked import-weighted demand over the window
+    (deviations are zero before it). Used to say what the published model,
+    where l.223 is live and total imports are fixed, would do to the goods
+    residual under a run in which imports did not respond.
+    """
+    c = SERVICES_IMPORT_COEFFICIENTS
+    m = np.log(np.asarray(mstfe_shocked, float) / np.asarray(mstfe_base, float))
+    d = np.zeros(len(m))
+
+    def at(path, i):
+        return path[i] if i >= 0 else 0.0
+
+    for t in range(len(m)):
+        step = sum(
+            coef * (at(m, t - k) - at(m, t - k - 1))
+            for k, coef in enumerate(c["dlog_mstfe"])
+        )
+        step += c["dlog_ms_lag1"] * (at(d, t - 1) - at(d, t - 2))
+        step += c["error_correction"] * (
+            at(d, t - 1) - c["long_run_mstfe"] * at(m, t - 1)
+        )
+        d[t] = at(d, t - 1) + step
+    return (np.asarray(ms_base, float) * (np.exp(d) - 1.0)).tolist()
