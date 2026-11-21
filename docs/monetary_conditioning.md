@@ -57,6 +57,17 @@ The BoE benchmark is in the Bank of England's *The transmission mechanism of mon
 - Round 3's illustrative "all channels" run gave −0.25%, inside the range. It used unsourced pass-throughs for gilts, sterling and house prices, so it is not adopted here.
 - Inflation stays at 0 in every run, so the inflation half of the benchmark cannot be compared at all.
 
+## Why the result differs from the Bank of England's range
+
+Raised in review (November 2026): the Bank Rate response here is below Bank of England estimates. The gap has four sources, none of them a solver fault.
+
+- **Model.** The Bank's range comes from its own 1999 publication, not from the OBR's equations. In the OBR's listing Bank Rate reaches consumption (l.4) and household interest flows (l.619, l.623, l.627) and nothing else. The mortgage rate, gilt yields, sterling and house prices are conditioning inputs with no equation, the corporate rate `RIC` is NaN, and exports, imports, CPI and unemployment have no live response (see the first section and "The cost-of-capital seed" below).
+- **Shock.** The experiment is the same as the benchmark's: +1pp for four quarters, then back. What differs is what moves with it. By default only `R` moves. With `monetary_conditioning=True` the mortgage rate also moves, at the listing's own 0.9.
+- **Horizon.** Both are read at about a year. The peak here is at q4 (−0.057% default, −0.149% conditioned, `results/demo_shocks.json`), against −0.2% to −0.35%. The inflation half of the benchmark, a year later, cannot be compared: CPI does not move.
+- **Monetary response.** There is no policy rule. Bank Rate is an input path, so nothing feeds back from output or prices to the rate, and the rate does not feed prices. The OBR's five-year multiplier fade, which it attributes partly to monetary policy, is a convention applied outside the equations (`docs/medium_term_convergence.md`).
+- **What would close it.** Sourced pass-throughs from Bank Rate to the deposit rate, gilt yields, sterling and house prices, and a live cost-of-capital chain. Round 3's illustrative run with unsourced pass-throughs gave −0.25%, inside the range; it is not adopted (above).
+- **The BoE SVAR replication** (`PolicyEngine/boe-var-model`) differs from the same range in the other direction, for different reasons: it is an identified policy surprise, not a held path, and its rate response does not revert. The PolicyEngine Macro site sets the three side by side (`/models/compare`, the 100bp question).
+
 ## Audit: the retail-rate income effect
 
 Round 3 found that moving retail rates 1:1 with Bank Rate cut real household income by 1.06% at the peak, and flagged this for audit. The audit found the following:

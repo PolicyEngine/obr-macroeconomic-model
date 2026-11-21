@@ -120,6 +120,7 @@ The `obr_macro/_data/` directory (shipped inside the package) contains:
 **Results**
 - `results/demo_shocks.json`: the demo battery that every number in `docs/demo.md` comes from.
 - `results/site_figures.json`: the figures the PolicyEngine macro site quotes.
+- `results/convergence_decomposition.json`: the 24-quarter runs behind `docs/medium_term_convergence.md` (`scripts/convergence_decomposition.py`).
 - Both are regenerated on GitHub Actions by `.github/workflows/demo.yml` (manual dispatch).
 - `scripts/unguarded_ibusx.py` reproduces the unguarded business-investment path quoted in the corporation-tax row.
 
@@ -132,6 +133,7 @@ The `obr_macro/_data/` directory (shipped inside the package) contains:
 - `docs/calibration_scorecard.md`: raw-model fit against the EFO.
 - `docs/published_model_review.md`: a line-by-line check of the OBR's listing.
 - `docs/transmission_audit.md`: which shocks reach which variables.
+- `docs/medium_term_convergence.md`: where medium-term convergence comes from (add-factors, the imposed fade, equation dynamics).
 - `docs/decisions.md`: dated modelling decisions, adopted and rejected, with the run behind each.
 - `docs/history/`: superseded investigation notes.
 
