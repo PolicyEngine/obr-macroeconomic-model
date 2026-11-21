@@ -3,6 +3,28 @@
 Dated modelling decisions, the evidence behind each, and what was left out.
 Newest first.
 
+## 21 November 2026 (imports and employment)
+
+Two points raised in review: imports do not respond to demand, and
+employment is an input. Both are confirmed in `demand_overlays.md`. Each
+gets an opt-in overlay; no default changes and no published figure moves.
+
+| Question | Decision | Why |
+|---|---|---|
+| Make imports respond by default | No. Opt-in `import_response` | The goods elasticity is an assumption. Defaults carry no behavioural assumption (section 3 below) |
+| Goods-import elasticity | 1, on the listing's l.211 import-content weights | The listing has no estimated goods-import equation. Its weights are the only published source in the repo. The services elasticity (1.079, l.223) was not carried over to goods |
+| Services imports | The listing's l.223 in deviation form | Its missing inputs (`PMSREL`, `SPECX`) cancel against the baseline, so no data is invented |
+| Link employment to GDP | Opt-in `employment_response`, through the listing's l.145 | The only labour-demand equation in the listing. The bridge to total employment is an assumption |
+| Okun-type rule | Not added | No coefficient in the listing and no OBR or ONS source in the repo; nothing was downloaded |
+
+- Measured for government consumption of 1% of GDP: GDP per pound 1.01–1.04
+  by default, 0.88–0.92 with `import_response`.
+- The employment overlay gives −14,500 jobs at quarter 12 for a 1p
+  basic-rate rise, and near zero for government consumption, because
+  government GVA takes almost all of that shock. The run is labelled.
+- Left open: an estimated goods-import elasticity and a government
+  employment link, each needing a source outside the repo.
+
 ## 18 November 2026 (Fable 5.2 review round)
 
 The 17 November review (#72) left three code changes open, each of which

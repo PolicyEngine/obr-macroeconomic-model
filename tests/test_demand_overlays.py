@@ -270,3 +270,15 @@ def test_employment_response_to_government_consumption_is_near_zero(shock):
     assert d["delta_etlfs_thousands"][1] == pytest.approx(-1.90, abs=0.05)
     assert d["delta_etlfs_thousands"][11] == pytest.approx(6.95, abs=0.05)
     assert "Do not read this" in r.attrs["employment_response_warning"]
+
+
+def test_services_response_converges_to_the_listings_long_run_elasticity():
+    """A permanent 1% rise in import-weighted demand raises services imports
+    by 0.82% on impact and settles at the l.223 long-run elasticity."""
+    n = 80
+    path = overlays.services_imports_partial_response(
+        [100.0] * n, [50.0] * n, [50.5] * n
+    )
+    dlog = np.log1p(np.array(path) / 100.0) / np.log(1.01)
+    assert dlog[0] == pytest.approx(0.819114, rel=1e-9)
+    assert dlog[-1] == pytest.approx(1.079017, abs=1e-4)
