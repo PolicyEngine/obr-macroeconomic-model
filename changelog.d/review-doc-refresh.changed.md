@@ -1,0 +1,1 @@
+Refreshed the "Our adapted model" column of docs/published_model_review.md against main 0fe04c9: G6 now reflects the nominal-GDP pin, V3 the receipts identities, V5/R4 the ended EU payments, and entries whose equations are dropped in our baseline (H4, H8, H9, H11, G17, R3, part of G8) say so; verdicts on the OBR's code are unchanged.
