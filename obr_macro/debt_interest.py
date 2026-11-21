@@ -18,7 +18,9 @@ form (shocked run minus baseline), because the levels are not in the model:
 - **Stock effect.** Each quarter's extra central government borrowing
   (the change in ``CGNB``, including the extra interest itself) is financed
   by a gilt issued at that quarter's gilt yield ``RL`` (the EFO's 20-year
-  yield, table 1.9) and pays that coupon from then on.
+  yield, table 1.9; docs/monetary_conditioning.md calls RL the 10-year
+  yield, but obr_macro/data.py loads it from the 20-year column) and pays
+  that coupon from then on.
 - **Rate effect.** If the gilt yield itself is shocked, the gilts the EFO
   already plans to issue (table 6.12, conventional gilts: redemptions being
   refinanced plus the cash requirement) are issued at the changed yield. The
@@ -235,4 +237,11 @@ def apply_debt_interest(shocked, baseline_data, start, end, t_start, t_end):
     }
     for key, values in path.items():
         detail[key] = [round(float(x), 3) for x in values]
+    if not np.any(pre != 0.0) and not np.any(changed):
+        # e.g. the household costing instrument, which moves household income
+        # but not receipts: say so instead of returning silent zeros.
+        detail["no_effect_note"] = (
+            "Neither central government net borrowing (CGNB) nor the gilt "
+            "yield (RL) moved in this run, so the overlay added nothing."
+        )
     return shocked.data.copy(), report, detail

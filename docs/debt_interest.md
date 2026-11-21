@@ -9,11 +9,14 @@ Every scenario figure comes from `results/debt_interest_examples.json` (`scripts
 - Central government debt interest `DICGOP` has no equation. The OBR's variable list labels it exogenous, with local authority and public corporation interest (`DILAPR`, `DIPCOP`).
 - It enters two live equations only: the spending residual (l.504) and central government net borrowing `CGNB` (l.524).
 - The debt stocks `PSND` and `GGGD` (l.567, l.571) are change equations with no starting level in the databank, so they are dropped in our runs.
-- Result: a reform that raises borrowing, or a higher gilt yield, leaves debt interest exactly on its data path. In our baseline that path is flat at £24.2bn a quarter from 2026Q2 (the mean of the last four published quarters).
+- Result: a reform that raises borrowing, or a higher gilt yield, leaves debt interest exactly on its data path. In our baseline that path is flat at £24.2bn a quarter from 2026Q2 (the mean of the last four published quarters of the ONS series).
+- That level is not the EFO's forecast (£123.9bn for 2026-27, table 6.16): the ONS series behind `DICGOP` (interest paid to the private sector and the rest of the world) is not the same line as the EFO's, and the flat path has no forecast in it. The overlay does not touch the level. It adds a change to it.
 
 ## How the OBR forecasts debt interest
 
-The OBR does this outside the macro model, by financing component. The October 2026 EFO tables show the method:
+The OBR does this outside the macro model, by financing component. The October 2026 EFO tables show the method.
+
+Terms: a **gilt** is a UK government bond. Its **coupon** is the fixed interest it pays, set by the market yield when it is issued. A **conventional** gilt pays a fixed cash coupon; an **index-linked** gilt's payments rise with RPI inflation.
 
 - **Effective interest rate on each stock** (table 6.17). Effective rate means interest paid divided by the stock outstanding. For 2026-27: 3.34% on £1,598bn of conventional gilts in private hands, 3.90% on £3,172bn of central government gross debt.
 - **Existing and new stock** (table 6.16). Interest on conventional gilts is split into the stock already issued (£47.9bn in 2026-27, falling as gilts redeem) and new issuance (£5.5bn in 2026-27, £19.1bn in 2027-28, £70.9bn by 2031-32).
@@ -92,7 +95,7 @@ Sustained from 2026Q2 to 2028Q4 (11 quarters, the first three fiscal years of th
 
 - A 1 point rise in the gilt yield adds £1.1bn to debt interest in the first year and £3.8bn in the second. It builds because only newly issued gilts carry the higher coupon: about £56bn a quarter in 2026-27 and £69bn in 2027-28.
 - With the overlay off the same shock leaves debt interest and borrowing at exactly zero.
-- GDP falls in both runs by the same amount (−£479m in q1, −£989m in q4). That is the listing's own pension-wealth channel from the gilt yield to consumption (`docs/published_model_review.md`, H4), not the overlay.
+- GDP falls in both runs by the same amount (−£479m in q1, −£989m in q4). That is the listing's own channel, not the overlay: l.649 scales a pension contribution flow (`EECPP`) with the gilt yield, it enters employee social contributions (`EESC`, l.651), and household income falls by about £5.2bn a quarter (measured in a local solve, 21 Nov 2026). It is large next to the Bank Rate response and has not been reviewed here.
 
 ## What the overlay does not do
 

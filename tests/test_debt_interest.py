@@ -59,6 +59,8 @@ def test_overlay_is_refused_where_it_was_not_measured():
         run_reform("x", "CGG", 1000.0, debt_interest=True, investment_closure=True)
     with pytest.raises(ValueError, match="debt_interest"):
         run_reform("x", "CGG", 1000.0, debt_interest=True, published_conventions=True)
+    with pytest.raises(ValueError, match="price_passthrough"):
+        run_reform("x", "VREC", 1000.0, debt_interest=True, price_passthrough=True)
     with pytest.raises(ValueError, match="nominal-GDP pin"):
         run_reform("x", "CGG", 1000.0, debt_interest=True, nominal_gdp_pin=False)
 
@@ -182,6 +184,56 @@ def test_legs_keep_the_subsidy_residual_out_of_it():
     assert "+ DICGOP" in cgnb
     live = [line for line in listing if "DICGOP" in line and not line.startswith("'")]
     assert len(live) == 2, "DICGOP now feeds another live equation"
+
+
+class _FakeSolver:
+    """Solved stand-in: CGNB is its baseline plus whatever DICGOP gained."""
+
+    def __init__(self, data, base):
+        self.data, self._base = data, base
+
+    def solve(self, start, end):
+        self.data["CGNB"] = self._cgnb0 + self.data["DICGOP"] - self._base["DICGOP"]
+
+    def prime(self):
+        self._cgnb0 = self.data["CGNB"].copy()
+        return self
+
+
+def _frames(d_cgnb, rl=5.0, n=4):
+    import pandas as pd
+
+    idx = pd.period_range("2026Q2", periods=n, freq="Q")
+    base = pd.DataFrame(
+        {"DICGOP": 100.0, "PSCE": 900.0, "CGNB": 50.0, "RL": rl}, index=idx
+    )
+    shocked = base.copy()
+    shocked["CGNB"] += d_cgnb
+    return base, shocked
+
+
+def test_apply_moves_both_legs_by_the_same_amount():
+    from obr_macro.debt_interest import apply_debt_interest
+
+    base, shocked = _frames(1000.0)
+    solver = _FakeSolver(shocked, base).prime()
+    data, _, detail = apply_debt_interest(solver, base, None, None, 0, 3)
+    extra = np.asarray(detail["delta_debt_interest_m"])
+    assert extra[0] > 0 and np.all(np.diff(extra) > 0)
+    np.testing.assert_allclose(data["DICGOP"] - base["DICGOP"], extra, atol=1e-3)
+    np.testing.assert_allclose(data["PSCE"] - base["PSCE"], extra, atol=1e-3)
+    assert detail["residual_m"] < 1e-9
+    assert "no_effect_note" not in detail
+
+
+def test_apply_says_so_when_nothing_moved():
+    from obr_macro.debt_interest import apply_debt_interest
+
+    base, shocked = _frames(0.0)
+    solver = _FakeSolver(shocked, base).prime()
+    _, _, detail = apply_debt_interest(solver, base, None, None, 0, 3)
+    assert detail["delta_debt_interest_m"] == [0.0] * 4
+    assert "added nothing" in detail["no_effect_note"]
 
 
 # --- Full model --------------------------------------------------------------

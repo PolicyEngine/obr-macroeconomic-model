@@ -1217,6 +1217,11 @@ def run_reform(
             "published_conventions; it was not measured with the investment "
             "closure or with an imposed GDP path."
         )
+    if debt_interest and price_passthrough:
+        raise ValueError(
+            "debt_interest was not measured together with price_passthrough; "
+            "run one or the other."
+        )
     if debt_interest and nominal_gdp_pin is False:
         raise ValueError(
             "debt_interest needs the default nominal-GDP pin: under the "
