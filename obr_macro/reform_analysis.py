@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 from collections.abc import Iterable
 from pathlib import Path
 
+from obr_macro.debt_interest import (
+    DEBT_INTEREST_NOTE,
+    DEBT_INTEREST_OFF,
+    apply_debt_interest,
+)
 from obr_macro.full_solver import FullOBRSolver, is_scalar_shock, shock_path
 from obr_macro.published_conventions import (
     INSTRUMENT_CONVENTIONS,
@@ -1113,6 +1118,7 @@ def run_reform(
     monetary_conditioning: bool = False,
     price_passthrough: bool = False,
     nominal_consistent: "bool | None" = None,
+    debt_interest: bool = False,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -1180,6 +1186,14 @@ def run_reform(
             closure (see resolve_nominal_consistent). The GDP delta differs
             by under 1% between the two; the borrowing and IBUSX deltas
             differ completely. See docs/nominal_gdp_pin.md.
+        debt_interest: If True, central government debt interest responds
+            to the reform: the extra borrowing is financed by gilts at the
+            gilt yield ``RL``, and a shock to ``RL`` reprices the gilts the
+            EFO plans to issue (obr_macro/debt_interest.py). The interest is
+            added to ``DICGOP`` and ``PSCE``, so borrowing rises by it; GDP
+            does not respond. Default closure only. A labelled judgement
+            overlay, not the shipped listing (which holds debt interest
+            exogenous). Default False (unchanged). See docs/debt_interest.md.
     """
     if monetary_conditioning and var != "R":
         raise ValueError(
@@ -1196,6 +1210,18 @@ def run_reform(
             "price_passthrough is defined for the demand closure only; the "
             "investment closure holds the investment deflator and was not "
             "measured with it."
+        )
+    if debt_interest and (investment_closure or published_conventions):
+        raise ValueError(
+            "debt_interest is defined for the default closure without "
+            "published_conventions; it was not measured with the investment "
+            "closure or with an imposed GDP path."
+        )
+    if debt_interest and nominal_gdp_pin is False:
+        raise ValueError(
+            "debt_interest needs the default nominal-GDP pin: under the "
+            "published closure no quarter converges, so the borrowing delta "
+            "it accumulates is a difference of two non-converged solves."
         )
     if published_conventions and investment_closure:
         raise ValueError(
@@ -1256,6 +1282,12 @@ def run_reform(
     passthrough_detail = None
     if price_passthrough:
         shocked_data, shocked_report, passthrough_detail = _apply_price_passthrough(
+            shocked, baseline_data, start, end, t_start, t_end
+        )
+
+    debt_interest_detail = None
+    if debt_interest:
+        shocked_data, shocked_report, debt_interest_detail = apply_debt_interest(
             shocked, baseline_data, start, end, t_start, t_end
         )
 
@@ -1576,6 +1608,11 @@ def run_reform(
     if passthrough_detail is not None:
         out.attrs["price_passthrough_detail"] = passthrough_detail
         out.attrs["price_passthrough_note"] = PRICE_PASSTHROUGH_NOTE
+    out.attrs["debt_interest"] = bool(debt_interest)
+    if debt_interest_detail is not None:
+        out.attrs["debt_interest_detail"] = debt_interest_detail
+        out.attrs["debt_interest_off"] = dict(DEBT_INTEREST_OFF)
+        out.attrs["debt_interest_note"] = DEBT_INTEREST_NOTE
     out.attrs["monetary_conditioning"] = bool(monetary_conditioning)
     if monetary_conditioning:
         out.attrs["monetary_conditioning_on"] = {
