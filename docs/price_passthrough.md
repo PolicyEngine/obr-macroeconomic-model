@@ -6,7 +6,7 @@ This note answers three questions raised in review:
 - where a VAT rise lands instead;
 - what `price_passthrough=True` does, and whether VAT runs should use it by default.
 
-Every figure comes from `results/demo_shocks.json`, rows `vat` and `vat_passthrough` (GitHub Actions run 44394699022, 18 Nov 2026, commit a822045, October 2026 EFO, window 2025Q1–2027Q4, default closure). No figure on this page is new.
+Every figure comes from `results/demo_shocks.json`, rows `vat` and `vat_passthrough` (GitHub Actions run 44394699022, 18 Nov 2026, commit a822045, October 2026 EFO, window 2025Q1–2027Q4, default closure). No scenario figure on this page is new. One derived size is: the "about 1.2%" fall in the investment deflator divides the committed change by a baseline level from a local solve of main on 21 Nov 2026 (`PIF` 103.9 in 2025Q1, 113.8 in 2027Q4).
 
 ## Why no price moves in a default run
 
