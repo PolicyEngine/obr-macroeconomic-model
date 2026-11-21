@@ -1107,6 +1107,7 @@ def _check_demand_overlays(
     employment_response,
     investment_closure,
     published_conventions,
+    nominal_gdp_pin=None,
 ) -> None:
     """Fail fast on combinations the demand overlays were not built for."""
     for flag, name, excluded in (
@@ -1133,6 +1134,11 @@ def _check_demand_overlays(
                 f"{name} is defined for the demand closure only; it was not "
                 "measured with the investment closure."
             )
+        if nominal_gdp_pin is False:
+            raise ValueError(
+                f"{name} was measured under the default nominal-GDP pin only; "
+                "under the published closure no quarter converges."
+            )
         if published_conventions:
             raise ValueError(
                 f"{name} is a model-dynamics overlay; published_conventions "
@@ -1158,6 +1164,9 @@ def _attach_demand_overlay_labels(
             baseline_data, shocked_data, t_start, t_end
         )
         out.attrs["import_response_note"] = demand_overlays.IMPORT_RESPONSE_NOTE
+        if out.attrs.get("mechanical_passthrough"):
+            # No longer one for one: part of the shock leaks into imports.
+            out.attrs["mechanical_passthrough"] = False
         if "multiplier_warning" in out.attrs:
             out.attrs["multiplier_warning"] += (
                 " import_response=True is on in this run: imports respond "
@@ -1280,6 +1289,7 @@ def run_reform(
         employment_response,
         investment_closure,
         published_conventions,
+        nominal_gdp_pin,
     )
     if monetary_conditioning and var != "R":
         raise ValueError(
@@ -1355,6 +1365,9 @@ def run_reform(
         )
     shocked.solve(start, end)
     shocked_report = getattr(shocked, "last_solve_report", None)
+    demand_overlays.require_overlay_equations_live(
+        shocked_report, import_response, employment_response
+    )
     shocked_data = shocked.data.copy()
 
     # Build results

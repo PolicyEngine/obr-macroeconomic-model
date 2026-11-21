@@ -19,7 +19,7 @@ labour series, which ``run_reform`` does not return, can be read off.
 services response l.223 implies for the default run's demand path, and the
 goods residual that follows with total imports fixed (l.217).
 
-Eight baseline/shocked pairs, about four minutes on a laptop.
+Ten baseline/shocked pairs, about six minutes on a laptop.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from obr_macro import reform_analysis as ra
 START, END = "2025Q1", "2027Q4"
 HOUSEHOLD_TAX = 1616.0
 SERIES = ("GDPM", "CONS", "M", "MNOG", "MS", "MOIL", "MSTFE", "MGTFE")
-LABOUR = ("EMS", "ETLFS", "ULFS", "LFSUR", "MSGVA", "GGVA")
+LABOUR = ("EMS", "ETLFS", "ULFS", "LFSUR", "MSGVA", "GGVA", "PSAVEI", "PMSGVA")
 MODES = {
     "default": {},
     "import_response": {"import_response": True},

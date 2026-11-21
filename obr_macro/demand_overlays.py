@@ -29,9 +29,14 @@ from obr_macro.transpiler import EViewsTranspiler
 # "Changed to enable indirect T2 fix" marks where one was replaced by the
 # residual). What it does publish is the goods import content of each demand
 # component, MGTFE (l.211); with the services weights MSTFE (l.219) they sum
-# to the total import-content weights of l.195-l.205 (0.176 + 0.081 = 0.257
-# for consumption, 0.064 + 0.030 = 0.094 for government consumption, and so
-# on). The overlay holds goods-import intensity MNOG/MGTFE at its baseline
+# to the total import-content weights of l.195-l.201 for the four domestic
+# demand components (0.176 + 0.081 = 0.257 for consumption, 0.064 + 0.030 =
+# 0.094 for government consumption, likewise investment and stockbuilding;
+# the export weights do not sum this way). The total weights are scaled
+# against all imports, oil included (MINTY, l.209), so the goods content
+# probably covers oil too: scaling NON-OIL goods by it and adding the oil
+# response the listing computes separately may count some oil twice. The
+# overlay holds goods-import intensity MNOG/MGTFE at its baseline
 # path, i.e. an elasticity of 1 with respect to import-weighted demand. The
 # weights are the OBR's; the unit elasticity is this repo's judgement
 # (constant import content), not an estimate.
@@ -80,8 +85,10 @@ IMPORT_RESPONSE_NOTE = (
     f"{IMPORT_RESPONSE_GOODS_ELASTICITY:g} is this repo's assumption because "
     "the listing has no estimated goods-import equation. Total imports become "
     "M = MNOG + MS + MOIL (l.217 inverted), so the oil-import response the "
-    "listing already computes (l.353, l.358) now reaches M too. Import prices "
-    "and exports do not respond."
+    "listing already computes (l.353, l.358) now reaches M too; the l.211 "
+    "weights may already cover oil, so some oil may be counted twice. Import "
+    "prices and exports do not respond. Measured under the default "
+    "nominal-GDP pin only."
 )
 
 # --- Employment --------------------------------------------------------------
@@ -119,7 +126,10 @@ EMPLOYMENT_RESPONSE_NOTE = (
 # Measured 21 Nov 2026 (October 2026 EFO, +1% of GDP on CGG for 12 quarters):
 # government GVA takes 94% to 96% of the shock (GGVA/GGVA(-1) = CGG/CGG(-1),
 # with the GGVA level seeded at 20% of GDP), so market sector GVA moves by
-# -0.05% to +0.01% and employment by -1.9 to +7.0 thousand. With
+# -0.05% to +0.01% and employment by -1.9 to +7.0 thousand. The rise to +7.0
+# comes from the real-product-wage term of l.145, not from output: the market
+# sector GVA deflator PMSGVA jumps by about 1.3%, so PSAVEI/PMSGVA falls by
+# 0.95% on impact and 0.2% by quarter 12. With
 # import_response also on, GDP rises by less than government GVA, market
 # sector GVA falls and employment falls by 23 thousand.
 EMPLOYMENT_RESPONSE_CGG_WARNING = (
@@ -128,7 +138,9 @@ EMPLOYMENT_RESPONSE_CGG_WARNING = (
     "GVA rises almost one for one with government consumption (l.760 scales "
     "it with CGG, from a level this repo seeds at 20% of GDP) and government "
     "employment has no equation, so market sector GVA barely moves and can "
-    "fall. The employment change is near zero, and negative when "
+    "fall. What employment change there is comes mostly from the "
+    "real-product-wage term of l.145, because the market sector GVA deflator "
+    "jumps with the shock. The change is near zero, and negative when "
     "import_response is also on."
 )
 
@@ -202,6 +214,28 @@ def apply_employment_response(shocked, baseline_data, t_start: int, t_end: int) 
         )
     _add_baseline_columns(shocked, baseline_data, EMPLOYMENT_RESPONSE_BASE_VARS)
     _replace_equation(shocked, "HWA", _HOURS_SRC)
+
+
+def require_overlay_equations_live(report, import_response, employment_response):
+    """Raise if the shocked solve dropped an equation an overlay relies on.
+
+    ``solve`` tolerates a non-finite MS or EMS (both are known to drop in some
+    windows), which would turn an overlay into a silent zero response.
+    """
+    if report is None:
+        return
+    needed = set()
+    if import_response:
+        needed |= {"M", "MNOG", "MS", "MGTFE", "MSTFE"}
+    if employment_response:
+        needed |= {"HWA", "EMS", "ETLFS"}
+    dropped = sorted(needed & set(report.get("dropped", ())))
+    if dropped:
+        raise RuntimeError(
+            f"overlay equation(s) {', '.join(dropped)} evaluated non-finite and "
+            "were dropped in the shocked solve; the overlay response would be "
+            "silently incomplete."
+        )
 
 
 def overlay_deltas(baseline_data, shocked_data, names, t_start: int, t_end: int):

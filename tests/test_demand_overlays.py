@@ -53,6 +53,8 @@ def test_overlays_are_refused_where_they_were_not_built(flag):
         run_reform("x", "TCPRO", 0.01, investment_closure=True, **{flag: True})
     with pytest.raises(ValueError, match="published_conventions"):
         run_reform("x", "CGG", 1000.0, published_conventions=True, **{flag: True})
+    with pytest.raises(ValueError, match="default nominal-GDP pin only"):
+        run_reform("x", "CGG", 1000.0, nominal_gdp_pin=False, **{flag: True})
     own = "M" if flag == "import_response" else "HWA"
     with pytest.raises(ValueError, match="its own equation"):
         run_reform("x", own, 1000.0, **{flag: True})
@@ -170,6 +172,7 @@ def import_run(shock):
 @pytest.mark.slow
 def test_default_is_labelled_off_and_keeps_the_passthrough(default_run, shock):
     assert default_run.attrs["import_response"] is False
+    assert default_run.attrs["mechanical_passthrough"] is True
     assert default_run.attrs["employment_response"] is False
     assert "import_response_detail" not in default_run.attrs
     mult = default_run["delta_gdp_m"].to_numpy() / np.array(shock)
@@ -197,6 +200,7 @@ def test_import_response_measured_profile(import_run, shock):
     total = np.array(d["MNOG"]) + np.array(d["MS"]) + np.array(d["MOIL"])
     assert np.allclose(total, d["M"], atol=1e-6)
     assert "import_response=True is on" in import_run.attrs["multiplier_warning"]
+    assert import_run.attrs["mechanical_passthrough"] is False
 
 
 @pytest.mark.slow
@@ -282,3 +286,14 @@ def test_services_response_converges_to_the_listings_long_run_elasticity():
     dlog = np.log1p(np.array(path) / 100.0) / np.log(1.01)
     assert dlog[0] == pytest.approx(0.819114, rel=1e-9)
     assert dlog[-1] == pytest.approx(1.079017, abs=1e-4)
+
+
+def test_a_dropped_overlay_equation_raises():
+    """MS and EMS are allowed to drop in an ordinary solve; under an overlay
+    that would be a silent zero response."""
+    report = {"dropped": ["BV", "MS"]}
+    overlays.require_overlay_equations_live(report, False, False)
+    overlays.require_overlay_equations_live(report, False, True)
+    with pytest.raises(RuntimeError, match="MS"):
+        overlays.require_overlay_equations_live(report, True, False)
+    overlays.require_overlay_equations_live(None, True, True)
