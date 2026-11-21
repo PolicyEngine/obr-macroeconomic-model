@@ -2,13 +2,13 @@
 
 Raised in review (November 2026): the OBR justifies the fade of its fiscal multipliers only in words. This note measures, in our replication, which mechanism brings a shock response back to zero and which do not.
 
-Every number is from `results/convergence_decomposition.json`, written by `scripts/convergence_decomposition.py` at model commit `ab29ffb` (October 2026 EFO, default closure: the nominal-GDP pin), run locally on 21 Nov 2026. Each run is 24 quarters, 2025Q1 to 2030Q4. Every baseline and shocked solve reached tolerance in 24 of 24 quarters.
+Every run figure is from `results/convergence_decomposition.json`, written by `scripts/convergence_decomposition.py` at model commit `ab29ffb` (October 2026 EFO, default closure: the nominal-GDP pin), run locally on 21 Nov 2026. Each run is 24 quarters, 2025Q1 to 2030Q4. Every baseline and shocked solve reached tolerance in 24 of 24 quarters. Baseline-fit figures are quoted from the README and equation coefficients from the OBR's listing.
 
 ## The answer in four lines
 
 - **The fade does all of it.** A sustained spending shock returns to zero only when the OBR's published convention is imposed (`published_conventions=True`). That is a judgement applied on top of the equations, not a result of them.
 - **The equations do not converge to zero.** Without the fade the GDP effect of sustained spending rises from 1.01 to 1.05 per pound over six years and settles there.
-- **The add-factors are not a convergence mechanism for a shock.** They hold the baseline level on the EFO. Switching them off changes the spending response by less than 0.01 per pound.
+- **The add-factors are not a convergence mechanism for a shock.** They hold the baseline level on the EFO. Switching them off changes the spending response by less than 0.01 per pound and the household tax response by up to 0.06; neither heads to zero.
 - **The one live behavioural channel converges, but to a plateau.** Consumption closes a gap to its long-run level at about 9% to 10% a quarter. After a temporary shock that takes the effect back towards zero; after a permanent one it takes it to a new level.
 
 ## Three things called convergence
@@ -30,7 +30,7 @@ Terms used below:
 | | The OBR's convention | This repository |
 |---|---|---|
 | Source | Economic and fiscal outlook, July 2015, Box 3.2 "Fiscal multipliers"; restated in "Dynamic scoring of policy measures in OBR forecasts" (November 2023) | `obr_macro/published_conventions.py`, which cites both |
-| Impact multipliers | 0.6 current spending and welfare, 1.0 capital spending, 0.35 VAT, 0.3 income tax and NICs | The same table, encoded as data |
+| Impact multipliers | 0.6 current spending and welfare, 1.0 capital spending, 0.35 VAT, 0.3 income tax and NICs (Box 3.2) | The same table, encoded as data. Open: the November 2023 article gives 0.45 for public services and 0.33 for tax (`docs/published_model_review.md`, G11); we use the 2015 values |
 | Fade | Multipliers taper to zero over five years | `TAPER_QUARTERS = 20` |
 | Stated reason | Offsetting changes in monetary policy, the exchange rate and real wages | None of these moves output in the model, so the fade is imposed, not derived (`docs/published_model_review.md`, G2 and G9) |
 | Shape between impact and zero | Not published as a formula | **Ours:** linear by quarter, 0.03 a quarter for current spending |
@@ -74,9 +74,10 @@ What each column shows:
 ### Frozen add-factors
 
 - They are computed once as EFO minus model, then applied identically to the baseline and the shocked run.
-- **They make the baseline level track the EFO.** Anchored GDP is within 0.24% of the October 2026 EFO over 2025Q1 to 2027Q4, by construction (README). With them off, the same equations drift 4.24% away. That gap measures this emulator's closure and its seeded inputs. It is not an OBR forecast error.
-- **They cancel in a shock response.** In the table above, removing them moves the multiplier by at most 0.007.
-- For the household tax shock the gap is larger (0.46 anchored against 0.40 free-running at quarter 24, below), because that response depends on the level of income and consumption it is measured around. In neither case does the response head back to zero.
+- **They make the baseline level track the EFO.** Anchored GDP has a mean absolute percentage error (MAPE) of 0.24% against the October 2026 EFO over 2025Q1 to 2027Q4, by construction (README). With them off, the same equations have a GDP MAPE of 4.24%. That gap measures this emulator's closure and its seeded inputs. It is not an OBR forecast error.
+- **They nearly cancel in the spending response.** In the table above, removing them moves the multiplier by at most 0.007.
+- **They do not fully cancel in the household tax response.** The ratio at quarter 24 is 0.46 anchored against 0.40 free-running (below), a gap of 0.06 or about 13%. A likely reason, not tested here, is that the consumption equation is in logs, so its response depends on the level of income and consumption it is measured around.
+- **In neither case does the response head back to zero.**
 
 ### The fade
 
