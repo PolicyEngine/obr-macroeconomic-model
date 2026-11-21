@@ -2,7 +2,7 @@
 
 Raised in review: interest on public debt is exogenous. This note says what that means in our runs, what the opt-in `debt_interest=True` overlay does, and how far it can be trusted.
 
-Every scenario figure comes from `results/debt_interest_examples.json` (`scripts/debt_interest_examples.py`, run locally on 21 Nov 2026, October 2026 EFO, default closure). Every EFO figure comes from the detailed forecast tables committed under `obr_macro/_data/`.
+Every scenario figure comes from `results/debt_interest_examples.json` (`scripts/debt_interest_examples.py`, run locally on 21 Nov 2026 at commit bc6b624, October 2026 EFO, default closure). Every EFO figure comes from the detailed forecast tables committed under `obr_macro/_data/`.
 
 ## What the listing does
 

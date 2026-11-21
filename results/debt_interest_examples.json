@@ -1,6 +1,6 @@
 {
  "source": "scripts/debt_interest_examples.py",
- "model_commit": "68cc415096a3db356a1b884728ce08f7da55a033",
+ "model_commit": "bc6b6244f6462714a8bc7d55d2b849114a09f0d7",
  "worktree_dirty": false,
  "machine": "Darwin arm64",
  "python": "3.13.15",
@@ -59,7 +59,7 @@
     ],
     "solver_converged": true,
     "debt_interest": false,
-    "runtime_s": 69.2
+    "runtime_s": 72.5
    },
    "on": {
     "periods": [
@@ -106,7 +106,7 @@
     ],
     "solver_converged": true,
     "debt_interest": true,
-    "runtime_s": 30.0,
+    "runtime_s": 32.1,
     "debt_interest_detail": {
      "legs": [
       "DICGOP",
@@ -281,7 +281,7 @@
     ],
     "solver_converged": true,
     "debt_interest": false,
-    "runtime_s": 71.1
+    "runtime_s": 72.5
    },
    "on": {
     "periods": [
@@ -328,7 +328,7 @@
     ],
     "solver_converged": true,
     "debt_interest": true,
-    "runtime_s": 31.8,
+    "runtime_s": 31.3,
     "debt_interest_detail": {
      "legs": [
       "DICGOP",
@@ -500,7 +500,7 @@
     ],
     "solver_converged": true,
     "debt_interest": false,
-    "runtime_s": 66.2
+    "runtime_s": 67.1
    },
    "on": {
     "periods": [
@@ -544,7 +544,7 @@
     ],
     "solver_converged": true,
     "debt_interest": true,
-    "runtime_s": 27.8,
+    "runtime_s": 27.9,
     "debt_interest_detail": {
      "legs": [
       "DICGOP",
