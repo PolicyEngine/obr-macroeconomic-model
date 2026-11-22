@@ -46,7 +46,7 @@ The overlay applies the OBR's approach to conventional gilts, as a difference be
 
 Limits of use:
 
-- Default closure only. It raises with `investment_closure=True`, `published_conventions=True`, `nominal_gdp_pin=False`, `price_passthrough=True`, `import_response=True` or `employment_response=True` (not measured there).
+- Default closure only. It raises with `investment_closure=True`, `published_conventions=True`, `nominal_gdp_pin=False`, `price_passthrough=True`, `monetary_conditioning=True`, `import_response=True` or `employment_response=True` (not measured there).
 - A gilt-yield shock needs planned issuance for every shocked quarter. The committed tables cover 2025-26 (November 2025 EFO) to 2031-32, so a yield shock starting in 2025Q1 (fiscal year 2024-25) raises.
 - Code: `obr_macro/debt_interest.py`. Tests: `tests/test_debt_interest.py`.
 

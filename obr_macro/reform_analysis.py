@@ -1311,7 +1311,7 @@ def run_reform(
             overlay adds no GDP effect (GDP is the same with it on or off);
             an ``RL`` shock still moves GDP through the listing's own l.649
             either way. Default closure only; not with price_passthrough,
-            import_response or employment_response. A labelled judgement
+            monetary_conditioning, import_response or employment_response. A labelled judgement
             overlay, not the shipped listing (which holds debt interest
             exogenous). Default False (unchanged). See docs/debt_interest.md.
     """
@@ -1347,9 +1347,10 @@ def run_reform(
             "published_conventions; it was not measured with the investment "
             "closure or with an imposed GDP path."
         )
-    if debt_interest and price_passthrough:
+    if debt_interest and (price_passthrough or monetary_conditioning):
+        other = "price_passthrough" if price_passthrough else "monetary_conditioning"
         raise ValueError(
-            "debt_interest was not measured together with price_passthrough; "
+            f"debt_interest was not measured together with {other}; "
             "run one or the other."
         )
     if debt_interest and (import_response or employment_response):
