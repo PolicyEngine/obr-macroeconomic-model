@@ -120,7 +120,8 @@ The `obr_macro/_data/` directory (shipped inside the package) contains:
 **Results**
 - `results/demo_shocks.json`: the demo battery that every number in `docs/demo.md` comes from.
 - `results/site_figures.json`: the figures the PolicyEngine macro site quotes.
-- Both are regenerated on GitHub Actions by `.github/workflows/demo.yml` (manual dispatch).
+- `results/convergence_decomposition.json`: the 24-quarter runs behind `docs/medium_term_convergence.md` (`scripts/convergence_decomposition.py`).
+- All three are regenerated on GitHub Actions by `.github/workflows/demo.yml` (manual dispatch).
 - `scripts/unguarded_ibusx.py` reproduces the unguarded business-investment path quoted in the corporation-tax row.
 
 **Validation**
@@ -130,6 +131,7 @@ The `obr_macro/_data/` directory (shipped inside the package) contains:
   - the extended slow suite on Python 3.11–3.13 (weekly);
   - a report-only calibration scorecard.
 - `docs/calibration_scorecard.md`: raw-model fit against the EFO.
+- `docs/medium_term_convergence.md`: where medium-term convergence comes from (add-factors, the imposed fade, equation dynamics).
 - `docs/published_model_review.md`: a line-by-line check of the OBR's listing.
 - `docs/transmission_audit.md`: which shocks reach which variables.
 - `docs/price_passthrough.md`: why no price moves by default, and the VAT run with and without price pass-through.
