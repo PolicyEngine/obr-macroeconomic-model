@@ -20,7 +20,7 @@ By default the conditioning inputs stay at the EFO path. A Bank Rate shock then 
 | RMORT (mortgage rate) | yes | 0.9pp per 1pp, same quarter | OBR model code l.623 assumes the effective rate on the household loan stock is `0.9*R + 0.2`. This is the OBR's own assumption, not a BoE estimate for new mortgages. Without it, holding RMORT fixed while R rises makes the l.619 spread `(RMORT − R)` fall. That produces an offsetting rise in operating surplus OSHH (l.725), which contradicts l.623. |
 | RDEP (deposit rate) | no | — | No point estimate. In a March 2019 speech, BoE MPC member Michael Saunders put sight-deposit pass-through at over 80% on average in earlier tightening cycles, but around 40% in 2017–18. |
 | RL (20-year gilt yield) | no | — | No sourced coefficient from Bank Rate to gilt yields was found in BoE or OBR documentation. `RL` is the 20-year yield: the OBR's variables workbook (row 462) calls it "Long rates: 20 year gilt yield", and it is loaded from the EFO table 1.9 column "Long-term interest rates (20-year gilts)". |
-| RX (sterling) | no | — | No sourced coefficient was found. Exports and imports have no equation, so sterling moves only trade prices (PXNOG, PMNOG), never volumes. |
+| RX (sterling) | no | — | No sourced coefficient was found. Total exports and total imports are inputs with no equation, and the listing's imported-services equation (l.223) does not evaluate in the default run, so sterling moves only trade prices (PXNOG, PMNOG), never volumes. |
 | APH (house prices) | no | — | No sourced coefficient from Bank Rate to house prices was found in BoE or OBR documentation. |
 
 ### Why the default stays `False` (decided 18 Nov 2026)
