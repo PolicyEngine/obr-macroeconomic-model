@@ -357,3 +357,20 @@ def test_a_dropped_overlay_equation_raises():
     with pytest.raises(RuntimeError, match="MS"):
         overlays.require_overlay_equations_live(report, True, False)
     overlays.require_overlay_equations_live(None, True, True)
+
+
+def test_bank_rate_note_does_not_deny_an_unemployment_response_with_the_overlay():
+    """A Bank Rate run carries a note that unemployment does not respond.
+    With employment_response on it does (one local run, 22 Nov 2026: +1 point
+    for four quarters from 2025Q1 gives +0.022pp on LFSUR at quarter 6), so
+    the note for that run has to say so. Hermetic: text only."""
+    from obr_macro import reform_analysis as ra
+
+    default = ra.bank_rate_scope_note()
+    assert default == ra.MONETARY_CONDITIONING_SCOPE_NOTE
+    assert "by design" in default
+
+    with_overlay = ra.bank_rate_scope_note(employment_response=True)
+    assert with_overlay.startswith(default)
+    assert "unemployment does move" in with_overlay
+    assert "CPI still does not respond" in with_overlay

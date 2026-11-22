@@ -552,7 +552,9 @@ def test_corporation_tax_moves_investment_and_gdp_together(respond):
     ],
 )
 def test_block_is_inert_under_every_lever(respond, col, block):
-    """DEFECT (pinned). Labour, prices and trade do not respond to policy.
+    """DEFECT (pinned). Labour, prices and trade do not respond to policy
+    by default (the opt-in ``import_response`` and ``employment_response``
+    overlays are the labelled exceptions; they are off in these runs).
 
     Measured across every lever in this file -- spending, household taxes,
     corporation tax, Bank Rate, the exchange rate -- these move by EXACTLY
