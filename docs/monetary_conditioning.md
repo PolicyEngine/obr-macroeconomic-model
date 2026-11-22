@@ -112,7 +112,7 @@ Both are a decision for the maintainer. Neither is invented here.
 **How to read it.**
 
 - It is not an estimate of what gilt yields do to the economy. It is an accounting entry with one leg modelled. An OBR forecaster would set `APIIH` alongside `RL` by judgement; this repo has no sourced rule for that, so none is added.
-- It is larger than the default Bank Rate response because the base is larger and nothing offsets it: £2.18tn of pension assets (0.729 × `PIHH`) against a net £1.41bn for Bank Rate, where the mortgage spread offsets 83% of the rise in interest paid.
+- It is larger than the default Bank Rate response because nothing offsets it. The whole £5.2bn on £2.18tn of pension assets (0.729 × `PIHH`) comes off income. For Bank Rate the mortgage spread offsets 83% of the rise in interest paid, which leaves £1.41bn.
 - The listing's other gilt-yield leg is not in the figure. A higher yield also revalues the pension stock down (l.795 through `DBR`, l.797), but `PIHH` is held on its data path here (`docs/published_model_review.md`, H4). Arithmetic on the listing's coefficients, not a run: +1 point lowers `DBR` by 13.2%, so `PIHH` would fall about 7.6% (£226bn) in the first quarter. With the smaller stock, `EECPP` would be up about £1.8bn a quarter from the second quarter, not £5.2bn, and lower wealth would pull consumption down separately. The net effect in the full listing was not measured.
 - The debt-interest overlay proposed in #80 adds a public-finances effect of `RL` and leaves this GDP figure unchanged.
 
