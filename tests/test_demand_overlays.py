@@ -223,18 +223,20 @@ def test_default_is_labelled_off_and_keeps_the_passthrough(default_run, shock):
 
 @pytest.mark.slow
 def test_import_response_measured_profile(import_run, shock):
-    """+1% of GDP on government consumption: imports rise by about 10% to 14%
-    of the shock and the GDP delta per pound falls from 1.01 to about 0.9."""
+    """+1% of GDP on government consumption: imports rise by about 9% to 12%
+    of the shock and the GDP delta per pound falls from 1.01 to about 0.91.
+    Re-measured 22 Nov 2026 after the goods leg was changed to count oil
+    once (before: 0.9164 / 0.8877 / 0.9009, MNOG +428.3, M +966.4 at q12)."""
     assert import_run.attrs["solver_converged"]
     mult = import_run["delta_gdp_m"].to_numpy() / np.array(shock)
-    assert mult[0] == pytest.approx(0.9164, abs=5e-4)
-    assert mult[3] == pytest.approx(0.8877, abs=5e-4)
-    assert mult[11] == pytest.approx(0.9009, abs=5e-4)
+    assert mult[0] == pytest.approx(0.9086, abs=5e-4)
+    assert mult[3] == pytest.approx(0.9066, abs=5e-4)
+    assert mult[11] == pytest.approx(0.9176, abs=5e-4)
     d = import_run.attrs["import_response_detail"]["delta_m"]
-    assert d["MNOG"][0] == pytest.approx(428.3, abs=0.5)
+    assert d["MNOG"][0] == pytest.approx(482.5, abs=0.5)
     assert d["MS"][0] == pytest.approx(240.9, abs=0.5)
     assert d["MOIL"][0] == pytest.approx(0.0, abs=1e-6)
-    assert d["M"][11] == pytest.approx(966.4, abs=0.5)
+    assert d["M"][11] == pytest.approx(849.5, abs=0.5)
     # Every import series rises or is unchanged; goods no longer fall.
     assert min(d["MNOG"]) > 0 and min(d["MS"]) > 0
     # l.217 inverted holds on the deltas.
@@ -246,11 +248,28 @@ def test_import_response_measured_profile(import_run, shock):
 
 @pytest.mark.slow
 def test_goods_imports_are_proportional_to_import_weighted_demand(import_run, shock):
-    """On impact, before consumption has moved much, the goods response is
-    close to the l.211 weight on government consumption times baseline
-    goods-import intensity (0.064 x about 0.92)."""
+    """Goods imports including oil are unit-elastic to MGTFE in every
+    quarter, whatever the listing's oil equation does. On impact, before
+    consumption or oil has moved much, that is close to the l.211 weight on
+    government consumption times baseline goods-import intensity with oil
+    (0.064 x about 1.04)."""
+    from obr_macro.reform_analysis import _build_reform_template
+
     d = import_run.attrs["import_response_detail"]["delta_m"]
-    assert d["MNOG"][0] / shock[0] == pytest.approx(0.064 * 0.92, abs=0.004)
+    assert d["MNOG"][0] / shock[0] == pytest.approx(0.064 * 1.04, abs=0.004)
+    tpl = _build_reform_template("CGG", START, END, False, None)
+    base = tpl.clone()
+    base.solve(START, END)
+    w = slice(base.period_idx(START), base.period_idx(END) + 1)
+    b = {n: base.data[n].astype(float).to_numpy()[w] for n in ("MNOG", "MOIL")}
+    goods = np.array(d["MNOG"]) + np.array(d["MOIL"])
+    # With unit elasticity the goods response is at least the direct
+    # government-consumption term of MGTFE at baseline intensity, and it
+    # stays within 15% above it (measured 3% to 10%: consumption adds little).
+    mgtfe = base.data["MGTFE"].astype(float).to_numpy()[w]
+    direct = (b["MNOG"] + b["MOIL"]) * 0.064 * np.array(shock) / mgtfe
+    assert np.all(goods >= direct - 1e-6)
+    assert np.all(goods <= 1.15 * direct)
 
 
 @pytest.mark.slow
