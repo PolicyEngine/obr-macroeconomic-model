@@ -47,8 +47,13 @@ Both are confirmed below in this replication. Each has an opt-in overlay in `run
 | Total `M` | `MNOG + MS + MOIL` (l.217 inverted) | identity |
 
 - Why l.211 is the goods import content: its weights and the services weights of l.219 sum to the total import-content weights of l.195–l.201 (0.176 + 0.081 = 0.257 for consumption, 0.064 + 0.030 = 0.094 for government consumption). A test checks this.
-- Why the goods total includes oil: the total weights are scaled against all imports, oil included (`MINTY`, l.209), and the variable list calls `MGTFE` "final demand weighted by import intensity (goods)". In the baseline, goods imports with oil are 1.04 to 1.06 times `MGTFE`; without oil, 0.92 to 0.97.
-- Oil is counted once. Until 22 Nov 2026 the overlay scaled non-oil goods alone and added the listing's oil response on top. Oil demand has an elasticity of 1.9 to non-oil output (l.353), so total goods imports ran £110m to £190m a quarter above the unit-elastic path from q2 on. Now the goods total is unit-elastic and the listing's oil equation only sets the split between oil and non-oil.
+- Whether the l.211 weights cover oil cannot be settled from the listing.
+  - For: the total weights are scaled against all imports, oil included (`MINTY`, l.209), and the goods and services weights sum to them. The variable list calls `MGTFE` "final demand weighted by import intensity (goods)".
+  - Against: l.211's export term is non-oil goods exports only, and the relative price beside it (`PMGREL`, l.213) uses the non-oil goods import price.
+  - The baseline levels do not decide it: goods imports are 1.04 to 1.06 times `MGTFE` with oil and 0.92 to 0.97 times without.
+- The overlay takes the reading that cannot count oil twice: the goods total, oil included, is unit-elastic, and the listing's oil equation only sets the split between oil and non-oil.
+- Until 22 Nov 2026 it scaled non-oil goods alone and added the listing's oil response on top. Oil demand has an elasticity of 1.9 to non-oil output (l.353), so goods imports ran above the unit-elastic path.
+- The cost if the weights are in fact non-oil: total imports are £107m to £186m a quarter lower from q2 (and £54m higher in q1) than under the earlier form, and GDP per pound is 0.909 / 0.907 / 0.918 at q1 / q4 / q12 instead of 0.916 / 0.888 / 0.901.
 - No other source was used. An estimated goods-import elasticity from OBR or ONS documentation would replace the assumption; none is in this repo and none was downloaded.
 
 Same shock, with the overlay. £m a quarter.

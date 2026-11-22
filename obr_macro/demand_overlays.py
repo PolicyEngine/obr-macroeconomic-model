@@ -34,21 +34,29 @@ from obr_macro.transpiler import EViewsTranspiler
 # total import-content weights of l.195-l.201 (0.176 + 0.081 = 0.257 for
 # consumption, 0.064 + 0.030 = 0.094 for government consumption, likewise
 # investment and stockbuilding; the goods-export weights do not sum this
-# way). The total weights are scaled against ALL imports, oil included
-# (MINTY, l.209), so the goods weights are read here as covering all goods,
-# oil included: over 2025Q1-2027Q4 baseline goods imports with oil are 1.04
-# to 1.06 times MGTFE, and 0.92 to 0.97 times without.
+# way).
 #
-# The overlay therefore holds the intensity of ALL goods imports,
-# (MNOG + MOIL) / MGTFE, at its baseline path (an elasticity of 1 with
-# respect to import-weighted demand) and takes off the oil imports the
-# listing already computes (l.353, l.358), so oil is counted once. Until
-# 22 Nov 2026 the overlay scaled non-oil goods alone and added the oil
-# response on top, which put total goods imports GBP 110m to 190m a quarter
-# above the unit-elastic path for government consumption of 1% of GDP (oil
-# demand has an elasticity of 1.9 to non-oil GVA in l.353). The weights are
-# the OBR's; the unit elasticity is this repo's judgement (constant import
-# content), not an estimate.
+# Whether those goods weights cover oil cannot be settled from the listing:
+#   - for: the total weights are scaled against ALL imports, oil included
+#     (MINTY, l.209), and goods plus services weights sum to them;
+#   - against: l.211's export term is non-oil goods exports XNOG only (the
+#     total weight is on XOIL + XNOG), and the relative price beside it
+#     (PMGREL, l.213) uses the non-oil goods import price PMNOG;
+#   - the baseline levels do not decide it: over 2025Q1-2027Q4 goods imports
+#     are 1.04 to 1.06 times MGTFE with oil and 0.92 to 0.97 times without.
+#
+# The overlay takes the reading that cannot count oil twice. It holds the
+# intensity of ALL goods imports, (MNOG + MOIL) / MGTFE, at its baseline
+# path (an elasticity of 1 with respect to import-weighted demand) and takes
+# off the oil imports the listing already computes (l.353, l.358). Until
+# 22 Nov 2026 it scaled non-oil goods alone and added the oil response on
+# top; oil demand has an elasticity of 1.9 to non-oil GVA in l.353, so total
+# goods imports then ran above the unit-elastic path. The cost of the
+# present reading, if the weights are in fact non-oil: for government
+# consumption of 1% of GDP total imports are GBP 107m to 186m a quarter
+# lower from quarter 2 (and GBP 54m higher in quarter 1) than under the
+# earlier form. The weights are the OBR's; the unit elasticity is this
+# repo's judgement (constant import content), not an estimate.
 IMPORT_RESPONSE_GOODS_ELASTICITY = 1.0
 _GOODS_SRC = (
     "MNOG = (MNOG_BASE + MOIL_BASE) * (MGTFE / MGTFE_BASE) ^ {elasticity} - MOIL"
