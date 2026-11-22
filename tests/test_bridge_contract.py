@@ -66,6 +66,9 @@ EXPECTED_RUN_REFORM_KWARGS = [
     # employment overlays (obr_macro/demand_overlays.py).
     "import_response",
     "employment_response",
+    # Added 21 Nov 2026, after the two above and defaulting to False: the
+    # debt-interest overlay (obr_macro/debt_interest.py).
+    "debt_interest",
 ]
 
 
@@ -116,6 +119,8 @@ def test_run_reform_defaults_are_stable():
     # 21 Nov 2026: the import and employment overlays are strictly opt-in.
     assert sig.parameters["import_response"].default is False
     assert sig.parameters["employment_response"].default is False
+    # The debt-interest overlay is strictly opt-in.
+    assert sig.parameters["debt_interest"].default is False
 
 
 # --- Fake template: a solvable stand-in with a plausible shock response ------

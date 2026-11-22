@@ -65,6 +65,7 @@ Receipts (`PSCR`) and central government net borrowing (`CGNB`) move one for one
 - **Bank Rate.** About −0.16% is the ceiling even with mortgage and deposit rates both moved (measured in the 14 Nov review, not rerun here), because investment, sterling, house prices and gilt yields have no interest-rate equation (`docs/monetary_conditioning.md`). This is a property of the published equations, not a solver fault.
 - **Household-tax ratio basis (#63).** Quote the current-price ratio (0.21 / 0.37) against the OBR's 0.3. Real GDP per pound of current-price revenue (0.19 / 0.33 in this run) mixes two bases and understates by the GDP deflator (a factor of 1.06 to 1.14 here).
 - **Free-running scorecard.** The ~4% free-running GDP error in the README is a closure artifact of this emulator (GDP made endogenous, unpublished inputs seeded). It is not an OBR forecast error, and should not be presented as one.
+- **Debt interest.** It does not respond to borrowing or to gilt yields in any row above. `debt_interest=True` (off by default) adds it for conventional gilts: for row 1, +8 / +61 / +230 at q1 / q4 / q12 on top of the borrowing shown, with GDP unchanged (`docs/debt_interest.md`, `results/debt_interest_examples.json`).
 - **Point estimates only.** There are no confidence bands.
 
 ## What not to run live, and what to say if asked

@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 from collections.abc import Iterable
 from pathlib import Path
 
+from obr_macro.debt_interest import (
+    DEBT_INTEREST_NOTE,
+    DEBT_INTEREST_OFF,
+    apply_debt_interest,
+)
 from obr_macro.full_solver import FullOBRSolver, is_scalar_shock, shock_path
 from obr_macro.published_conventions import (
     INSTRUMENT_CONVENTIONS,
@@ -1242,6 +1247,7 @@ def run_reform(
     nominal_consistent: "bool | None" = None,
     import_response: bool = False,
     employment_response: bool = False,
+    debt_interest: bool = False,
 ):
     """Run a reform scenario and return results DataFrame.
 
@@ -1327,6 +1333,17 @@ def run_reform(
             government-consumption shock the result is near zero and can be
             wrong-signed (the run carries a warning). Default False
             (unchanged). See obr_macro/demand_overlays.py.
+        debt_interest: If True, central government debt interest responds
+            to the reform: the extra borrowing is financed by gilts at the
+            gilt yield ``RL``, and a shock to ``RL`` reprices the gilts the
+            EFO plans to issue (obr_macro/debt_interest.py). The interest is
+            added to ``DICGOP`` and ``PSCE``, so borrowing rises by it. The
+            overlay adds no GDP effect (GDP is the same with it on or off);
+            an ``RL`` shock still moves GDP through the listing's own l.649
+            either way. Default closure only; not with price_passthrough,
+            monetary_conditioning, import_response or employment_response. A labelled judgement
+            overlay, not the shipped listing (which holds debt interest
+            exogenous). Default False (unchanged). See docs/debt_interest.md.
     """
     _check_demand_overlays(
         var,
@@ -1353,6 +1370,29 @@ def run_reform(
             "price_passthrough is defined for the demand closure only; the "
             "investment closure holds the investment deflator and was not "
             "measured with it."
+        )
+    if debt_interest and (investment_closure or published_conventions):
+        raise ValueError(
+            "debt_interest is defined for the default closure without "
+            "published_conventions; it was not measured with the investment "
+            "closure or with an imposed GDP path."
+        )
+    if debt_interest and (price_passthrough or monetary_conditioning):
+        other = "price_passthrough" if price_passthrough else "monetary_conditioning"
+        raise ValueError(
+            f"debt_interest was not measured together with {other}; "
+            "run one or the other."
+        )
+    if debt_interest and (import_response or employment_response):
+        raise ValueError(
+            "debt_interest was not measured together with import_response or "
+            "employment_response; run one or the other."
+        )
+    if debt_interest and nominal_gdp_pin is False:
+        raise ValueError(
+            "debt_interest needs the default nominal-GDP pin: under the "
+            "published closure no quarter converges, so the borrowing delta "
+            "it accumulates is a difference of two non-converged solves."
         )
     if published_conventions and investment_closure:
         raise ValueError(
@@ -1424,6 +1464,12 @@ def run_reform(
     passthrough_detail = None
     if price_passthrough:
         shocked_data, shocked_report, passthrough_detail = _apply_price_passthrough(
+            shocked, baseline_data, start, end, t_start, t_end
+        )
+
+    debt_interest_detail = None
+    if debt_interest:
+        shocked_data, shocked_report, debt_interest_detail = apply_debt_interest(
             shocked, baseline_data, start, end, t_start, t_end
         )
 
@@ -1756,6 +1802,11 @@ def run_reform(
         t_start,
         t_end,
     )
+    out.attrs["debt_interest"] = bool(debt_interest)
+    if debt_interest_detail is not None:
+        out.attrs["debt_interest_detail"] = debt_interest_detail
+        out.attrs["debt_interest_off"] = dict(DEBT_INTEREST_OFF)
+        out.attrs["debt_interest_note"] = DEBT_INTEREST_NOTE
     out.attrs["monetary_conditioning"] = bool(monetary_conditioning)
     if monetary_conditioning:
         out.attrs["monetary_conditioning_on"] = {
