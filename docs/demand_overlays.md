@@ -85,7 +85,7 @@ Same shock, with the overlay. £m a quarter.
   - current-price imports rise by +736 / +834 / +917 and the trade balance falls by the same amount; import prices do not move;
   - current-price GDP rises by +6,792 / +6,956 / +7,578 instead of +7,570 / +7,856 / +8,584, and the difference falls on company profits;
   - measured business investment moves by −16 / −11 / −2 (default −9 / −13 / −3), so the overlay brings no deflator artefact.
-- It cannot be combined with `published_conventions`, the investment closure, `price_passthrough` or `monetary_conditioning` (none was measured with it).
+- It cannot be combined with `published_conventions`, the investment closure, `price_passthrough`, `monetary_conditioning` or `debt_interest` (none was measured with it).
 
 ## Employment
 

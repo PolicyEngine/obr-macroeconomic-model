@@ -127,4 +127,4 @@ So a Bank Rate shock or a price shock does not move debt interest with the overl
 - **A published benchmark for the shock response.** The OBR has published debt interest ready reckoners (the effect of a 1 point rise in gilt yields, short rates and inflation) alongside its forecasts. None is in the repo's committed tables, and none was downloaded. Comparing the gilt-yield scenario with it is the natural next check.
 - **Bank Rate and RPI channels**, which need the ready reckoner or the Asset Purchase Facility and index-linked stocks modelled.
 - **Planned issuance for 2024-25**, so a yield shock can start in 2025Q1.
-- **Combination with the investment closure, published conventions, price pass-through and the import and employment overlays**, not measured.
+- **Combination with the investment closure, published conventions, the published closure (`nominal_gdp_pin=False`), price pass-through, monetary conditioning and the import and employment overlays**, not measured; each is refused.
