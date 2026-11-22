@@ -73,7 +73,7 @@ What it does:
   - 0.1384 is the listing's own weight on indirect taxes in retail costs: 11.56 in `RPCOST` (l.270) plus what `SCOST`, `CCOST` and `UTCOST` pass on.
   - `W1 = 0.084` is the rent weight in the commented-out `CPI` equation (l.314).
 - `PCE` follows `CPI` (l.333), real household income falls (`RHHDI = 100*HHDI/PCE`, l.656), and the published consumption equation (l.4) responds.
-- Works for `VREC` (VAT receipts) and `TXFUEL` (fuel duty) only, and not with `investment_closure=True`. Either raises an error.
+- Works for `VREC` (VAT receipts) and `TXFUEL` (fuel duty) only, and not with `investment_closure=True`, `import_response=True`, `employment_response=True` or `debt_interest=True` (none was measured with it). Each raises an error.
 - Code: `_apply_price_passthrough` and the comment above `PRICE_PASSTHROUGH_W1` in `obr_macro/reform_analysis.py`. Tests: `tests/test_price_passthrough.py`.
 
 ## VAT +1pp with and without it

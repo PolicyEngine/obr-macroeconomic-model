@@ -37,7 +37,7 @@ Terms used below:
 | | The OBR's convention | This repository |
 |---|---|---|
 | Source | Economic and fiscal outlook, July 2015, Box 3.2 "Fiscal multipliers", for the impact values and the taper; the taper is restated in "Dynamic scoring of policy measures in OBR forecasts" (November 2023) | `obr_macro/published_conventions.py`, which cites both |
-| Impact multipliers | 0.6 current spending and welfare, 1.0 capital spending, 0.35 VAT, 0.3 income tax and NICs (Box 3.2) | The same table, encoded as data. The November 2023 article gives 0.45 for public services and 0.33 for tax (`docs/published_model_review.md`, G11); we use the 2015 values for every row |
+| Impact multipliers | 0.6 current spending and welfare, 1.0 capital spending, 0.35 VAT, 0.3 income tax and NICs (Box 3.2) | The same table, encoded as data. The November 2023 article gives 0.45 for public services and 0.33 for tax (`docs/published_model_review.md`, G11); we use the 2015 values for every row, by decision of 22 November 2026 (`docs/decisions.md`) |
 | Fade | Multipliers taper to zero over five years | `TAPER_QUARTERS = 20` |
 | Stated reason | Offsetting changes in monetary policy, the exchange rate and real wages | In our runs none of the three responds to a fiscal shock: Bank Rate and the exchange rate are inputs, and the wage equations (l.232, l.589) do not evaluate. So the fade is imposed, not derived (`docs/published_model_review.md`, G2 and G9) |
 | Shape between impact and zero | Not published as a formula | **Ours:** linear by quarter, 0.03 a quarter for current spending |
@@ -103,7 +103,7 @@ What each column shows:
   - No equation responds to the output gap (the gap between actual and potential output).
   - Bank Rate is an input with no policy rule.
   - Consumer prices and the GDP deflator are inputs.
-  - Total exports and total imports are inputs. The listing has an equation for imported services (l.223), but it does not evaluate in our default runs and total imports do not follow it.
+  - Total exports and total imports are inputs. The listing has an equation for imported services (l.223), but it does not evaluate in our default runs and total imports do not follow it. The opt-in `import_response` overlay uses it on the shocked run (`docs/demand_overlays.md`).
   - So nothing in our runs offsets a sustained demand shock.
 
 ## A temporary shock
@@ -144,7 +144,7 @@ A household tax rise of £1,616m a quarter (the README's 1p basic-rate costing),
 Not implemented. Each would be new behaviour and would need its own opt-in flag and evidence.
 
 - A monetary policy rule with a price response, so that Bank Rate leans against a demand shock.
-- Live trade equations, so that higher demand leaks into imports and the exchange rate matters for volumes.
+- Live trade equations, so that higher demand leaks into imports and the exchange rate matters for volumes (`import_response` is an opt-in, labelled first step for imports only).
 - A link from the output gap to wages and prices.
 - A government budget constraint or fiscal rule that withdraws the stimulus.
 
