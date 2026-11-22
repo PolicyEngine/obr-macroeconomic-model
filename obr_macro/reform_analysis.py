@@ -1310,7 +1310,8 @@ def run_reform(
             added to ``DICGOP`` and ``PSCE``, so borrowing rises by it. The
             overlay adds no GDP effect (GDP is the same with it on or off);
             an ``RL`` shock still moves GDP through the listing's own l.649
-            either way. Default closure only. A labelled judgement
+            either way. Default closure only; not with price_passthrough,
+            import_response or employment_response. A labelled judgement
             overlay, not the shipped listing (which holds debt interest
             exogenous). Default False (unchanged). See docs/debt_interest.md.
     """

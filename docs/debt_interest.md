@@ -2,7 +2,7 @@
 
 Raised in review: interest on public debt is exogenous. This note says what that means in our runs, what the opt-in `debt_interest=True` overlay does, and how far it can be trusted.
 
-Every scenario figure comes from `results/debt_interest_examples.json` (`scripts/debt_interest_examples.py`, run locally on 21 Nov 2026 at commit bc6b624, October 2026 EFO, default closure). Every EFO figure comes from the detailed forecast tables committed under `obr_macro/_data/`.
+Every scenario figure comes from `results/debt_interest_examples.json` (`scripts/debt_interest_examples.py`, run locally on 21 Nov 2026 at commit bc6b624, October 2026 EFO, default closure; the overlay's arithmetic has not changed since). Every EFO figure comes from the detailed forecast tables committed under `obr_macro/_data/`.
 
 ## What the listing does
 
@@ -46,7 +46,7 @@ The overlay applies the OBR's approach to conventional gilts, as a difference be
 
 Limits of use:
 
-- Default closure only. It raises with `investment_closure=True`, `published_conventions=True` or `nominal_gdp_pin=False` (not measured there).
+- Default closure only. It raises with `investment_closure=True`, `published_conventions=True`, `nominal_gdp_pin=False`, `price_passthrough=True`, `import_response=True` or `employment_response=True` (not measured there).
 - A gilt-yield shock needs planned issuance for every shocked quarter. The committed tables cover 2025-26 (November 2025 EFO) to 2031-32, so a yield shock starting in 2025Q1 (fiscal year 2024-25) raises.
 - Code: `obr_macro/debt_interest.py`. Tests: `tests/test_debt_interest.py`.
 
@@ -127,4 +127,4 @@ So a Bank Rate shock or a price shock does not move debt interest with the overl
 - **A published benchmark for the shock response.** The OBR has published debt interest ready reckoners (the effect of a 1 point rise in gilt yields, short rates and inflation) alongside its forecasts. None is in the repo's committed tables, and none was downloaded. Comparing the gilt-yield scenario with it is the natural next check.
 - **Bank Rate and RPI channels**, which need the ready reckoner or the Asset Purchase Facility and index-linked stocks modelled.
 - **Planned issuance for 2024-25**, so a yield shock can start in 2025Q1.
-- **Combination with the investment closure and published conventions**, not measured.
+- **Combination with the investment closure, published conventions, price pass-through and the import and employment overlays**, not measured.
