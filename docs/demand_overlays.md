@@ -109,6 +109,7 @@ Same shock, with the overlay. £m a quarter.
 - The `EMS` equation is the OBR's. **The one-for-one bridge is our assumption.**
 - It reaches consumption through the unemployment term of l.4 (−0.0084 per point) and earnings through l.232. It does not reach the wage bill or household income.
 - No Okun coefficient (a rule of thumb linking unemployment to GDP) is used: none is in the listing, and no OBR or ONS source for one is in this repo.
+- Measured under the default nominal-GDP pin only (`nominal_gdp_pin=False` is refused). It cannot be combined with `published_conventions`, the investment closure, `price_passthrough`, `monetary_conditioning` or `debt_interest` (none was measured with it). It can be combined with `import_response`.
 
 ### Results
 
