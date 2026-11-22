@@ -7,7 +7,7 @@ In the OBR's October 2025 listing, Bank Rate `R` reaches two places:
 - the real-rate term in consumption (l.4);
 - the interest flows in household and corporate income: DIPHH l.623, DIPHHmf l.619, DIRHHf l.627 and RIC l.576.
 
-The mortgage rate RMORT, the deposit rate RDEP, gilt yields RL, sterling RX and house prices APH have no equation. They are the OBR's conditioning assumptions, which it sets by judgement or from market curves. Exports and imports have no equation either. CPI (l.314) and PGDP (l.713) are commented out. Unemployment LFSUR (l.165) has no rate or demand term. **CPI and unemployment therefore do not respond to Bank Rate in this model, by design, in either mode below.**
+The mortgage rate RMORT, the deposit rate RDEP, gilt yields RL, sterling RX and house prices APH have no equation. They are the OBR's conditioning assumptions, which it sets by judgement or from market curves. Total exports and total imports have no equation either (imported services has l.223, which does not evaluate in the default run). CPI (l.314) and PGDP (l.713) are commented out. Unemployment LFSUR (l.165) has no rate or demand term. **CPI and unemployment therefore do not respond to Bank Rate in this model, by design, in either mode below.** The one exception is opt-in: with `employment_response=True` (which cannot be combined with `monetary_conditioning`) unemployment follows market sector labour demand (`docs/demand_overlays.md`).
 
 By default the conditioning inputs stay at the EFO path. A Bank Rate shock then moves GDP by about 0.057% per 100bp. That is a consequence of the model's structure and closure, not an estimate of the effect of monetary policy.
 

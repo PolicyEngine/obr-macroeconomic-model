@@ -382,6 +382,32 @@ MONETARY_CONDITIONING_SCOPE_NOTE = (
     "and PGDP are exogenous, and LFSUR (l.165) has no demand or rate term. Any "
     "inflation or labour-market response must come from outside the model."
 )
+# The note above describes the default run. With employment_response=True a
+# Bank Rate shock does move unemployment (measured 22 Nov 2026: +1 point held
+# for four quarters from 2025Q1 gives -8.1 thousand jobs and +0.022pp on
+# LFSUR at the peak, quarter 6), so that run must not carry it unqualified.
+MONETARY_CONDITIONING_SCOPE_NOTE_EMPLOYMENT_OVERLAY = (
+    " This run has employment_response=True, so unemployment does move here: "
+    "the overlay passes the change in market sector employment (l.145) to "
+    "total employment. That is the overlay's assumed bridge, not a term in "
+    "l.165, and CPI still does not respond."
+)
+
+
+def bank_rate_scope_note(employment_response: bool = False) -> str:
+    """The inflation/unemployment note for a Bank Rate run.
+
+    The default text says unemployment does not respond. That is false when
+    the employment overlay is on, so the note says so for that run.
+    """
+    if employment_response:
+        return (
+            MONETARY_CONDITIONING_SCOPE_NOTE
+            + MONETARY_CONDITIONING_SCOPE_NOTE_EMPLOYMENT_OVERLAY
+        )
+    return MONETARY_CONDITIONING_SCOPE_NOTE
+
+
 # R -> RIC -> CDEBT -> RWACC -> COCU -> COC -> KSTAR: the chain is broken at
 # RIC, which is NaN over the solve window (no history), and again at COCU.
 # COCU's published equation (l.68) needs DELTA, DEBTW (via RWACC l.64) and NDIV
@@ -1266,7 +1292,8 @@ def run_reform(
             l.623). Inputs without a sourced coefficient (RDEP, RL, RX, APH)
             are left at the EFO path and listed in ``df.attrs``. A labelled
             judgement overlay, not model dynamics. Default False (unchanged).
-            CPI and unemployment do not respond in either mode, by design.
+            CPI and unemployment do not respond in either mode, by design
+            (unemployment moves only with ``employment_response``).
         price_passthrough: Only for an indirect-tax shock (``VREC``,
             ``TXFUEL``) under the demand closure. If True, pass the tax into
             CPI through the listing's own cost-push weights with the retail
@@ -1755,7 +1782,9 @@ def run_reform(
         )
     if var == "R":
         out.attrs["cost_of_capital_channel"] = COST_OF_CAPITAL_RATE_CHANNEL_NOTE
-        out.attrs["inflation_unemployment_note"] = MONETARY_CONDITIONING_SCOPE_NOTE
+        out.attrs["inflation_unemployment_note"] = bank_rate_scope_note(
+            employment_response
+        )
     out.attrs["price_passthrough"] = bool(price_passthrough)
     if passthrough_detail is not None:
         out.attrs["price_passthrough_detail"] = passthrough_detail
