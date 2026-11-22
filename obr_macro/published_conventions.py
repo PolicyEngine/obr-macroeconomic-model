@@ -26,6 +26,15 @@ are assumed to taper to zero over five years". The OBR publishes the impact
 value and the zero endpoint; the quarterly path between them is NOT published
 as a formula, so the linear shape below is this repo's choice (see
 ``multiplier_profile``).
+
+Which vintage. The IMPACT values are the July 2015 Box 3.2 set (0.6 current
+spending, 1.0 capital, 0.6 welfare, 0.35 VAT, 0.3 income tax and NICs). The
+OBR's later dynamic-scoring article (November 2023) is used here only for the
+taper wording. As recorded in docs/published_model_review.md (G11) and
+tests/test_tax_scenarios.py, that article gives 0.45 for public services and
+0.33 for tax in the first year, with capital (1.00) and welfare (0.60)
+unchanged. Those two values are NOT used. The reasons, and what would change
+the choice, are in docs/decisions.md (22 November 2026).
 """
 
 from collections.abc import Iterable
