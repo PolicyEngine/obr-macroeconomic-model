@@ -404,7 +404,7 @@ def load_obr_data(merge_snapshot: bool = True) -> pd.DataFrame:
         period_col=2,
         data_cols={
             "R": 3,  # Bank Rate (%)
-            "RL": 4,  # Gilt yield (%)
+            "RL": 4,  # 20-year gilt yield (%), the listing's RL (dict 462)
             "RMORT": 5,  # Mortgage rate (%)
             "RDEP": 6,  # Deposit rate (%)
             "RX": 7,  # Sterling ERI

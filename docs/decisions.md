@@ -3,6 +3,70 @@
 Dated modelling decisions, the evidence behind each, and what was left out.
 Newest first.
 
+## 22 November 2026 (Fable 5.2 review round)
+
+Three items left open by the 21 November round. No default and no published
+figure changes.
+
+### 1. `published_conventions` stays on the July 2015 multipliers (G11)
+
+- **The question.** `obr_macro/published_conventions.py` imposes 0.6 for
+  current spending, from the OBR's July 2015 EFO Box 3.2. The review
+  (`published_model_review.md`, G11) records that the OBR's November 2023
+  dynamic-scoring article gives 0.45 for public services and 0.33 for tax,
+  with capital (1.00) and welfare (0.60) the same in both.
+- **Decision.** Keep the 2015 set for every impact value. The 2023 article
+  stays the source for the taper wording only. No default changes.
+- **Why.**
+  - One table, one vintage. All five impact values (0.6, 1.0, 0.6, 0.35,
+    0.3) come from Box 3.2. Swapping one of them would mix vintages.
+  - Figures quoted elsewhere are on this basis: `docs/demo.md` row 1b
+    (+750 / +637 / +337 for a 1,250 shock), `results/demo_shocks.json` and
+    the comparison text in `run_reform`.
+  - The 2023 values were not re-read this round. This repo records them in
+    two places, the review doc and `tests/test_tax_scenarios.py`, and the
+    second gives tax as 0.33 in year 0, 0.30 in year 1 and 0.23 in year 2.
+    So for tax, 0.3 (2015) and 0.33 (2023, year 0) are close and may be the
+    same judgement on a different year index. Whether the 0.45 for public
+    services is a year-0 figure on the same footing as 0.6 cannot be
+    settled from files in this repo.
+- **What it means for a reader.** The opt-in `published_conventions=True`
+  path for `CGG` is the 2015 convention. On 0.45 it would be a quarter
+  smaller (0.45 / 0.6): +563 on impact for a 1,250 shock, against +750.
+  That is arithmetic, not a run. The capital path would not change.
+- **What would change it.** A check of the 2023 article's table against
+  Box 3.2 on a like-for-like year, then a switch of the whole table to the
+  2023 vintage in one change, with before and after for every figure that
+  quotes it.
+
+### 2. `RL` is the 20-year gilt yield
+
+- **Evidence.** The OBR's variables workbook (row 462) says "Long rates: 20
+  year gilt yield". The loader reads EFO table 1.9, column "Long-term
+  interest rates (20-year gilts)", sourced there to Bank of England series
+  IUQALNPY.
+- **Decision.** The loaded series is right and is not changed. The text
+  that said 10-year (`monetary_conditioning.md` and the
+  `monetary_conditioning_off` note) now says 20-year.
+- **Left.** `results/demo_shocks.json` still carries the old note string
+  until the demo workflow next regenerates it. No number in it is affected.
+
+### 3. The gilt-yield response is the listing's, not a bug
+
+- **The question.** +1 point on `RL` lowers GDP by £479m in the first
+  quarter and £989m in the fourth, more than Bank Rate.
+- **Finding.** l.649 scales employees' pension contributions `EECPP` with
+  `RL` on a £2.98tn stock, which takes £5.2bn a quarter off household
+  income. The run matches l.649 to the pound. The matching income (`APIIH`)
+  has no equation, so only one leg moves.
+- **Decision.** No code change and no overlay. Documented in
+  `monetary_conditioning.md` ("A gilt-yield shock") and pinned by
+  `tests/test_gilt_yield_channel.py`.
+- **Left.** The baseline level of `EECPP` steps up at the first solved
+  quarter (£26,865m to £38,488m) because l.649 over-predicts the ONS
+  series. Fixing that would move baseline household income; it needs its
+  own before and after.
+
 ## 21 November 2026 (imports and employment)
 
 Two points raised in review: imports do not respond to demand, and
