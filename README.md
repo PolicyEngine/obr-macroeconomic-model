@@ -131,9 +131,9 @@ The `obr_macro/_data/` directory (shipped inside the package) contains:
   - the extended slow suite on Python 3.11–3.13 (weekly);
   - a report-only calibration scorecard.
 - `docs/calibration_scorecard.md`: raw-model fit against the EFO.
+- `docs/medium_term_convergence.md`: where medium-term convergence comes from (add-factors, the imposed fade, equation dynamics).
 - `docs/published_model_review.md`: a line-by-line check of the OBR's listing.
 - `docs/transmission_audit.md`: which shocks reach which variables.
-- `docs/medium_term_convergence.md`: where medium-term convergence comes from (add-factors, the imposed fade, equation dynamics).
 - `docs/decisions.md`: dated modelling decisions, adopted and rejected, with the run behind each.
 - `docs/history/`: superseded investigation notes.
 

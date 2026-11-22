@@ -4,7 +4,7 @@ Raised in review (November 2026): the OBR explains the fade of its fiscal multip
 
 Where the figures come from:
 
-- **Runs.** `results/convergence_decomposition.json`, written by `scripts/convergence_decomposition.py` at model commit `ab29ffb`, run locally on 21 Nov 2026 and re-run on GitHub Actions (see "Reproduce").
+- **Runs.** `results/convergence_decomposition.json`, written by `scripts/convergence_decomposition.py` at model commit `ab29ffb`, run locally on 21 Nov 2026. A GitHub Actions re-run gave the same values (see "Reproduce").
 - **Window.** 24 quarters, 2025Q1 to 2030Q4, on the OBR's October 2026 Economic and fiscal outlook (EFO).
 - **Closure.** The closure is the choice of which variable an identity solves for. The OBR's listing takes GDP as an input and solves the expenditure identity for inventories. Our runs solve it for GDP. They also use the default nominal-GDP pin: current-price GDP is the GDP deflator times real GDP (the listing's commented-out l.690), with the deflator held on the EFO path (`docs/nominal_gdp_pin.md`).
 - **Solver.** Every baseline and shocked solve reached tolerance in 24 of 24 quarters.
@@ -158,5 +158,6 @@ uv run python scripts/convergence_decomposition.py --leg cgg_fade
 ```
 
 - Each run takes about two to four minutes on a laptop (measured 21 Nov 2026).
-- `.github/workflows/demo.yml` has a `convergence-decomposition` job (manual dispatch).
+- `.github/workflows/demo.yml` has a `convergence-decomposition` job (manual dispatch). It takes about 32 minutes on Actions.
+- Checked on 22 Nov 2026: Actions run 44964245934 at `81ef70d` (Linux, Python 3.14) gave the same values as the committed file, made on macOS with Python 3.13. All 1,628 numeric fields are equal at the stored precision; only the commit, machine, Python version and run time differ.
 - No chart: this repository has no committed-chart convention for docs, so the tables are the record.
