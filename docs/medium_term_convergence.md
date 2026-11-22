@@ -45,7 +45,7 @@ Terms used below:
 | Year-one average | 0.6 is the published impact figure, which `published_conventions.py` reads as the first-year multiplier | **Ours:** 0.555, which is 0.045 (7.5%) below 0.6. It is a result of our quarterly shape: the fade starts in quarter 1 (0.60, 0.57, 0.54, 0.51). Holding 0.6 through year one would match the published figure and would change `published_conventions` output, so it is a proposal, not made here |
 | Where it applies | Applied by the OBR as an adjustment to its forecast | Opt-in, off by default, and only for `CGG` and the government-investment levers. Tax levers keep the model's own response |
 
-The convention reproduces the OBR's published end points: 0.6 in the first quarter and zero at five years. The quarterly path, the start date and the year-one average that follows from them are choices made here. `df.attrs["published_conventions_note"]` states the linear shape and the start on every run that uses them; it does not quote the year-one average.
+The convention uses the OBR's two published values: an impact multiplier of 0.6 and zero at five years. Putting 0.6 in the first quarter, the quarterly path, the start date and the year-one average that follows from them are choices made here. `df.attrs["published_conventions_note"]` states the linear shape and the start on every run that uses them; it does not quote the year-one average.
 
 ## Decomposition: a sustained spending shock
 
@@ -81,7 +81,7 @@ What each column shows:
 ### Frozen add-factors
 
 - They are computed once as EFO minus model, then applied identically to the baseline and the shocked run.
-- **They make the baseline level track the EFO.** Anchored GDP has a mean absolute percentage error (MAPE) of 0.24% against the October 2026 EFO over 2025Q1 to 2027Q4, by construction (README). With them off, the same equations have a GDP MAPE of 4.24%. That gap measures this emulator's closure and its seeded inputs. It is not an OBR forecast error.
+- **They make the baseline level track the EFO.** Anchored GDP has a mean absolute percentage error (MAPE) of 0.24% against the October 2026 EFO over 2025Q1 to 2027Q4, by construction (README). With them off, the README's scorecard run has a GDP MAPE of 4.24% against the EFO. That gap measures this emulator's closure and its seeded inputs. It is not an OBR forecast error. The scorecard is a separate run from this script's add-factors-off pair, whose baseline GDP is on average 4.8% below the anchored baseline over the same twelve quarters.
 - **They nearly cancel in the spending response.** In the table above, removing them moves the multiplier by at most 0.007.
 - **They do not fully cancel in the household tax response.** The ratio at quarter 24 is 0.46 anchored against 0.40 free-running (below), a gap of 0.06 or about 13%. A likely reason, not tested here, is that the consumption equation is in logs, so its response depends on the level of income and consumption it is measured around.
 - **In neither case does the response head back to zero.**
