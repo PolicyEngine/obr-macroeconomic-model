@@ -62,6 +62,10 @@ EXPECTED_RUN_REFORM_KWARGS = [
     # default CGG run does to the nominal side (borrowing moves, the IBUSX
     # deflator artefact goes); delta_gdp_m moves by under 1%.
     "nominal_consistent",
+    # Added 21 Nov 2026, last and defaulting to False: the import and
+    # employment overlays (obr_macro/demand_overlays.py).
+    "import_response",
+    "employment_response",
 ]
 
 
@@ -109,6 +113,9 @@ def test_run_reform_defaults_are_stable():
     assert sig.parameters["price_passthrough"].default is False
     # The nominal-consistent CGG shock resolves from the closure (None).
     assert sig.parameters["nominal_consistent"].default is None
+    # 21 Nov 2026: the import and employment overlays are strictly opt-in.
+    assert sig.parameters["import_response"].default is False
+    assert sig.parameters["employment_response"].default is False
 
 
 # --- Fake template: a solvable stand-in with a plausible shock response ------
