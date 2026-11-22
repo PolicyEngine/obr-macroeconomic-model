@@ -19,7 +19,8 @@ labour series, which ``run_reform`` does not return, can be read off.
 services response l.223 implies for the default run's demand path, and the
 goods residual that follows with total imports fixed (l.217).
 
-Ten baseline/shocked pairs, about six minutes on a laptop.
+Eleven baseline/shocked pairs (the last a goods-elasticity-0 sensitivity
+for the government-consumption shock), about seven minutes on a laptop.
 """
 
 from __future__ import annotations
@@ -131,6 +132,35 @@ def main():
         cgg[mode]["gdp_per_pound"] = _round(
             np.array(cgg[mode]["delta_gdp_m"]) / np.array(cgg_shock), 4
         )
+    # Sensitivity: goods elasticity 0. Only the listing's own legs respond
+    # (services l.223; oil is offset inside the fixed goods total), which
+    # shows how much of the import response rests on the assumed elasticity.
+    assumed = overlays.IMPORT_RESPONSE_GOODS_ELASTICITY
+    overlays.IMPORT_RESPONSE_GOODS_ELASTICITY = 0.0
+    try:
+        frame = ra.run_reform(
+            "services only",
+            "CGG",
+            cgg_shock,
+            start=START,
+            end=END,
+            import_response=True,
+        )
+    finally:
+        overlays.IMPORT_RESPONSE_GOODS_ELASTICITY = assumed
+    cgg["import_response_goods_elasticity_0"] = {
+        "note": "sensitivity, not an option of run_reform: goods imports "
+        "including oil held at baseline, services follow l.223",
+        "delta_gdp_m": _round(frame["delta_gdp_m"]),
+        "solver_converged": bool(frame.attrs.get("solver_converged")),
+        "delta_imports_m": {
+            k: _round(v)
+            for k, v in frame.attrs["import_response_detail"]["delta_m"].items()
+        },
+        "gdp_per_pound": _round(
+            frame["delta_gdp_m"].to_numpy() / np.array(cgg_shock), 4
+        ),
+    }
     results["household_tax_1p"].update(
         _measure(ra.HOUSEHOLD_COSTING_VAR, HOUSEHOLD_TAX)
     )
