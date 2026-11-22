@@ -1288,17 +1288,21 @@ def run_reform(
             differ completely. See docs/nominal_gdp_pin.md.
         import_response: If True, imports respond to demand on the shocked
             run: services through the listing's own l.223 in deviation form,
-            non-oil goods in proportion to import-weighted demand (l.211
-            weights, unit elasticity assumed), and total imports as their sum
-            with oil. A labelled judgement overlay, not the shipped listing
-            (which holds total imports exogenous). Demand closure only.
-            Default False (unchanged). See obr_macro/demand_overlays.py.
+            goods including oil in proportion to import-weighted demand
+            (l.211 weights, unit elasticity assumed), non-oil goods as that
+            total less the listing's oil imports, and total imports as the
+            sum. A labelled judgement overlay, not the shipped listing
+            (which holds total imports exogenous). Demand closure only; not
+            with price_passthrough or monetary_conditioning. Default False
+            (unchanged). See obr_macro/demand_overlays.py.
         employment_response: If True, the change in market sector employment
             from the listing's own l.145 is passed one for one to total
             employment on the shocked run, so unemployment responds. A
             labelled judgement overlay, not the shipped listing (which sets
-            employment from hours inputs). Demand closure only. Default
-            False (unchanged). See obr_macro/demand_overlays.py.
+            employment from hours inputs). Demand closure only. For a
+            government-consumption shock the result is near zero and can be
+            wrong-signed (the run carries a warning). Default False
+            (unchanged). See obr_macro/demand_overlays.py.
         debt_interest: If True, central government debt interest responds
             to the reform: the extra borrowing is financed by gilts at the
             gilt yield ``RL``, and a shock to ``RL`` reprices the gilts the
