@@ -19,8 +19,8 @@ By default the conditioning inputs stay at the EFO path. A Bank Rate shock then 
 |---|---|---|---|
 | RMORT (mortgage rate) | yes | 0.9pp per 1pp, same quarter | OBR model code l.623 assumes the effective rate on the household loan stock is `0.9*R + 0.2`. This is the OBR's own assumption, not a BoE estimate for new mortgages. Without it, holding RMORT fixed while R rises makes the l.619 spread `(RMORT − R)` fall. That produces an offsetting rise in operating surplus OSHH (l.725), which contradicts l.623. |
 | RDEP (deposit rate) | no | — | No point estimate. In a March 2019 speech, BoE MPC member Michael Saunders put sight-deposit pass-through at over 80% on average in earlier tightening cycles, but around 40% in 2017–18. |
-| RL (10-year gilt) | no | — | No sourced coefficient from Bank Rate to gilt yields was found in BoE or OBR documentation. |
-| RX (sterling) | no | — | No sourced coefficient was found. Exports and imports have no equation, so sterling moves only trade prices (PXNOG, PMNOG), never volumes. |
+| RL (20-year gilt yield) | no | — | No sourced coefficient from Bank Rate to gilt yields was found in BoE or OBR documentation. `RL` is the 20-year yield: the OBR's variables workbook (row 462) calls it "Long rates: 20 year gilt yield", and it is loaded from the EFO table 1.9 column "Long-term interest rates (20-year gilts)". |
+| RX (sterling) | no | — | No sourced coefficient was found. Total exports and total imports are inputs with no equation, and the listing's imported-services equation (l.223) does not evaluate in the default run, so sterling moves only trade prices (PXNOG, PMNOG), never volumes. |
 | APH (house prices) | no | — | No sourced coefficient from Bank Rate to house prices was found in BoE or OBR documentation. |
 
 ### Why the default stays `False` (decided 18 Nov 2026)
@@ -57,6 +57,17 @@ The BoE benchmark is in the Bank of England's *The transmission mechanism of mon
 - Round 3's illustrative "all channels" run gave −0.25%, inside the range. It used unsourced pass-throughs for gilts, sterling and house prices, so it is not adopted here.
 - Inflation stays at 0 in every run, so the inflation half of the benchmark cannot be compared at all.
 
+## Why the result differs from the Bank of England's range
+
+Raised in review (November 2026): the Bank Rate response here is below Bank of England estimates. The points below take the comparison one dimension at a time: two explain the gap (model, monetary response) and two are the same on both sides (shock, horizon). None is a solver fault.
+
+- **Model.** The Bank's range comes from its own 1999 publication, not from the OBR's equations. In our runs Bank Rate moves GDP only through consumption (l.4), directly and through household interest flows (l.619, l.623, l.627); `test_bank_rate_response_is_consumption_only` pins this. Besides the entries listed in the first section, the listing has Bank Rate in durables (l.8) and corporate interest (l.633, l.639). `CDUR`, `RIC`, `DIRIC` and `DIPIC` do not evaluate in our runs (`KNOWN_NONFINITE_EQUATIONS`, `obr_macro/full_solver.py`). The mortgage rate, gilt yields, sterling and house prices are conditioning inputs with no equation, and exports, imports, CPI and unemployment have no live response (see the first section and "The cost-of-capital seed" below).
+- **Shock.** The experiment is the same as the benchmark's: +1pp for four quarters, then back. What differs is what moves with it. By default only `R` moves. With `monetary_conditioning=True` the mortgage rate also moves, at the listing's own 0.9.
+- **Horizon.** Both are read at about a year. The peak here is at q4 (−0.057% default, −0.149% conditioned, `results/demo_shocks.json`), against −0.2% to −0.35%. The inflation half of the benchmark, a year later, cannot be compared: CPI does not move.
+- **Monetary response.** There is no policy rule. Bank Rate is an input path, so nothing feeds back from output or prices to the rate, and the rate does not feed prices. The OBR's five-year multiplier fade, which it attributes partly to monetary policy, is a convention applied outside the equations (`docs/medium_term_convergence.md`).
+- **What would narrow it.** Sourced pass-throughs from Bank Rate to the deposit rate, gilt yields, sterling and house prices, and a live cost-of-capital chain. Round 3's illustrative run with unsourced pass-throughs gave −0.25%, inside the range; it is not adopted (above).
+- **The BoE SVAR replication** (`PolicyEngine/boe-var-model`) is a different experiment: an identified policy surprise, not a rate path held for four quarters. Its figures are not reproduced in this repository. The PolicyEngine Macro site sets the benchmark and both models side by side (`/models/compare`, the 100bp question).
+
 ## Audit: the retail-rate income effect
 
 Round 3 found that moving retail rates 1:1 with Bank Rate cut real household income by 1.06% at the peak, and flagged this for audit. The audit found the following:
@@ -83,3 +94,37 @@ Closing the gap would need two inputs:
 - **DEBTW, the debt weight in the cost of finance.** In principle it could be derived from ONS PNFC balance sheets, the way DB, DP and DV were derived in `cost_of_capital.py`.
 
 Both are a decision for the maintainer. Neither is invented here.
+
+## A gilt-yield shock (`RL`) and the pension-contribution channel
+
+`RL` is the 20-year gilt yield (variables workbook row 462; EFO table 1.9, "Long-term interest rates (20-year gilts)"). It has no equation and Bank Rate does not move it. Shocked on its own, it moves GDP more than Bank Rate does. This section records why. Reviewed 22 Nov 2026.
+
+**What the run shows.** +1 point on `RL`, sustained from 2026Q2, default closure, October 2026 EFO, window 2026Q2–2028Q4. £m a quarter; every quarter of both solves converged to tolerance.
+
+| | q1 | q4 | q11 |
+|---|--:|--:|--:|
+| `EECPP` (l.649) | +5,215 | +5,203 | +5,195 |
+| Household disposable income `HHDI` | −5,276 | −5,328 | −5,389 |
+| Consumption = GDP | −479 | −989 | −1,627 |
+| GDP, % of baseline | −0.067% | −0.138% | −0.224% |
+| Same window, Bank Rate +1 point sustained: `HHDI` | −1,408 | −1,425 | −1,386 |
+| Same window, Bank Rate +1 point sustained: GDP | −127 | −400 | −478 |
+
+**Where it comes from.**
+
+- One equation carries it. The listing's l.649 is `EECPP = ((1 + RL/100)^0.25 − 1) × PIHH(−1) × 0.729 + ((1 + 0.05)^0.25 − 1) × PIHH(−1) × 0.271`. `EECPP` is "Employees' contributions to funded pension schemes" (variables workbook row 506). Its ONS codes include the household contribution supplements (D.614): the investment return on pension funds, booked as if households received it and paid it back in as a contribution. `PIHH` is the household stock of pension and insurance assets, £2.98tn.
+- The size is the listing's arithmetic: 0.729 × £2.98tn × a quarter of one point = £5.2bn a quarter. The run reproduces l.649 to the pound (`tests/test_gilt_yield_channel.py`).
+- `EECPP` is deducted from income through employees' social contributions `EESC` (l.651), which the `HHDI` identity subtracts. So `HHDI` falls one for one.
+- Nothing on the receipts side moves with it. In the national accounts the supplement is matched by property income attributed to pension holders. In the listing that income sits in `APIIH` ("Other investment income", row 503), which has no equation, and interest received `DIRHH` has none either. Property income `PIRHH` moves by only −£61m, a second-round effect through profits. This is the same one-sided pattern as the household interest account above.
+- The pension adjustment `NEAHH` (l.660) rises by the same £5.2bn, so `HHDI + NEAHH`, the resources the saving ratio is measured on, barely move. Consumption falls only because the consumption equation (l.4) uses `HHDI` before that adjustment.
+
+**Verdict.** This is the published listing's behaviour, reproduced correctly. It is not a units or scaling error in this repo and not a seed error: the coefficient, the stock and the rate are the listing's and the published data. No code is changed.
+
+**How to read it.**
+
+- It is not an estimate of what gilt yields do to the economy. It is an accounting entry with one leg modelled. An OBR forecaster would set `APIIH` alongside `RL` by judgement; this repo has no sourced rule for that, so none is added.
+- It is larger than the default Bank Rate response because nothing offsets it. The whole £5.2bn on £2.18tn of pension assets (0.729 × `PIHH`) comes off income. For Bank Rate the mortgage spread offsets 83% of the rise in interest paid, which leaves £1.41bn.
+- The listing's other gilt-yield leg is not in the figure. A higher yield also revalues the pension stock down (l.795 through `DBR`, l.797), but `PIHH` is held on its data path here (`docs/published_model_review.md`, H4). Arithmetic on the listing's coefficients, not a run: +1 point lowers `DBR` by 13.2%, so `PIHH` would fall about 7.6% (£226bn) in the first quarter. With the smaller stock, `EECPP` would be up about £1.8bn a quarter from the second quarter, not £5.2bn, and lower wealth would pull consumption down separately. The net effect in the full listing was not measured.
+- The debt-interest overlay proposed in #80 adds a public-finances effect of `RL` and leaves this GDP figure unchanged.
+
+**Left open: the baseline level of `EECPP`.** Over 2019Q1–2026Q1 l.649 gives 15% to 77% more than the ONS series (`L8PE + L8Q2 + L8LQ`, all three codes loaded). The baseline therefore steps from £26,865m in 2026Q1 (data) to £38,488m in 2026Q2 (equation). This does not affect the shock response above, which depends on `PIHH(−1)` and not on the level of `EECPP`. Anchoring the level would move baseline household income, so it is not done here.

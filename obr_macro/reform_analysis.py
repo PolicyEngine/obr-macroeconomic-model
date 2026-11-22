@@ -369,7 +369,10 @@ MONETARY_CONDITIONING_OFF = {
         "deposit FISIM (DIRHHf l.627) and deposit holdings (l.779), not HHDI "
         "directly; round 3 measured it as a minor channel."
     ),
-    "RL": "No sourced Bank Rate -> 10-year gilt coefficient in BoE/OBR documentation found.",
+    "RL": (
+        "No sourced Bank Rate -> 20-year gilt yield coefficient in BoE/OBR "
+        "documentation found."
+    ),
     "RX": (
         "No sourced coefficient; and X, M have no equation, so sterling cannot "
         "move trade volumes in this model (it only moves PXNOG/PMNOG prices)."
