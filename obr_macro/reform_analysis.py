@@ -1190,8 +1190,10 @@ def run_reform(
             to the reform: the extra borrowing is financed by gilts at the
             gilt yield ``RL``, and a shock to ``RL`` reprices the gilts the
             EFO plans to issue (obr_macro/debt_interest.py). The interest is
-            added to ``DICGOP`` and ``PSCE``, so borrowing rises by it; GDP
-            does not respond. Default closure only. A labelled judgement
+            added to ``DICGOP`` and ``PSCE``, so borrowing rises by it. The
+            overlay adds no GDP effect (GDP is the same with it on or off);
+            an ``RL`` shock still moves GDP through the listing's own l.649
+            either way. Default closure only. A labelled judgement
             overlay, not the shipped listing (which holds debt interest
             exogenous). Default False (unchanged). See docs/debt_interest.md.
     """

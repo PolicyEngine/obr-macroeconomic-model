@@ -18,8 +18,7 @@ form (shocked run minus baseline), because the levels are not in the model:
 - **Stock effect.** Each quarter's extra central government borrowing
   (the change in ``CGNB``, including the extra interest itself) is financed
   by a gilt issued at that quarter's gilt yield ``RL`` (the EFO's 20-year
-  yield, table 1.9; docs/monetary_conditioning.md calls RL the 10-year
-  yield, but obr_macro/data.py loads it from the 20-year column) and pays
+  yield, table 1.9, which is the column obr_macro/data.py loads) and pays
   that coupon from then on.
 - **Rate effect.** If the gilt yield itself is shocked, the gilts the EFO
   already plans to issue (table 6.12, conventional gilts: redemptions being
@@ -36,8 +35,11 @@ subsidies one for one, leave public sector borrowing unchanged and move
 profits through ``BPAPS`` (l.695).
 
 It is a labelled judgement overlay, not model dynamics. Nothing in the
-listing links debt interest received to household or company income, so GDP
-and consumption do not respond.
+listing links debt interest received to household or company income, so the
+overlay adds no GDP or consumption effect: both are the same with the flag
+on or off. That is not the same as GDP not moving. A gilt-yield shock moves
+GDP through the listing's own l.649 (employees' contributions to funded
+pension schemes ``EECPP`` scale with ``RL``), with or without the overlay.
 """
 
 from __future__ import annotations
@@ -102,8 +104,10 @@ DEBT_INTEREST_NOTE = (
     "interest exogenous. Conventional gilts only: index-linked gilts, the "
     "Asset Purchase Facility, Treasury bills and NS&I are not moved, and "
     "the gilt yield does not respond to borrowing. Interest paid does not "
-    "reach household or company income in the listing, so GDP does not "
-    "respond."
+    "reach household or company income in the listing, so the overlay adds "
+    "no GDP effect: GDP is the same with it on or off. A gilt-yield shock "
+    "still moves GDP through the listing's own l.649 (EECPP scales with RL), "
+    "with or without the overlay."
 )
 
 

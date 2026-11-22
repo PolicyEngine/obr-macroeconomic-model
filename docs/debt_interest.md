@@ -95,7 +95,12 @@ Sustained from 2026Q2 to 2028Q4 (11 quarters, the first three fiscal years of th
 
 - A 1 point rise in the gilt yield adds £1.1bn to debt interest in the first year and £3.8bn in the second. It builds because only newly issued gilts carry the higher coupon: about £56bn a quarter in 2026-27 and £69bn in 2027-28.
 - With the overlay off the same shock leaves debt interest and borrowing at exactly zero.
-- GDP falls in both runs by the same amount (−£479m in q1, −£989m in q4). That is the listing's own channel, not the overlay: l.649 scales a pension contribution flow (`EECPP`) with the gilt yield, it enters employee social contributions (`EESC`, l.651), and household income falls by about £5.2bn a quarter (measured in a local solve, 21 Nov 2026). It is large next to the Bank Rate response and has not been reviewed here.
+- GDP falls in both runs by the same amount (−£479m in q1, −£989m in q4). That is the listing's own channel, not the overlay:
+  - l.649 sets employees' contributions to funded pension schemes `EECPP` as a return at the gilt yield on 72.9% of the household stock of pension and insurance assets `PIHH` (£2,986bn in 2026Q1), plus a fixed 5% on the rest.
+  - So +1 point on `RL` raises `EECPP` by 0.729 × £2,986bn × the change in the quarterly rate, which is £5,215m a quarter (from a baseline of £38.5bn).
+  - `EECPP` is part of employees' social contributions `EESC` (l.651), which is subtracted from household disposable income `HHDI` (l.654). `HHDI` falls by £5,276m in q1 and £5,328m in q4 (1.1%), and consumption and GDP follow through l.4.
+  - Source: one local baseline and shocked solve on 22 Nov 2026 (flag off), which matches the arithmetic of l.649 to the pound. The GDP figures are in `results/debt_interest_examples.json`.
+  - It is large next to the Bank Rate response, and whether a higher gilt yield should lower household income this way has not been reviewed here. It is being looked at separately.
 
 ## What the overlay does not do
 
@@ -108,7 +113,7 @@ Sustained from 2026Q2 to 2028Q4 (11 quarters, the first three fiscal years of th
 | Treasury bills and NS&I | They reprice with short rates; no sourced pass-through is in the repo |
 | The gilt yield itself | It stays on the EFO path unless shocked. More borrowing does not raise it |
 | The maturity mix | All new gilts are priced at the 20-year yield (5% to 13% high, see the check above) |
-| Household and company income | Interest paid does not reach any income equation, so GDP does not respond |
+| Household and company income | Interest paid does not reach any income equation, so the overlay adds no GDP effect. GDP is the same with it on or off; a gilt-yield shock still moves GDP through l.649 either way (see the gilt-yield scenario) |
 
 So a Bank Rate shock or a price shock does not move debt interest with the overlay on. Those are the two largest sensitivities left out.
 
