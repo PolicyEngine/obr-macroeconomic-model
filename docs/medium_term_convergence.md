@@ -36,8 +36,8 @@ Terms used below:
 
 | | The OBR's convention | This repository |
 |---|---|---|
-| Source | Economic and fiscal outlook, July 2015, Box 3.2 "Fiscal multipliers"; restated in "Dynamic scoring of policy measures in OBR forecasts" (November 2023) | `obr_macro/published_conventions.py`, which cites both |
-| Impact multipliers | 0.6 current spending and welfare, 1.0 capital spending, 0.35 VAT, 0.3 income tax and NICs (Box 3.2) | The same table, encoded as data. Open: the November 2023 article gives 0.45 for public services and 0.33 for tax (`docs/published_model_review.md`, G11); we use the 2015 values |
+| Source | Economic and fiscal outlook, July 2015, Box 3.2 "Fiscal multipliers", for the impact values and the taper; the taper is restated in "Dynamic scoring of policy measures in OBR forecasts" (November 2023) | `obr_macro/published_conventions.py`, which cites both |
+| Impact multipliers | 0.6 current spending and welfare, 1.0 capital spending, 0.35 VAT, 0.3 income tax and NICs (Box 3.2) | The same table, encoded as data. The November 2023 article gives 0.45 for public services and 0.33 for tax (`docs/published_model_review.md`, G11); we use the 2015 values for every row |
 | Fade | Multipliers taper to zero over five years | `TAPER_QUARTERS = 20` |
 | Stated reason | Offsetting changes in monetary policy, the exchange rate and real wages | In our runs none of the three responds to a fiscal shock: Bank Rate and the exchange rate are inputs, and the wage equations (l.232, l.589) do not evaluate. So the fade is imposed, not derived (`docs/published_model_review.md`, G2 and G9) |
 | Shape between impact and zero | Not published as a formula | **Ours:** linear by quarter, 0.03 a quarter for current spending |
@@ -103,7 +103,7 @@ What each column shows:
   - No equation responds to the output gap (the gap between actual and potential output).
   - Bank Rate is an input with no policy rule.
   - Consumer prices and the GDP deflator are inputs.
-  - Total exports and total imports are inputs. The listing has an equation for imported services (l.223), but it does not evaluate in our runs and total imports do not follow it.
+  - Total exports and total imports are inputs. The listing has an equation for imported services (l.223), but it does not evaluate in our default runs and total imports do not follow it.
   - So nothing in our runs offsets a sustained demand shock.
 
 ## A temporary shock
