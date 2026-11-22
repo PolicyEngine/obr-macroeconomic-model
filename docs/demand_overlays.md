@@ -79,7 +79,12 @@ Same shock, with the overlay. £m a quarter.
 - Non-oil goods imports jump at q1 and fall back at q2 (+482, then +272). Oil imports respond with a one-quarter lag (l.353), so in q1 the whole goods response lands on non-oil goods. The goods total is smooth.
 - The services leg and the inverted identity rest on the listing alone. The goods leg rests on the unit-elasticity assumption and carries about two-thirds of the response (£482m to £539m of £723m to £850m).
 - Sensitivity, goods elasticity 0 (only the listing's own equations respond; not an option of `run_reform`): imports rise by £241m / £302m / £312m at q1 / q4 / q12 (2% to 4% of the shock) and GDP per pound is 0.978 / 0.980 / 0.995. So the assumption accounts for about 0.07 of the fall in GDP per pound, and the listing's services equation for about 0.04.
-- Measured under the default nominal-GDP pin only; `nominal_gdp_pin=False` is refused. The nominal side (investment deflator, borrowing) was not checked with the overlay on.
+- Measured under the default nominal-GDP pin only; `nominal_gdp_pin=False` is refused.
+- Nominal side, checked in one local run on 22 Nov 2026 at 9c5ca4b (same shock; not in the results file). £m a quarter at q1 / q4 / q12:
+  - borrowing (`CGNB`, `PSNBNSA`) is the same with and without the overlay, +7,516 / +7,698 / +8,221: receipts have no equation;
+  - current-price imports rise by +736 / +834 / +917 and the trade balance falls by the same amount; import prices do not move;
+  - current-price GDP rises by +6,792 / +6,956 / +7,578 instead of +7,570 / +7,856 / +8,584, and the difference falls on company profits;
+  - measured business investment moves by −16 / −11 / −2 (default −9 / −13 / −3), so the overlay brings no deflator artefact.
 - It cannot be combined with `published_conventions`, the investment closure, `price_passthrough` or `monetary_conditioning` (none was measured with it).
 
 ## Employment
