@@ -48,7 +48,7 @@ VAT +1pp is `VREC` +£2,200m a quarter.
 
 1. `VREC` raises taxes on products: `CETAX` (l.410), then `BPAPS` (l.695), by £2,200m.
 2. Current-price GDP at market prices does not rise with the tax, because `GDPMPS` is pinned to `PGDP*GDPM/100` and `PGDP` is exogenous.
-3. Wages do not respond (the wage equations are dropped), so the whole tax comes out of operating surplus: `OS = GDPMPS − FYEMP − MI − BPAPS − …` (l.719). Company profits `FYCPR` (l.731) fall by £2,228m in q1: the £2,200m of tax plus the £29m fall in current-price GDP.
+3. Wages do not respond (the wage equations are dropped), so the whole tax comes out of operating surplus: `OS = GDPMPS − FYEMP − MI − BPAPS − …` (l.719). Company profits `FYCPR` (l.731) fall by £2,228m in q1: the £2,200m of tax plus almost all of the £29m fall in current-price GDP.
 4. Households lose only the income withdrawn from quasi-corporations (`WYQC`, l.641), which scales with profits: household income falls by £293m and consumption by £27m in q1.
 5. `CPI` does not move. In the listing the fall would show up as a lower `MKR`. In our runs `MKR` is dropped, so the same thing shows up as lower profits.
 
@@ -117,9 +117,9 @@ Both settings carry an assumption about pass-through:
 
 Reasons to keep it opt-in:
 
-- **The default run is the listing as published.** With the overlay on by default, a reader would have to switch a judgement off to see the listing's own response. The other overlays are opt-in for the same reason.
+- **The default run adds no price assumption of ours.** Its closure is this emulator's choice (`docs/nominal_gdp_pin.md`), but its prices are the listing's. With the overlay on by default, a reader would have to switch a judgement off to see that response. The other overlays are opt-in for the same reason.
 - **Neither run reproduces the OBR's profile.** The default ratio is 0.013 to 0.026 in year 1, between a twenty-seventh and a thirteenth of 0.35. The overlay is 0.345 at q4 and 0.638 at q12, which is 1.8 times the OBR's impact figure, with no fade. Switching would replace a ratio below the OBR's with one above it at longer horizons.
-- **The overlay moves one price and holds the others.** `PGDP`, wages and `RPI` stay on their paths. The `PIF`, `GGI` and `IBUSX` side effect in the table comes from that. The government-consumption shock had a similar side effect, which was fixed before its default changed (#75).
+- **The overlay moves one price and holds the others.** `PGDP`, wages and `RPI` stay on their paths. The `PIF`, `GGI` and `IBUSX` side effect in the table comes from that. The government-consumption shock had a similar side effect; #75 removed it by making the shock nominal-consistent by default.
 
 Reasons to switch the default on:
 
