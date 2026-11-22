@@ -63,6 +63,9 @@ def test_overlay_is_refused_where_it_was_not_measured():
         run_reform("x", "VREC", 1000.0, debt_interest=True, price_passthrough=True)
     with pytest.raises(ValueError, match="nominal-GDP pin"):
         run_reform("x", "CGG", 1000.0, debt_interest=True, nominal_gdp_pin=False)
+    for flag in ("import_response", "employment_response"):
+        with pytest.raises(ValueError, match=flag):
+            run_reform("x", "CGG", 1000.0, debt_interest=True, **{flag: True})
 
 
 def test_fiscal_year_mapping():

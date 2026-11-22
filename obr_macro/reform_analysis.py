@@ -21,6 +21,7 @@ from obr_macro.published_conventions import (
     target_gdp_delta,
 )
 from obr_macro.transpiler import ParsedEquation, EViewsTranspiler
+from obr_macro import demand_overlays
 
 
 # Standard equations for closure swaps
@@ -1105,6 +1106,103 @@ def apply_spending_shock(
     return list(legs)
 
 
+def _check_demand_overlays(
+    var,
+    import_response,
+    employment_response,
+    investment_closure,
+    published_conventions,
+    nominal_gdp_pin=None,
+    price_passthrough=False,
+    monetary_conditioning=False,
+) -> None:
+    """Fail fast on combinations the demand overlays were not built for."""
+    for flag, name, excluded in (
+        (
+            import_response,
+            "import_response",
+            demand_overlays.IMPORT_RESPONSE_EXCLUDED_VARS,
+        ),
+        (
+            employment_response,
+            "employment_response",
+            demand_overlays.EMPLOYMENT_RESPONSE_EXCLUDED_VARS,
+        ),
+    ):
+        if not flag:
+            continue
+        if var in excluded:
+            raise ValueError(
+                f"{name} gives {var} its own equation on the shocked run; "
+                f"shocking {var!r} directly would be overwritten."
+            )
+        if investment_closure:
+            raise ValueError(
+                f"{name} is defined for the demand closure only; it was not "
+                "measured with the investment closure."
+            )
+        if nominal_gdp_pin is False:
+            raise ValueError(
+                f"{name} was measured under the default nominal-GDP pin only; "
+                "under the published closure no quarter converges."
+            )
+        if published_conventions:
+            raise ValueError(
+                f"{name} is a model-dynamics overlay; published_conventions "
+                "imposes the GDP path, so the two would mix imposed and "
+                "modelled leakage in one number. Run one or the other."
+            )
+        for other, other_name in (
+            (price_passthrough, "price_passthrough"),
+            (monetary_conditioning, "monetary_conditioning"),
+        ):
+            if other:
+                raise ValueError(
+                    f"{name} was not measured together with {other_name}; "
+                    "run one or the other."
+                )
+
+
+def _attach_demand_overlay_labels(
+    out,
+    var,
+    import_response,
+    employment_response,
+    baseline_data,
+    shocked_data,
+    t_start,
+    t_end,
+) -> None:
+    """Record the demand overlays (on or off) in ``out.attrs``."""
+    out.attrs["import_response"] = bool(import_response)
+    if import_response:
+        out.attrs["import_response_detail"] = demand_overlays.import_response_detail(
+            baseline_data, shocked_data, t_start, t_end
+        )
+        out.attrs["import_response_note"] = demand_overlays.IMPORT_RESPONSE_NOTE
+        if out.attrs.get("mechanical_passthrough"):
+            # No longer one for one: part of the shock leaks into imports.
+            out.attrs["mechanical_passthrough"] = False
+        if "multiplier_warning" in out.attrs:
+            out.attrs["multiplier_warning"] += (
+                " import_response=True is on in this run: imports respond "
+                "through a labelled overlay (see import_response_note), so "
+                "the GDP delta is below the passthrough figures quoted above."
+            )
+    out.attrs["employment_response"] = bool(employment_response)
+    if employment_response:
+        out.attrs["employment_response_detail"] = (
+            demand_overlays.employment_response_detail(
+                baseline_data, shocked_data, t_start, t_end
+            )
+        )
+        out.attrs["employment_response_note"] = demand_overlays.EMPLOYMENT_RESPONSE_NOTE
+        if var == "CGG":
+            out.attrs["employment_response_warning"] = (
+                demand_overlays.EMPLOYMENT_RESPONSE_CGG_WARNING
+            )
+
+
 def run_reform(
     name: str,
     var: str,
@@ -1118,6 +1216,8 @@ def run_reform(
     monetary_conditioning: bool = False,
     price_passthrough: bool = False,
     nominal_consistent: "bool | None" = None,
+    import_response: bool = False,
+    employment_response: bool = False,
     debt_interest: bool = False,
 ):
     """Run a reform scenario and return results DataFrame.
@@ -1186,6 +1286,19 @@ def run_reform(
             closure (see resolve_nominal_consistent). The GDP delta differs
             by under 1% between the two; the borrowing and IBUSX deltas
             differ completely. See docs/nominal_gdp_pin.md.
+        import_response: If True, imports respond to demand on the shocked
+            run: services through the listing's own l.223 in deviation form,
+            non-oil goods in proportion to import-weighted demand (l.211
+            weights, unit elasticity assumed), and total imports as their sum
+            with oil. A labelled judgement overlay, not the shipped listing
+            (which holds total imports exogenous). Demand closure only.
+            Default False (unchanged). See obr_macro/demand_overlays.py.
+        employment_response: If True, the change in market sector employment
+            from the listing's own l.145 is passed one for one to total
+            employment on the shocked run, so unemployment responds. A
+            labelled judgement overlay, not the shipped listing (which sets
+            employment from hours inputs). Demand closure only. Default
+            False (unchanged). See obr_macro/demand_overlays.py.
         debt_interest: If True, central government debt interest responds
             to the reform: the extra borrowing is financed by gilts at the
             gilt yield ``RL``, and a shock to ``RL`` reprices the gilts the
@@ -1197,6 +1310,16 @@ def run_reform(
             overlay, not the shipped listing (which holds debt interest
             exogenous). Default False (unchanged). See docs/debt_interest.md.
     """
+    _check_demand_overlays(
+        var,
+        import_response,
+        employment_response,
+        investment_closure,
+        published_conventions,
+        nominal_gdp_pin,
+        price_passthrough,
+        monetary_conditioning,
+    )
     if monetary_conditioning and var != "R":
         raise ValueError(
             "monetary_conditioning applies only to a Bank Rate shock (var='R'); "
@@ -1223,6 +1346,11 @@ def run_reform(
         raise ValueError(
             "debt_interest was not measured together with price_passthrough; "
             "run one or the other."
+        )
+    if debt_interest and (import_response or employment_response):
+        raise ValueError(
+            "debt_interest was not measured together with import_response or "
+            "employment_response; run one or the other."
         )
     if debt_interest and nominal_gdp_pin is False:
         raise ValueError(
@@ -1278,8 +1406,19 @@ def run_reform(
     # reported", never a crash.
     baseline_report = getattr(baseline, "last_solve_report", None)
     baseline_data = baseline.data.copy()
+    if import_response:
+        demand_overlays.apply_import_response(
+            shocked, baseline_data, baseline.period_idx(start), baseline.period_idx(end)
+        )
+    if employment_response:
+        demand_overlays.apply_employment_response(
+            shocked, baseline_data, baseline.period_idx(start), baseline.period_idx(end)
+        )
     shocked.solve(start, end)
     shocked_report = getattr(shocked, "last_solve_report", None)
+    demand_overlays.require_overlay_equations_live(
+        shocked_report, import_response, employment_response
+    )
     shocked_data = shocked.data.copy()
 
     # Build results
@@ -1615,6 +1754,16 @@ def run_reform(
     if passthrough_detail is not None:
         out.attrs["price_passthrough_detail"] = passthrough_detail
         out.attrs["price_passthrough_note"] = PRICE_PASSTHROUGH_NOTE
+    _attach_demand_overlay_labels(
+        out,
+        var,
+        import_response,
+        employment_response,
+        baseline_data,
+        shocked_data,
+        t_start,
+        t_end,
+    )
     out.attrs["debt_interest"] = bool(debt_interest)
     if debt_interest_detail is not None:
         out.attrs["debt_interest_detail"] = debt_interest_detail
