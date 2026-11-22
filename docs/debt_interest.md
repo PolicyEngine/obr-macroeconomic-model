@@ -100,7 +100,7 @@ Sustained from 2026Q2 to 2028Q4 (11 quarters, the first three fiscal years of th
   - So +1 point on `RL` raises `EECPP` by 0.729 × £2,986bn × the change in the quarterly rate, which is £5,215m a quarter (from a baseline of £38.5bn).
   - `EECPP` is part of employees' social contributions `EESC` (l.651), which is subtracted from household disposable income `HHDI` (l.654). `HHDI` falls by £5,276m in q1 and £5,328m in q4 (1.1%), and consumption and GDP follow through l.4.
   - Source: one local baseline and shocked solve on 22 Nov 2026 (flag off), which matches the arithmetic of l.649 to the pound. The GDP figures are in `results/debt_interest_examples.json`.
-  - It is large next to the Bank Rate response, and whether a higher gilt yield should lower household income this way has not been reviewed here. It is being looked at separately.
+  - So the figure is the listing's equation as published, not a units or scaling slip in the overlay or the run. It is large next to the Bank Rate response. Whether a higher gilt yield should lower household income this way (only the contribution leg moves; the matching investment income has no equation) is reviewed separately, not here.
 
 ## What the overlay does not do
 
