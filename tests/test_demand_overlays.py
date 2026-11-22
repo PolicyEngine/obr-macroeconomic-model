@@ -55,6 +55,10 @@ def test_overlays_are_refused_where_they_were_not_built(flag):
         run_reform("x", "CGG", 1000.0, published_conventions=True, **{flag: True})
     with pytest.raises(ValueError, match="default nominal-GDP pin only"):
         run_reform("x", "CGG", 1000.0, nominal_gdp_pin=False, **{flag: True})
+    with pytest.raises(ValueError, match="price_passthrough"):
+        run_reform("x", "VREC", 1000.0, price_passthrough=True, **{flag: True})
+    with pytest.raises(ValueError, match="monetary_conditioning"):
+        run_reform("x", "R", 1.0, monetary_conditioning=True, **{flag: True})
     own = "M" if flag == "import_response" else "HWA"
     with pytest.raises(ValueError, match="its own equation"):
         run_reform("x", own, 1000.0, **{flag: True})
@@ -135,6 +139,43 @@ def test_services_deviation_equation_is_zero_at_baseline():
 
     value = eval(eq.python_expr, {"np": np, "v": v, "_lag": lag})
     assert value == pytest.approx(85.0, rel=1e-12)
+
+
+def test_services_deviation_equation_moves_by_the_impact_coefficient():
+    """The equation the solver actually runs (not the Python re-statement in
+    services_imports_partial_response): a 1% rise in import-weighted demand
+    this quarter, from baseline, raises services imports by 0.819114%."""
+    eq = overlays._parse(overlays._SERVICES_SRC)
+    path = {
+        "MS": [80.0, 82.0, 81.0, 83.0, 84.0],
+        "MSTFE": [60.0, 61.0, 61.5, 62.0, 63.0],
+    }
+    v = {"MS_BASE": 85.0, "MSTFE": 63.5 * 1.01, "MSTFE_BASE": 63.5}
+
+    def lag(name, n):
+        return path[name.replace("_BASE", "")][-n]
+
+    value = eval(eq.python_expr, {"np": np, "v": v, "_lag": lag})
+    assert np.log(value / 85.0) / np.log(1.01) == pytest.approx(0.819114, rel=1e-9)
+
+
+def test_goods_equation_scales_all_goods_and_nets_off_oil():
+    """Oil is counted once: goods imports including oil move in proportion
+    to MGTFE, and non-oil goods are that total less the oil imports the
+    listing computes. So MNOG + MOIL does not depend on the oil response."""
+    eq = overlays._parse(
+        overlays._GOODS_SRC.format(elasticity=overlays.IMPORT_RESPONSE_GOODS_ELASTICITY)
+    )
+    base = {"MNOG_BASE": 140.0, "MOIL_BASE": 18.0, "MGTFE_BASE": 150.0}
+
+    def mnog(mgtfe, moil):
+        v = dict(base, MGTFE=mgtfe, MOIL=moil)
+        return eval(eq.python_expr, {"np": np, "v": v, "_lag": None})
+
+    assert mnog(150.0, 18.0) == pytest.approx(140.0, rel=1e-12)
+    for moil in (18.0, 19.0, 25.0):
+        assert mnog(153.0, moil) + moil == pytest.approx(158.0 * 1.02, rel=1e-12)
+    assert "MOIL" in overlays.IMPORT_RESPONSE_BASE_VARS
 
 
 # --- Full solve ---------------------------------------------------------------

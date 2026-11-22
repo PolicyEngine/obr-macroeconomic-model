@@ -1108,6 +1108,8 @@ def _check_demand_overlays(
     investment_closure,
     published_conventions,
     nominal_gdp_pin=None,
+    price_passthrough=False,
+    monetary_conditioning=False,
 ) -> None:
     """Fail fast on combinations the demand overlays were not built for."""
     for flag, name, excluded in (
@@ -1145,6 +1147,15 @@ def _check_demand_overlays(
                 "imposes the GDP path, so the two would mix imposed and "
                 "modelled leakage in one number. Run one or the other."
             )
+        for other, other_name in (
+            (price_passthrough, "price_passthrough"),
+            (monetary_conditioning, "monetary_conditioning"),
+        ):
+            if other:
+                raise ValueError(
+                    f"{name} was not measured together with {other_name}; "
+                    "run one or the other."
+                )
 
 
 def _attach_demand_overlay_labels(
@@ -1290,6 +1301,8 @@ def run_reform(
         investment_closure,
         published_conventions,
         nominal_gdp_pin,
+        price_passthrough,
+        monetary_conditioning,
     )
     if monetary_conditioning and var != "R":
         raise ValueError(

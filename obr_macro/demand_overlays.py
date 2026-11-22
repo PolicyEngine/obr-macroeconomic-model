@@ -28,20 +28,31 @@ from obr_macro.transpiler import EViewsTranspiler
 # Goods. The listing has NO estimated goods-import equation (the l.215 comment
 # "Changed to enable indirect T2 fix" marks where one was replaced by the
 # residual). What it does publish is the goods import content of each demand
-# component, MGTFE (l.211); with the services weights MSTFE (l.219) they sum
-# to the total import-content weights of l.195-l.201 for the four domestic
-# demand components (0.176 + 0.081 = 0.257 for consumption, 0.064 + 0.030 =
-# 0.094 for government consumption, likewise investment and stockbuilding;
-# the export weights do not sum this way). The total weights are scaled
-# against all imports, oil included (MINTY, l.209), so the goods content
-# probably covers oil too: scaling NON-OIL goods by it and adding the oil
-# response the listing computes separately may count some oil twice. The
-# overlay holds goods-import intensity MNOG/MGTFE at its baseline
-# path, i.e. an elasticity of 1 with respect to import-weighted demand. The
-# weights are the OBR's; the unit elasticity is this repo's judgement
-# (constant import content), not an estimate.
+# component, MGTFE (l.211, "index of final demand weighted by import
+# intensity (goods)" in the variable list). For the four domestic demand
+# components its weights and the services weights MSTFE (l.219) sum to the
+# total import-content weights of l.195-l.201 (0.176 + 0.081 = 0.257 for
+# consumption, 0.064 + 0.030 = 0.094 for government consumption, likewise
+# investment and stockbuilding; the goods-export weights do not sum this
+# way). The total weights are scaled against ALL imports, oil included
+# (MINTY, l.209), so the goods weights are read here as covering all goods,
+# oil included: over 2025Q1-2027Q4 baseline goods imports with oil are 1.04
+# to 1.06 times MGTFE, and 0.92 to 0.97 times without.
+#
+# The overlay therefore holds the intensity of ALL goods imports,
+# (MNOG + MOIL) / MGTFE, at its baseline path (an elasticity of 1 with
+# respect to import-weighted demand) and takes off the oil imports the
+# listing already computes (l.353, l.358), so oil is counted once. Until
+# 22 Nov 2026 the overlay scaled non-oil goods alone and added the oil
+# response on top, which put total goods imports GBP 110m to 190m a quarter
+# above the unit-elastic path for government consumption of 1% of GDP (oil
+# demand has an elasticity of 1.9 to non-oil GVA in l.353). The weights are
+# the OBR's; the unit elasticity is this repo's judgement (constant import
+# content), not an estimate.
 IMPORT_RESPONSE_GOODS_ELASTICITY = 1.0
-_GOODS_SRC = "MNOG = MNOG_BASE * (MGTFE / MGTFE_BASE) ^ {elasticity}"
+_GOODS_SRC = (
+    "MNOG = (MNOG_BASE + MOIL_BASE) * (MGTFE / MGTFE_BASE) ^ {elasticity} - MOIL"
+)
 
 # Services. The listing's own estimated equation, l.223, written as a
 # deviation from the baseline. It is linear in logs, so the terms in the
@@ -71,7 +82,7 @@ _SERVICES_SRC = (
 # are their sum plus oil imports (MOIL, l.358, already live).
 _TOTAL_SRC = "M = MNOG + MS + MOIL"
 
-IMPORT_RESPONSE_BASE_VARS = ("MNOG", "MGTFE", "MS", "MSTFE")
+IMPORT_RESPONSE_BASE_VARS = ("MNOG", "MOIL", "MGTFE", "MS", "MSTFE")
 IMPORT_RESPONSE_REPORT_VARS = ("M", "MNOG", "MS", "MOIL")
 # Shocking one of these directly would fight the overlay's own equations.
 IMPORT_RESPONSE_EXCLUDED_VARS = frozenset({"M", "MNOG", "MS", "MOIL"})
@@ -80,13 +91,13 @@ IMPORT_RESPONSE_NOTE = (
     "exogenous). Applied to the shocked run only, as deviations from the "
     "solved baseline. Services imports follow the listing's own estimated "
     "equation (l.223) with relative prices and the specialisation index held "
-    "at baseline. Non-oil goods imports move in proportion to import-weighted "
-    "demand MGTFE (l.211): the weights are the OBR's, the elasticity of "
-    f"{IMPORT_RESPONSE_GOODS_ELASTICITY:g} is this repo's assumption because "
-    "the listing has no estimated goods-import equation. Total imports become "
-    "M = MNOG + MS + MOIL (l.217 inverted), so the oil-import response the "
-    "listing already computes (l.353, l.358) now reaches M too; the l.211 "
-    "weights may already cover oil, so some oil may be counted twice. Import "
+    "at baseline. Goods imports, oil included, move in proportion to "
+    "import-weighted demand MGTFE (l.211): the weights are the OBR's, the "
+    f"elasticity of {IMPORT_RESPONSE_GOODS_ELASTICITY:g} is this repo's "
+    "assumption because the listing has no estimated goods-import equation. "
+    "Non-oil goods imports are that total less the oil imports the listing "
+    "already computes (l.353, l.358), so oil is counted once. Total imports "
+    "become M = MNOG + MS + MOIL (l.217 inverted). Import "
     "prices and exports do not respond. Measured under the default "
     "nominal-GDP pin only."
 )
@@ -257,7 +268,8 @@ def import_response_detail(baseline_data, shocked_data, t_start, t_end) -> dict:
     return {
         "goods_elasticity": IMPORT_RESPONSE_GOODS_ELASTICITY,
         "goods_source": "import-content weights MGTFE, OBR model code l.211; "
-        "unit elasticity assumed",
+        "unit elasticity assumed for goods imports including oil; non-oil "
+        "goods are that total less the listing's oil imports",
         "services_coefficients": dict(SERVICES_IMPORT_COEFFICIENTS),
         "services_source": "OBR model code l.223, deviation form",
         "delta_m": {name: deltas[name] for name in IMPORT_RESPONSE_REPORT_VARS},
