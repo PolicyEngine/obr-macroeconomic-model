@@ -1,0 +1,1 @@
+The ONS pull now records each series' ONS release date and fetch date in the snapshot manifest, sets the top-level `pulled` date to the oldest fetch rather than the write date, and prefers the latest ONS release when a CDID appears in several datasets (#49). The committed snapshot is unchanged until the next pull.

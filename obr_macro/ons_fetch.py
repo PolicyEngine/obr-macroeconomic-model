@@ -552,27 +552,51 @@ def resolve_uris(cdid):
     return uris
 
 
+def release_date(d) -> str:
+    """The ONS release date of a series response as ``YYYY-MM-DD``, or ""."""
+    raw = (d.get("description") or {}).get("releaseDate") or ""
+    return raw[:10] if len(raw) >= 10 else ""
+
+
+def _n_obs(d) -> int:
+    return (
+        len(d.get("quarters", []))
+        or len(d.get("months", []))
+        or len(d.get("years", []))
+    )
+
+
+def pick_dataset(responses):
+    """Choose among the datasets that carry a CDID (#49).
+
+    The latest ONS release wins; among equal release dates (or when none is
+    given), the one with the most observations. Picking by observations alone
+    let an older dataset with a longer history beat the current release.
+    Returns None for an empty list.
+    """
+    best, best_key = None, None
+    for d in responses:
+        key = (release_date(d), _n_obs(d))
+        if best_key is None or key > best_key:
+            best, best_key = d, key
+    return best
+
+
 def fetch_series(cdid):
     """Fetch a CDID and return ``(series, meta)``.
 
     ``series`` is on a quarterly PeriodIndex (or None if no data);
-    ``meta`` is a dict with keys cdid, title, dataset, source_freq,
-    aggregation and type — or None if the CDID could not be resolved.
+    ``meta`` is a dict with keys cdid, title, dataset, release_date,
+    source_freq, aggregation and type — or None if the CDID could not be
+    resolved.
     """
-    best = None
-    best_n = -1
+    responses = []
     for uri in resolve_uris(cdid):
         try:
-            d = _get_json(_DATA.format(uri=uri))
+            responses.append(_get_json(_DATA.format(uri=uri)))
         except Exception:
             continue
-        n = (
-            len(d.get("quarters", []))
-            or len(d.get("months", []))
-            or len(d.get("years", []))
-        )
-        if n > best_n:
-            best_n, best = n, d
+    best = pick_dataset(responses)
     if best is None:
         return None, None
 
@@ -582,6 +606,7 @@ def fetch_series(cdid):
         "cdid": cdid,
         "title": desc.get("title", cdid),
         "dataset": desc.get("datasetId", ""),
+        "release_date": release_date(best),
         "type": kind,
         "source_freq": None,
         "aggregation": None,
