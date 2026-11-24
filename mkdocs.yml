@@ -1,0 +1,107 @@
+site_name: OBR macroeconomic model in Python
+site_description: PolicyEngine's open Python replication of the Office for Budget Responsibility's published macroeconomic model
+site_url: https://policyengine.github.io/obr-macroeconomic-model/
+repo_url: https://github.com/PolicyEngine/obr-macroeconomic-model
+repo_name: PolicyEngine/obr-macroeconomic-model
+edit_uri: edit/main/docs/
+copyright: Code MIT, text CC BY 4.0, PolicyEngine
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_signature_annotations: true
+            separate_signature: true
+            members_order: source
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - How it works: how-it-works.md
+  - Options and overlays: options.md
+  - Worked examples: examples.md
+  - Limits: limitations.md
+  - Methods:
+      - Forecasting framework: forecasting_framework.md
+      - Nominal GDP pin: nominal_gdp_pin.md
+      - Medium-term convergence: medium_term_convergence.md
+      - Transmission audit: transmission_audit.md
+      - Demand overlays (imports, employment): demand_overlays.md
+      - Price pass-through: price_passthrough.md
+      - Monetary conditioning: monetary_conditioning.md
+      - Debt interest: debt_interest.md
+  - Validation:
+      - Testing: testing.md
+      - Calibration scorecard: calibration_scorecard.md
+      - Review of the published model: published_model_review.md
+  - Data and results: data.md
+  - Decisions and roadmap:
+      - Modelling decisions: decisions.md
+      - Roadmap: ROADMAP.md
+      - Demo guide: demo.md
+  - API reference: api.md
+  - History:
+      - history/README.md
+      - Stage 1b chain trace: history/stage1b_chain_trace.md
+      - Stage 1c data scope: history/stage1c_data_scope.md

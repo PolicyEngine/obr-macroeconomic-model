@@ -1996,7 +1996,7 @@ def create_visualisations(results: pd.DataFrame, output_dir: str = None):
     # Spending reforms
     spending_reforms = [
         "£5bn Gov Spending",
-        "£10bn Gov Investment",
+        "£10bn Gov Investment (dead channel)",
         "£10bn Spending Cut",
     ]
     for reform in spending_reforms:

@@ -1,0 +1,13 @@
+:root, [data-md-color-scheme="default"] {
+  --md-primary-fg-color: #319795;
+  --md-primary-fg-color--light: #4fb3b0;
+  --md-primary-fg-color--dark: #285e61;
+  --md-accent-fg-color: #285e61;
+}
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #234e52;
+  --md-primary-fg-color--light: #319795;
+  --md-primary-fg-color--dark: #1d4044;
+  --md-accent-fg-color: #4fd1c5;
+}
+.md-typeset table:not([class]) { font-size: 0.72rem; }

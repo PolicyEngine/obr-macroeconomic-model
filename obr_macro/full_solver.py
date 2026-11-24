@@ -787,20 +787,8 @@ class FullOBRSolver:
         for t in range(start_t, len(self.data)):
             # Multiple passes to handle dependencies
             for _ in range(5):
-                v = {col: self.data.iloc[t][col] for col in self.data.columns}
-                ctx = {
-                    "np": np,
-                    "__builtins__": {},
-                    "v": v,
-                    "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
-                    "_lead": lambda var, lead, t=t: self._lead(var, lead, t),
-                    "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(
-                        t, period, op, tv, fv
-                    ),
-                    "_trend": lambda t_arg, base, t=t: self._trend(t, base),
-                    "_elem": self._elem,
-                    "t": t,
-                }
+                ctx = self._build_context(t)
+                v = ctx["v"]
 
                 pass_initialized = 0
                 for eq in identity_eqs:
@@ -880,23 +868,8 @@ class FullOBRSolver:
 
         self.residual_failures = Counter()  # LHS var -> failed evaluations
         for t in range(max(1, start_t), len(self.data)):
-            # Build context once per period. Transpiled call forms are
-            # _recode(t, period, op, tv, fv) and _trend(t, base); the lambdas
-            # must match that arity (t_arg is ignored, the closure's t is used).
-            v = {col: self.data.iloc[t][col] for col in self.data.columns}
-            ctx = {
-                "np": np,
-                "__builtins__": {},
-                "v": v,
-                "_lag": lambda var, lag, t=t: self._lag(var, lag, t),
-                "_lead": lambda var, lead, t=t: self._lead(var, lead, t),
-                "_recode": lambda t_arg, period, op, tv, fv, t=t: self._recode(
-                    t, period, op, tv, fv
-                ),
-                "_trend": lambda t_arg, base, t=t: self._trend(t, base),
-                "_elem": self._elem,
-                "t": t,
-            }
+            # Build context once per period.
+            ctx = self._build_context(t)
 
             for eq in behavioral_eqs:
                 var, kind, lag_n = self._parse_lhs(eq.lhs)
@@ -924,20 +897,7 @@ class FullOBRSolver:
 
     def _eval_rhs(self, eq, t: int) -> float:
         """Evaluate an equation's RHS at period t on the current data."""
-        row = self.data.iloc[t]
-        ctx = {
-            "np": np,
-            "__builtins__": {},
-            "v": {col: row[col] for col in self.data.columns},
-            "_lag": lambda var, lag: self._lag(var, lag, t),
-            "_lead": lambda var, lead: self._lead(var, lead, t),
-            "_recode": lambda t_arg, period, op, tv, fv: self._recode(
-                t, period, op, tv, fv
-            ),
-            "_trend": lambda t_arg, base: self._trend(t, base),
-            "_elem": self._elem,
-            "t": t,
-        }
+        ctx = self._build_context(t)
         return float(eval(self._compiled(eq.python_expr), ctx))
 
     def _close_receipts_identities(self):
@@ -1144,13 +1104,13 @@ class FullOBRSolver:
         current = self.index[t]
         if op == "=":
             return true_val if current == target else false_val
-        elif op == ">=":
+        if op == ">=":
             return true_val if current >= target else false_val
-        elif op == "<=":
+        if op == "<=":
             return true_val if current <= target else false_val
-        elif op == ">":
+        if op == ">":
             return true_val if current > target else false_val
-        elif op == "<":
+        if op == "<":
             return true_val if current < target else false_val
         return false_val
 
@@ -1176,7 +1136,13 @@ class FullOBRSolver:
         return code
 
     def _build_context(self, t: int) -> dict:
-        """Build evaluation context for time t."""
+        """Build the evaluation context for period t.
+
+        Every place that evaluates a transpiled equation uses this. The
+        transpiled call forms are _recode(t, period, op, tv, fv) and
+        _trend(t, base); the lambdas match that arity, ignore t_arg and use
+        the closure's t. "v" is a fresh, mutable dict of the period's values.
+        """
         v = {col: self.data.iloc[t][col] for col in self.data.columns}
         return {
             "np": np,
@@ -1431,23 +1397,9 @@ class FullOBRSolver:
             max_change = 0.0
             iter_dropped = set()
 
-            # Build context once per iteration, use mutable v dict
-            row = self.data.iloc[t]
-            v = {col: row[col] for col in self.data.columns}
-
-            ctx = {
-                "np": np,
-                "__builtins__": {},
-                "v": v,
-                "_lag": lambda var, lag: self._lag(var, lag, t),
-                "_lead": lambda var, lead: self._lead(var, lead, t),
-                "_recode": lambda t_arg, period, op, tv, fv: self._recode(
-                    t, period, op, tv, fv
-                ),
-                "_trend": lambda t_arg, base: self._trend(t, base),
-                "_elem": self._elem,
-                "t": t,
-            }
+            # Build context once per iteration; v is the mutable value dict.
+            ctx = self._build_context(t)
+            v = ctx["v"]
 
             anchoring = self._anchoring_applies()
             terms = getattr(self, "anchor_terms", None) if anchoring else None
@@ -1580,21 +1532,8 @@ class FullOBRSolver:
 
         Returns a list of dicts: {var, lhs, status, reason}.
         """
-        row = self.data.iloc[t]
-        v = {col: row[col] for col in self.data.columns}
-        ctx = {
-            "np": np,
-            "__builtins__": {},
-            "v": v,
-            "_lag": lambda var, lag: self._lag(var, lag, t),
-            "_lead": lambda var, lead: self._lead(var, lead, t),
-            "_recode": lambda t_arg, period, op, tv, fv: self._recode(
-                t, period, op, tv, fv
-            ),
-            "_trend": lambda t_arg, base: self._trend(t, base),
-            "_elem": self._elem,
-            "t": t,
-        }
+        ctx = self._build_context(t)
+        v = ctx["v"]
 
         def nan_inputs(expr):
             bad = []
