@@ -91,9 +91,12 @@ def fetch_cached(cdid):
     """Fetch a CDID with an on-disk cache. Returns (series, meta).
 
     The cache stores the already-aggregated quarterly values plus a meta
-    sidecar (title/dataset/frequency/aggregation). A cache entry without the
-    meta sidecar predates the typed flow/stock aggregation fix and is treated
-    as a miss so it gets re-fetched with the correct aggregation.
+    sidecar (title/dataset/release date/frequency/aggregation, and the date it
+    was fetched). A cache entry without the meta sidecar predates the typed
+    flow/stock aggregation fix and is treated as a miss so it gets re-fetched
+    with the correct aggregation. Entries never expire: delete the cache
+    directory to force a fresh pull. Entries cached before #49 have no
+    ``fetched`` date, and the manifest says so rather than guessing.
     """
     CACHE.mkdir(parents=True, exist_ok=True)
     f = CACHE / f"{cdid}.csv"
@@ -106,10 +109,43 @@ def fetch_cached(cdid):
     if s is None or s.empty:
         return None, meta
     s = s.dropna()
+    meta = {**meta, "fetched": pd.Timestamp.now().strftime("%Y-%m-%d")}
     s.rename("value").to_frame().to_csv(f)
     json.dump(meta, open(mf, "w"), indent=1)
     time.sleep(0.4)
     return s, meta
+
+
+def vintage(meta) -> dict:
+    """The per-series vintage fields written to the manifest (#49)."""
+    meta = meta or {}
+    return {
+        "release_date": meta.get("release_date") or None,
+        "fetched": meta.get("fetched") or None,
+    }
+
+
+def snapshot_dates(manifest: dict, today: str) -> dict:
+    """Top-level manifest dates (#49).
+
+    ``pulled`` is the oldest fetch date over every series and compound
+    component, so a snapshot rebuilt from an old cache does not look fresh.
+    ``written`` is when the file was written. ``fetched_unknown`` counts
+    entries cached before fetch dates were recorded; if every entry is
+    unknown, ``pulled`` is None.
+    """
+    fetched, unknown = [], 0
+    for entry in manifest.values():
+        for item in entry.get("components", [entry]):
+            if item.get("fetched"):
+                fetched.append(item["fetched"])
+            else:
+                unknown += 1
+    return {
+        "pulled": min(fetched) if fetched else None,
+        "written": today,
+        "fetched_unknown": unknown,
+    }
 
 
 def eval_compound(formula):
@@ -184,6 +220,7 @@ def main():
             "source_freq": meta.get("source_freq"),
             "aggregation": meta.get("aggregation"),
             "type": meta.get("type"),
+            **vintage(meta),
         }
         if i % 20 == 0:
             print(f"  ...{i}/{len(simple)} simple fetched")
@@ -207,6 +244,7 @@ def main():
                     "source_freq": m.get("source_freq"),
                     "aggregation": m.get("aggregation"),
                     "type": m.get("type"),
+                    **vintage(m),
                 }
                 for m in metas
             ],
@@ -222,7 +260,7 @@ def main():
     with open(MANIFEST, "w") as fh:
         json.dump(
             {
-                "pulled": pd.Timestamp.now().strftime("%Y-%m-%d"),
+                **snapshot_dates(manifest, pd.Timestamp.now().strftime("%Y-%m-%d")),
                 "n_series": len(manifest),
                 "series": manifest,
             },

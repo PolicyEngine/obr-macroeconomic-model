@@ -52,7 +52,7 @@ Fetches one ONS time series by its CDID. It finds the series through the ONS sea
 
 ### `obr_macro/ons_pull.py`
 
-Rebuilds the snapshot. It finds every input variable the model needs that has a known CDID, fetches single series directly and builds compound ones from the glossary formula over their component series. Each raw fetch is cached (in `data/ons_cache/` in a checkout, otherwise `~/.cache/obr_macro/ons_cache/`) so a pull can resume. It writes `ons_exogenous_snapshot.csv` and `snapshot_manifest.json`. Run it with `uv run python -m obr_macro.ons_pull`. It needs network access, and a new pull changes model results, so it is not run routinely.
+Rebuilds the snapshot. It finds every input variable the model needs that has a known CDID, fetches single series directly and builds compound ones from the glossary formula over their component series. Each raw fetch is cached (in `data/ons_cache/` in a checkout, otherwise `~/.cache/obr_macro/ons_cache/`) so a pull can resume. It writes `ons_exogenous_snapshot.csv` and `snapshot_manifest.json`. Since #49 a new pull records, for each series, the ONS release date and the date it was fetched; when a CDID sits in several ONS datasets it takes the latest release, then the longest history. The manifest's `pulled` date is the oldest fetch, `written` is when the file was written, and `fetched_unknown` counts cache entries from before fetch dates were recorded. Cache entries never expire, so delete the cache folder to force a fresh pull. The committed manifest predates this and has no per-series dates. Run it with `uv run python -m obr_macro.ons_pull`. It needs network access, and a new pull changes model results, so it is not run routinely.
 
 ## Results files
 

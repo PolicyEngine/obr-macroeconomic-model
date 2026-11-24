@@ -121,6 +121,7 @@ Run any of them with `uv run python scripts/<name>.py`. Each file records the sc
 |---|---|---|
 | `test_efo_ground_truth.py` | Fast | The EFO loader against the publication itself: published identities hold, pinned spot values match, and the November 2025 and October 2026 vintages agree to revision size. |
 | `test_ons_pull.py` | Fast | Compound ONS series built from several CDIDs, including lags, with the network replaced by synthetic series. |
+| `test_ons_vintage.py` | Fast | The ONS vintage recorded per series (#49): the latest release wins when a CDID is in several datasets, each fetch records its date, and the manifest's `pulled` date is the oldest fetch, not the write date. |
 
 ### Packaging and public interface
 
