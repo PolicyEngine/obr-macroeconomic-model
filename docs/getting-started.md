@@ -1,8 +1,12 @@
+---
+icon: material/rocket-launch
+---
+
 # Getting started
 
 This page takes you from a fresh checkout to a first reform result, and explains what comes back.
 
-## Install
+## :material-download: Install { #install }
 
 You need Python 3.11 or later and [uv](https://docs.astral.sh/uv/). From the repository root:
 
@@ -12,7 +16,7 @@ uv sync
 
 This installs the package and its locked dependencies (`uv.lock`). The OBR model listing, the variable list, the EFO workbooks and the ONS snapshot all ship inside the package, so nothing is downloaded at run time. [Data and results](data.md) describes those files.
 
-## Your first reform
+## :material-play-circle: Your first reform { #your-first-reform }
 
 Start Python with `uv run python` and run:
 
@@ -28,11 +32,11 @@ This raises real government consumption (`CGG`) by £1,250m a quarter for 12 qua
 
 `run_reform` builds the model, solves a baseline and a shocked copy, and returns the difference. The baseline is anchored to the OBR's October 2026 Economic and fiscal outlook (EFO), the OBR's twice-yearly forecast. [How it works](how-it-works.md) explains the steps.
 
-### How long it takes
+### :material-timer-sand: How long it takes { #how-long-it-takes }
 
 Each `run_reform` call builds and solves the model twice over 12 quarters. The first call also builds the model template, which is most of the cost; later calls with the same structure reuse it. The README's three Quick Start calls took about five minutes on a laptop (Apple silicon, measured 15 Nov 2026). Run one call before you need results in a hurry.
 
-## Reading the output
+## :material-table-eye: Reading the output { #reading-the-output }
 
 `run_reform` returns a pandas DataFrame with one row per quarter from `start` to `end`. The columns are fixed (a test, `tests/test_bridge_contract.py`, pins their names and order):
 
@@ -93,7 +97,7 @@ df.attrs["gdp_per_revenue_current_price"]
 
 More calls, with sign conventions and published results, are on the [worked examples](examples.md) page. Every option is on the [options](options.md) page.
 
-## Run the five standard reforms with charts
+## :material-chart-bar: Run the five standard reforms with charts { #run-the-five-standard-reforms-with-charts }
 
 ```bash
 uv run python -m obr_macro.reform_analysis
@@ -111,7 +115,7 @@ This runs `run_five_reforms()`, which calls `run_reform` five times over the def
 
 It writes `reform_results.csv` and four charts to `outputs/` at the repository root (gitignored): `reform_gdp_impact.png`, `reform_gdp_pct.png`, `reform_comparison.png` and `reform_spending_vs_tax.png`. It then prints the final-quarter GDP change for each reform. The government-investment run prints the dead-channel warning. The `readme-cli` job in `.github/workflows/demo.yml` runs this command on GitHub Actions and uploads the log and `outputs/`.
 
-## Optional: the chat server
+## :material-chat-processing: Optional: the chat server { #optional-the-chat-server }
 
 `chat/` holds a small local web app in which a Claude agent answers questions about the emulator. The agent's tools read the pre-computed dashboard data in `dashboard/public/data/*.json`; they do not run the solver, so answers are quick. It needs an Anthropic API key in a `.env` file at the repository root and the optional dependencies:
 
@@ -122,7 +126,7 @@ uv run --group chat uvicorn chat.server:app --reload --port 8000
 
 Then open `http://localhost:8000`. The server listens on `127.0.0.1` only. Setup details and limits are in [`chat/README.md`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/chat/README.md).
 
-## Optional: the dashboard
+## :material-view-dashboard: Optional: the dashboard { #optional-the-dashboard }
 
 `dashboard/` is a Next.js web app with five tabs: About, How it works, Explore scenarios, Variables (a searchable glossary) and Equations (the published EViews code beside the transpiled Python). To run it locally:
 

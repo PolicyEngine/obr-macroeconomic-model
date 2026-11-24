@@ -1,3 +1,7 @@
+---
+icon: material/api
+---
+
 # API reference
 
 Generated from the docstrings in `obr_macro`. The main entry point is `run_reform`; `FullOBRSolver` is the solver it builds on.

@@ -1,3 +1,7 @@
+---
+icon: material/file-search
+---
+
 # The OBR's published macroeconomic model: a point-by-point check
 
 This document checks a list of 53 points raised about the OBR's published macroeconomic model (the "OBR model – list of issues" note circulated in September 2026). For each point it gives:

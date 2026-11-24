@@ -1,3 +1,7 @@
+---
+icon: material/link-variant
+---
+
 # Stage 1b — income -> consumption chain trace
 
 Government consumption +£1.25bn/q (standard closure). Baseline vs shocked, final period (2026Q2). The first link that does not move is where the multiplier breaks.

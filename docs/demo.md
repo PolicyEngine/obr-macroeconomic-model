@@ -1,3 +1,7 @@
+---
+icon: material/presentation-play
+---
+
 # Demo script
 
 Six shocks that show what the emulator does and where it stops. Every number below comes from `results/demo_shocks.json`, produced by `scripts/demo_shocks.py` on GitHub Actions (run 44394699022, 18 Nov 2026, commit a822045 on the nominal-consistent spending branch; the 16 Nov run was 43974120540). That hash is a branch commit; after merging, rerun `.github/workflows/demo.yml` and update it. The baseline is the OBR's October 2026 EFO. The window still starts in 2025Q1 so the figures compare like for like with the March 2026 runs; 2025Q1–2026Q2 are now outturn quarters in that EFO, so read those quarters as counterfactual history.

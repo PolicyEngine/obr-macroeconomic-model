@@ -9,6 +9,20 @@ copyright: Code MIT, text CC BY 4.0, PolicyEngine
 theme:
   name: material
   language: en
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+    admonition:
+      note: material/note-text
+      warning: material/alert
+      danger: material/alert-octagon
+      tip: material/lightbulb-on
+      info: material/information
+      example: material/flask
+      question: material/help-circle
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -25,6 +39,9 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
   features:
+    - navigation.tabs
+    - navigation.instant
+    - navigation.tracking
     - navigation.sections
     - navigation.top
     - navigation.footer
@@ -34,6 +51,8 @@ theme:
     - search.highlight
     - content.code.copy
     - content.action.edit
+    - content.tabs.link
+    - content.tooltips
 
 extra_css:
   - stylesheets/extra.css
@@ -60,6 +79,12 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
@@ -71,17 +96,27 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/PolicyEngine/obr-macroeconomic-model
+      name: Source code
+    - icon: material/web
+      link: https://policyengine.org
+      name: PolicyEngine
+
 extra_javascript:
   - javascripts/mathjax.js
   - https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js
 
 nav:
   - Home: index.md
-  - Getting started: getting-started.md
-  - How it works: how-it-works.md
-  - Options and overlays: options.md
-  - Worked examples: examples.md
-  - Limits: limitations.md
+  - Guide:
+      - Getting started: getting-started.md
+      - How it works: how-it-works.md
+      - Options and overlays: options.md
+      - Worked examples: examples.md
+      - Limits: limitations.md
   - Methods:
       - Forecasting framework: forecasting_framework.md
       - Nominal GDP pin: nominal_gdp_pin.md
@@ -95,12 +130,13 @@ nav:
       - Testing: testing.md
       - Calibration scorecard: calibration_scorecard.md
       - Review of the published model: published_model_review.md
-  - Data and results: data.md
+  - Reference:
+      - Data and results: data.md
+      - API reference: api.md
   - Decisions and roadmap:
       - Modelling decisions: decisions.md
       - Roadmap: ROADMAP.md
       - Demo guide: demo.md
-  - API reference: api.md
   - History:
       - history/README.md
       - Stage 1b chain trace: history/stage1b_chain_trace.md

@@ -1,3 +1,7 @@
+---
+icon: material/scale-balance
+---
+
 # Decisions
 
 Dated modelling decisions, the evidence behind each, and what was left out.

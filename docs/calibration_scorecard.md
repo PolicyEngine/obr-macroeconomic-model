@@ -1,3 +1,7 @@
+---
+icon: material/scoreboard
+---
+
 # Calibration scorecard
 
 How well does the **raw** model (add-factor residuals OFF) reproduce the OBR's

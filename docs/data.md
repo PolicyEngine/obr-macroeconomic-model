@@ -1,8 +1,12 @@
+---
+icon: material/database
+---
+
 # Data and results
 
 This page lists the data the package ships, the versions it is pinned to, the code that loads it, and the committed results files with the script that makes each one.
 
-## Pins
+## :material-pin: Pins { #pins }
 
 | What | Version | Where |
 |---|---|---|
@@ -11,7 +15,7 @@ This page lists the data the package ships, the versions it is pinned to, the co
 | Unpublished inputs | 355 ONS series pulled on 11 Jul 2026, 8 recovered on 22 Sep 2026 (the manifest records the series count and both dates). | `obr_macro/seeds/` |
 | Software | Python 3.11 or later; dependencies locked in `uv.lock`. | repository root |
 
-## Data shipped in the package
+## :material-package-variant: Data shipped in the package { #data-shipped-in-the-package }
 
 ### `obr_macro/_data/`
 
@@ -36,7 +40,7 @@ The OBR model needs many inputs that the OBR does not publish. Where an ONS seri
 
 Inputs with no ONS series and no published value are seeded in `full_solver.py`; [how it works](how-it-works.md#constants-this-repo-supplies) lists the ones that matter.
 
-## Code that loads and refreshes the data
+## :material-code-braces: Code that loads and refreshes the data { #code-that-loads-and-refreshes-the-data }
 
 ### `obr_macro/data.py`
 
@@ -54,7 +58,7 @@ Fetches one ONS time series by its CDID. It finds the series through the ONS sea
 
 Rebuilds the snapshot. It finds every input variable the model needs that has a known CDID, fetches single series directly and builds compound ones from the glossary formula over their component series. Each raw fetch is cached (in `data/ons_cache/` in a checkout, otherwise `~/.cache/obr_macro/ons_cache/`) so a pull can resume. It writes `ons_exogenous_snapshot.csv` and `snapshot_manifest.json`. Since #49 a new pull records, for each series, the ONS release date and the date it was fetched; when a CDID sits in several ONS datasets it takes the latest release, then the longest history. The manifest's `pulled` date is the oldest fetch, `written` is when the file was written, and `fetched_unknown` counts cache entries from before fetch dates were recorded. Cache entries never expire, so delete the cache folder to force a fresh pull. The committed manifest predates this and has no per-series dates. Run it with `uv run python -m obr_macro.ons_pull`. It needs network access, and a new pull changes model results, so it is not run routinely.
 
-## Results files
+## :material-file-chart: Results files { #results-files }
 
 The committed files in [`results/`](https://github.com/PolicyEngine/obr-macroeconomic-model/tree/main/results) are the source of record for the numbers in these docs. Each records the script that produced it; all but `convergence_decomposition.json` also record the commit, machine and Python version. [Testing](testing.md#regenerating-results-files) explains how to regenerate them.
 

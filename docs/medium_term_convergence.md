@@ -1,3 +1,7 @@
+---
+icon: material/chart-bell-curve-cumulative
+---
+
 # Medium-term convergence: where it comes from
 
 Raised in review (November 2026): the OBR explains the fade of its fiscal multipliers in words, not with an equation. This note measures, in our replication, which mechanism brings a shock response back to zero and which do not.

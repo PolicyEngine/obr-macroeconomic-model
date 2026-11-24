@@ -1,3 +1,7 @@
+---
+icon: material/tune-variant
+---
+
 # Options and overlays
 
 `run_reform` is the one entry point. This page lists every keyword argument it takes, with its default, what it does and where it is explained in depth. The signature is in [`obr_macro/reform_analysis.py`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/obr_macro/reform_analysis.py); the full docstring is on the [API reference](api.md) page.
@@ -23,7 +27,7 @@ The arguments fall into three groups: what to shock, how the model is closed, an
 !!! warning "Judgement overlays are off by default"
     Six options add assumptions that are **not** in the OBR's published listing: `published_conventions`, `monetary_conditioning`, `price_passthrough`, `import_response`, `employment_response` and `debt_interest`. Each is off by default. When one is on, `df.attrs` carries a note saying it is a labelled judgement overlay, not model dynamics. Quote such a result as "the model plus this assumption".
 
-## What to shock
+## :material-target: What to shock { #what-to-shock }
 
 | Argument | Default | What it does |
 |---|---|---|
@@ -36,7 +40,7 @@ The arguments fall into three groups: what to shock, how the model is closed, an
 
 Units and sign conventions for the common instruments are on the [worked examples](examples.md) page.
 
-## How the model is closed
+## :material-lock-outline: How the model is closed { #how-the-model-is-closed }
 
 A **closure** is the choice of which variables the model solves for and which it takes as given. These three options are model choices, not judgement overlays, but they change results and are recorded in `df.attrs`.
 
@@ -46,7 +50,7 @@ A **closure** is the choice of which variables the model solves for and which it
 | `investment_closure` | `False` | Switches on the reconstructed business-investment equation `dlog(IBUSX)` and the listing's commented-out `IF` identity, so the corporation tax rate (`TCPRO`) reaches investment through the cost of capital and government investment reaches GDP. To keep it stable it freezes `MSGVA`, `PIF` and `PIRHH` at a reference path. A stop-gap; it turns the nominal-GDP pin off. | [How it works](how-it-works.md#the-investment-closure) |
 | `nominal_consistent` | `None`, which resolves to on for a `CGG` shock under the nominal-GDP pin and off otherwise | For a government-consumption shock only. When on, the real `CGG` shock is matched by the same cash amount on the nominal spending totals `CGGPS`, `CGGPSPSF` and `PSCE`, so borrowing rises by the cash cost. When off, only real spending moves and borrowing does not change. `True` for any other variable raises an error. | [Nominal-GDP pin](nominal_gdp_pin.md) |
 
-## Judgement overlays (off by default)
+## :material-layers-triple: Judgement overlays (off by default) { #judgement-overlays-off-by-default }
 
 | Argument | Default | What it does | Applies to | Read more |
 |---|---|---|---|---|
@@ -57,7 +61,7 @@ A **closure** is the choice of which variables the model solves for and which it
 | `employment_response` | `False` | Passes the change in market-sector employment from the listing's l.145 one for one to total employment, so unemployment responds. For a government-consumption shock the result is near zero and can have the wrong sign; that run carries a warning. | Any `var` except `HWA`, `AVH`, `ETLFS`, `EMS` | [Demand overlays](demand_overlays.md) |
 | `debt_interest` | `False` | Makes central government debt interest respond: extra borrowing is financed with gilts at the 20-year gilt yield `RL`, and a shock to `RL` reprices planned gilt issuance. The interest is added to `DICGOP` and `PSCE`, so borrowing rises by it. GDP is the same with it on or off. Conventional gilts only. | Any `var` | [Debt interest](debt_interest.md) |
 
-## Combinations that raise an error
+## :material-alert-circle: Combinations that raise an error { #combinations-that-raise-an-error }
 
 `run_reform` checks these before building the model, so a bad combination fails in milliseconds:
 
@@ -71,6 +75,6 @@ A **closure** is the choice of which variables the model solves for and which it
 
 One more check runs after the model template is built: a `TCPRO` shock that would put the corporation tax rate outside `[0, 1)` is refused.
 
-## How to tell which options a result used
+## :material-tag-search: How to tell which options a result used { #how-to-tell-which-options-a-result-used }
 
 Every result records its options in `df.attrs`: `nominal_gdp_pin`, `nominal_consistent`, `published_conventions`, `price_passthrough`, `import_response`, `employment_response`, `debt_interest` and `monetary_conditioning` are always set. Each overlay that is on adds a `..._note` and usually a `..._detail` entry. [Getting started](getting-started.md#reading-dfattrs) lists the other keys.

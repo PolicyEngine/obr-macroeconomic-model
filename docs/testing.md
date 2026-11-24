@@ -1,8 +1,12 @@
+---
+icon: material/test-tube
+---
+
 # Testing
 
 The tests live in [`tests/`](https://github.com/PolicyEngine/obr-macroeconomic-model/tree/main/tests). They come in two speeds: fast tests that need no model solve, and slow tests that build and solve the full 372-equation model.
 
-## Running the tests
+## :material-play: Running the tests { #running-the-tests }
 
 The fast suite runs in seconds:
 
@@ -24,7 +28,7 @@ The full slow suite builds and solves the model many times. On GitHub Actions th
 uv run pytest -q --runslow tests/test_sign_conventions.py
 ```
 
-## Continuous integration
+## :material-source-branch-check: Continuous integration { #continuous-integration }
 
 ### `ci.yml`
 
@@ -54,7 +58,7 @@ The workflow does not commit anything. To update a results file, download the ar
 
 [`.github/workflows/notify-macromod.yml`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/.github/workflows/notify-macromod.yml) runs on every push to `main`. It sends a repository-dispatch event to the PolicyEngine Macro repository so that it can redeploy the hosted server with the new model. It runs no tests.
 
-## Regenerating results files
+## :material-refresh: Regenerating results files { #regenerating-results-files }
 
 Each file in `results/` is written by one script in [`scripts/`](https://github.com/PolicyEngine/obr-macroeconomic-model/tree/main/scripts). All are heavy, because each figure is a full solve.
 
@@ -68,7 +72,7 @@ Each file in `results/` is written by one script in [`scripts/`](https://github.
 
 Run any of them with `uv run python scripts/<name>.py`. Each file records the script that wrote it; all but `convergence_decomposition.json` also record the commit, machine and Python version. `scripts/unguarded_ibusx.py` prints the unguarded business-investment path quoted on [how it works](how-it-works.md#the-investment-closure); it writes no file. [Data and results](data.md) describes what each file contains.
 
-## What each test file checks
+## :material-clipboard-check: What each test file checks { #what-each-test-file-checks }
 
 "Speed" says whether the file is fast (no solve), slow (every test needs `--runslow`) or mixed (fast tests plus some marked slow).
 

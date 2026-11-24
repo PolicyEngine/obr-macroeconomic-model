@@ -1,3 +1,7 @@
+---
+icon: material/lightbulb-on
+---
+
 # Worked examples
 
 One example per policy channel. Each gives the exact call, the sign convention, what the result means and the headline numbers. Every number is copied from a committed results file or doc page, named beside it. If a run is shown without numbers, no committed file holds its result.
@@ -12,7 +16,7 @@ All runs use the default window, 2025Q1 to 2027Q4 (12 quarters), unless the code
 
 Before quoting any of these numbers, read [Limits](limitations.md). The results are point estimates from this emulator, not OBR forecasts.
 
-## Government consumption
+## :material-office-building: Government consumption { #government-consumption }
 
 ```python
 from obr_macro import run_reform
@@ -50,7 +54,7 @@ leaky = run_reform(name="CGG 1% of GDP, imports", var="CGG", shock=path, import_
 
 GDP per pound of shock is 1.013 / 1.024 / 1.039 at q1 / q4 / q12 by default and 0.909 / 0.907 / 0.918 with the overlay (`results/demand_overlays.json`, `cgg_1pct_gdp.default.gdp_per_pound` and `cgg_1pct_gdp.import_response.gdp_per_pound`). The goods leg of the overlay rests on an assumed unit elasticity; see [demand overlays](demand_overlays.md).
 
-## Government investment
+## :material-crane: Government investment { #government-investment }
 
 ### Default closure: no channel
 
@@ -89,7 +93,7 @@ Ratios from [demo.md](demo.md). The closure switches on the listing's commented-
 
 `published_conventions=True` (without the investment closure) instead imposes the OBR's 1.0-tapering convention as a labelled add-factor path. No committed results file holds that run.
 
-## Household tax
+## :material-home-account: Household tax { #household-tax }
 
 ### Externally costed path: `HHDI_ADDFACTOR`
 
@@ -128,7 +132,7 @@ df = run_reform(name="1p basic rate, receipts", var="TYEM", shock=1725, periods=
 
 **Result** (`results/demo_shocks.json`, key `income_tax`): GDP −161 / −335 / −565 £m at q1 / q4 / q12; current-price ratio 0.10 / 0.21 / 0.37 ([demo.md](demo.md)). Receipts (`PSCR`) rise by +1,725 and `CGNB` falls by −1,725 every quarter. Use `TYEM` when you also want receipts and borrowing to move; `HHDI_ADDFACTOR` moves household income only. Employee NICs (`EENIC`) work through the same channel with the same ratios.
 
-## VAT
+## :material-cart-percent: VAT { #vat }
 
 ### Default
 
@@ -155,7 +159,7 @@ df = run_reform(name="VAT +1pp, pass-through", var="VREC", shock=2200,
 
 **What it means.** The overlay passes the tax into CPI through the listing's own cost-push weights, with the retail markup held at baseline. That is a labelled judgement overlay, not the shipped listing. The q4 ratio is close to the OBR's 0.35, but the response keeps building because nothing in the published equations makes consumption fade. See [price pass-through](price_passthrough.md). Fuel duty (`TXFUEL`) accepts the same option.
 
-## Corporation tax
+## :material-factory: Corporation tax { #corporation-tax }
 
 ### Rate change: `TCPRO` with the investment closure
 
@@ -187,7 +191,7 @@ df = run_reform(name="CT receipts", var="NNSCTP", shock=900, periods=12)
 
 **Result** (`results/demo_shocks.json`, key `corporation_tax_receipts`): GDP changes by exactly 0. `PSCR` +900 and `CGNB` −900 every quarter. Corporation tax receipts have no route to demand in the default closure.
 
-## Bank Rate
+## :material-bank: Bank Rate { #bank-rate }
 
 ```python
 df = run_reform(name="Bank Rate +1pp, 4 quarters", var="R", shock=1.0, periods=4)
@@ -208,7 +212,7 @@ cond = run_reform(name="Bank Rate +1pp, conditioned", var="R", shock=1.0, period
 
 **Sustained for 12 quarters** (`periods=12`), the default run gives GDP −128 / −406 / −472 / −500 £m at q1 / q4 / q8 / q12, and a 1 point cut gives +134 / +418 / +489 / +519 £m (`results/site_figures.json`, `bank_rate`). Do not mix these with the four-quarter figures above.
 
-## Gilt yield and debt interest
+## :material-chart-line: Gilt yield and debt interest { #gilt-yield-and-debt-interest }
 
 Debt interest has no equation in the listing. `debt_interest=True` adds a labelled overlay that finances extra borrowing with gilts at the 20-year gilt yield and reprices planned gilt issuance when the yield is shocked. See [debt interest](debt_interest.md).
 
