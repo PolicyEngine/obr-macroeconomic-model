@@ -8,7 +8,7 @@ Where the figures come from:
 - **Window.** 24 quarters, 2025Q1 to 2030Q4, on the OBR's October 2026 Economic and fiscal outlook (EFO).
 - **Closure.** The closure is the choice of which variable an identity solves for. The OBR's listing takes GDP as an input and solves the expenditure identity for inventories. Our runs solve it for GDP. They also use the default nominal-GDP pin: current-price GDP is the GDP deflator times real GDP (the listing's commented-out l.690), with the deflator held on the EFO path (`docs/nominal_gdp_pin.md`).
 - **Solver.** Every baseline and shocked solve reached tolerance in 24 of 24 quarters.
-- **Other figures.** Baseline-fit figures are quoted from the README, and equation coefficients from the OBR's published listing (`obr_macro/_data/obr_model_code_october_2025.txt`; `l.N` is a line number in it).
+- **Other figures.** Baseline-fit figures are quoted from [Limits](limitations.md), and equation coefficients from the OBR's published listing (`obr_macro/_data/obr_model_code_october_2025.txt`; `l.N` is a line number in it).
 - **Scope.** Two shocks are measured: sustained government consumption and a sustained household tax rise. The statements below are about those two.
 
 ## The answer in four lines
@@ -81,7 +81,7 @@ What each column shows:
 ### Frozen add-factors
 
 - They are computed once as EFO minus model, then applied identically to the baseline and the shocked run.
-- **They make the baseline level track the EFO.** Anchored GDP has a mean absolute percentage error (MAPE) of 0.24% against the October 2026 EFO over 2025Q1 to 2027Q4, by construction (README). With them off, the README's scorecard run has a GDP MAPE of 4.24% against the EFO. That gap measures this emulator's closure and its seeded inputs. It is not an OBR forecast error. The scorecard is a separate run from this script's add-factors-off pair, whose baseline GDP is on average 4.8% below the anchored baseline over the same twelve quarters.
+- **They make the baseline level track the EFO.** Anchored GDP has a mean absolute percentage error (MAPE) of 0.24% against the October 2026 EFO over 2025Q1 to 2027Q4, by construction ([Limits](limitations.md)). With them off, the scorecard run on [Limits](limitations.md) has a GDP MAPE of 4.24% against the EFO. That gap measures this emulator's closure and its seeded inputs. It is not an OBR forecast error. The scorecard is a separate run from this script's add-factors-off pair, whose baseline GDP is on average 4.8% below the anchored baseline over the same twelve quarters.
 - **They nearly cancel in the spending response.** In the table above, removing them moves the multiplier by at most 0.007.
 - **They do not fully cancel in the household tax response.** The ratio at quarter 24 is 0.46 anchored against 0.40 free-running (below), a gap of 0.06 or about 13%. A likely reason, not tested here, is that the consumption equation is in logs, so its response depends on the level of income and consumption it is measured around.
 - **In neither case does the response head back to zero.**
@@ -124,7 +124,7 @@ The same £1,250m a quarter, for four quarters only, default run.
 
 ## The household tax channel
 
-A household tax rise of £1,616m a quarter (the README's 1p basic-rate costing), sustained. Figures are current-price GDP lost per pound of revenue, the basis of the OBR's 0.3.
+A household tax rise of £1,616m a quarter (the 1p basic-rate costing on [Limits](limitations.md)), sustained. Figures are current-price GDP lost per pound of revenue, the basis of the OBR's 0.3.
 
 | Year | Default | Add-factors off | OBR convention, linear fade from 0.3 (for reference; not applied to tax levers) |
 |---|--:|--:|--:|

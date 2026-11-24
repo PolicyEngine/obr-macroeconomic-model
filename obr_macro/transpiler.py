@@ -2,7 +2,6 @@
 
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 # Identifier grammar: the OBR writes variable names in mixed case (OAHHx,
 # DIPHHmf, DEPHHx, ...), so identifiers are a letter followed by letters,
@@ -172,8 +171,7 @@ class EViewsTranspiler:
             total_lag = explicit_lag + lag
             if total_lag == 0:
                 return f"v['{var}']"
-            else:
-                return f"_lag('{var}', {total_lag})"
+            return f"_lag('{var}', {total_lag})"
 
         s = re.sub(pattern, replace, s)
 
@@ -186,8 +184,7 @@ class EViewsTranspiler:
                 return var
             if lag == 0:
                 return f"v['{var}']"
-            else:
-                return f"_lag('{var}', {lag})"
+            return f"_lag('{var}', {lag})"
 
         s = re.sub(bare_pattern, replace_bare, s)
         return s
@@ -259,11 +256,10 @@ class EViewsTranspiler:
             lag = int(m.group(2).replace(" ", ""))
             if lag == 0:
                 return f"v['{var}']"
-            elif lag < 0:
+            if lag < 0:
                 return f"_lag('{var}', {-lag})"
-            else:
-                # Future value (rare)
-                return f"_lead('{var}', {lag})"
+            # Future value (rare)
+            return f"_lead('{var}', {lag})"
 
         s = re.sub(pattern, replace, s)
 
@@ -278,8 +274,7 @@ class EViewsTranspiler:
                 return var
             if default_lag is not None and default_lag > 0:
                 return f"_lag('{var}', {default_lag})"
-            else:
-                return f"v['{var}']"
+            return f"v['{var}']"
 
         s = re.sub(bare_pattern, replace_bare, s)
 
@@ -292,7 +287,7 @@ class EViewsTranspiler:
         s = re.sub(r"(?<!np\.)\bexp\(", "np.exp(", s)
         return s
 
-    def parse_equation(self, line: str) -> Optional[ParsedEquation]:
+    def parse_equation(self, line: str) -> ParsedEquation | None:
         """Parse a single equation line."""
         line = line.strip()
         if not line or line.startswith("'"):

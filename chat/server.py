@@ -14,7 +14,7 @@ import json
 import time
 from collections import defaultdict, deque
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -96,7 +96,7 @@ def _validate_blocks(role: str, content: list) -> None:
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
     # str for typed text; list of content blocks for tool-use turns the UI round-trips
-    content: Union[str, list]
+    content: str | list
 
 
 class ChatRequest(BaseModel):

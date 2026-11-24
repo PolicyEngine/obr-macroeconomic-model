@@ -41,7 +41,7 @@ The first `run_reform` call builds the model template and takes a few minutes; t
 
 Ratios are at q1 / q4 / q12.
 
-Sizes come from HMRC's ready reckoner (June 2025, 2026-27 column, divided by four): £6.9bn a year for 1p on the basic rate, £5.35bn for 1pp on employee NICs, £8.8bn for 1pp of VAT. These are 2026-27 yields applied as a flat path from 2025Q1. The README's household row uses £1,616m a quarter for the same 1p; the ratios are the same (0.37 at q12).
+Sizes come from HMRC's ready reckoner (June 2025, 2026-27 column, divided by four): £6.9bn a year for 1p on the basic rate, £5.35bn for 1pp on employee NICs, £8.8bn for 1pp of VAT. These are 2026-27 yields applied as a flat path from 2025Q1. The household row on [Limits](limitations.md) uses £1,616m a quarter for the same 1p; the ratios are the same (0.37 at q12).
 
 The OBR multipliers are the interim OBR's June 2010 estimates, restated in EFO July 2015 Box 3.2, all tapering over five years. The Bank of England range is for a 1pp rise held for one year, from its 1999 Quarterly Bulletin ("The transmission mechanism of monetary policy"), which is the same experiment as row 6.
 
@@ -64,7 +64,7 @@ Receipts (`PSCR`) and central government net borrowing (`CGNB`) move one for one
 - **VAT (#60).** The OBR's 0.35 is a judgement, not an output of its listing. `price_passthrough=True` (row 4b) passes the tax into CPI through the listing's own cost-push weights, with the retail markup held at baseline. That is an assumption: the shipped listing holds CPI and lets the markup absorb the tax. CPI rises about 0.4%, and the ratio is 0.345 at q4, near the OBR's 0.35. It then keeps rising to 0.638 by q12, because nothing in the published equations makes consumption fade. The q4 match is not a calibration. `docs/price_passthrough.md` has the side-by-side table, the list of price equations that are held, and the proposal to keep the overlay opt-in, with the reasons on each side.
 - **Bank Rate.** About −0.16% is the ceiling even with mortgage and deposit rates both moved (measured in the 14 Nov review, not rerun here), because investment, sterling, house prices and gilt yields have no interest-rate equation (`docs/monetary_conditioning.md`). This is a property of the published equations, not a solver fault.
 - **Household-tax ratio basis (#63).** Quote the current-price ratio (0.21 / 0.37) against the OBR's 0.3. Real GDP per pound of current-price revenue (0.19 / 0.33 in this run) mixes two bases and understates by the GDP deflator (a factor of 1.06 to 1.14 here).
-- **Free-running scorecard.** The ~4% free-running GDP error in the README is a closure artifact of this emulator (GDP made endogenous, unpublished inputs seeded). It is not an OBR forecast error, and should not be presented as one.
+- **Free-running scorecard.** The ~4% free-running GDP error on [Limits](limitations.md) is a closure artifact of this emulator (GDP made endogenous, unpublished inputs seeded). It is not an OBR forecast error, and should not be presented as one.
 - **Debt interest.** It does not respond to borrowing or to gilt yields in any row above. `debt_interest=True` (off by default) adds it for conventional gilts: for row 1, +8 / +61 / +230 at q1 / q4 / q12 on top of the borrowing shown, with GDP unchanged (`docs/debt_interest.md`, `results/debt_interest_examples.json`).
 - **Point estimates only.** There are no confidence bands.
 

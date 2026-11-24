@@ -46,11 +46,6 @@ FORMULA_RE = re.compile(r"[A-Za-z0-9_ +\-*/().]+")
 LAG_RE = re.compile(r"\b([A-Z][A-Z0-9]{3})\(\s*-\s*(\d+)\s*\)")
 
 
-def _lhs_var(lhs):
-    m = re.search(r"[A-Z][A-Za-z0-9_]*", lhs.replace("@IDENTITY", ""))
-    return m.group(0) if m else lhs
-
-
 def _refs(eq):
     out = set()
     for m in re.finditer(r"v\['([A-Za-z0-9_]+)'\]", eq.python_expr):

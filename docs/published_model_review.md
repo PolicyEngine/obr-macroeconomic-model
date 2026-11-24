@@ -294,7 +294,7 @@ Several items refer to the "T2 fix". This is the OBR's own label in the code ("C
 ### N4. "Profits are income-side residual, absorbing errors from other residuals." (Mid)
 - **Verdict:** True but openly documented
 - **Why:** Operating surplus is `OS = GDPMPS - FYEMP - MI - BPAPS - TPRODPS - SDI` (l.719). Profits are `FYCPR = OS - OSHH - OSGG - OSPC - RENTCO + SA - FISIMPS` (l.731), labelled as an identity (dict 544). This is the standard income-side derivation used in the national accounts. A consequence is that errors in its components flow straight into profits: FISIM (see N5), stock appreciation (see N7) and household operating surplus.
-- **Our adapted model:** Inherited. Profits are the same residual. In our version this residual also absorbs a large calibration adjustment to household operating surplus (`OSHH`; see README).
+- **Our adapted model:** Inherited. Profits are the same residual. In our version this residual also absorbs a large calibration adjustment to household operating surplus (`OSHH`; see [How it works](how-it-works.md#constants-this-repo-supplies)).
 
 ### N5. "Probable sign error in FISIM equation on FX lending; implies cumulative drift in profits." (Mid; flagged by the critic as unverified)
 - **Verdict:** True as printed (whether it affects published forecasts can't be checked)
@@ -318,7 +318,7 @@ Several items refer to the "T2 fix". This is the OBR's own label in the code ("C
 ### N6. "No income account; interest costs do not affect dividends or retained earnings." (Low)
 - **Verdict:** True
 - **Why:** PNFC interest paid and received (`DIPIC`, `DIRIC`, l.633, l.639) feeds only `DIPICx` and `DIRICx` (l.635, l.629), which no equation uses. The margin terms `DIPICf` and `DIRICf` (l.637, l.631) feed FISIM (l.729) and nothing else. Household dividend income depends on gross profits and an exogenous series: `log(NDIVHH) = -8.605599 + 0.8092696*log(FYCPR(-4)) + 0.6597959*log(CORP)` (l.643, dict 501). Company saving `SAVCO` (l.676) is derived from the capital account and used nowhere. There is no PNFC income account that runs from profits through interest and tax to retained earnings.
-- **Our adapted model:** Inherited. In our version the dividend equation itself does not run because `CORP` is missing from the published data (README, "Known inert equations").
+- **Our adapted model:** Inherited. In our version the dividend equation itself does not run because `CORP` is missing from the published data ([How it works](how-it-works.md#known-inert-equations)).
 
 ### N7. "Stock appreciation derived from residual inventory series." (Low)
 - **Verdict:** True but openly documented

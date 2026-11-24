@@ -1,0 +1,48 @@
+name: Docs
+
+# Builds the documentation site on every pull request (strict, so a broken
+# link fails the check) and publishes it to GitHub Pages from main.
+on:
+  pull_request:
+    paths: ["docs/**", "mkdocs.yml", "obr_macro/**", ".github/workflows/docs.yml"]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install MkDocs
+        run: pip install "mkdocs-material==9.5.39" "mkdocstrings[python]==0.26.1" "mkdocstrings-python==1.11.1" "mkdocs-autorefs==1.2.0" ruff
+      - name: Build
+        run: mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
