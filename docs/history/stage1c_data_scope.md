@@ -1,3 +1,7 @@
+---
+icon: material/database-search
+---
+
 # Stage 1c — the real blocker is data coverage
 
 Stage 1b found ~290/371 equations silently skipped. Stage 1c's probe showed why:

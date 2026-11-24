@@ -1,3 +1,7 @@
+---
+icon: material/tag-arrow-up
+---
+
 # Prices, CPI and the price pass-through option (#60)
 
 This note answers three questions raised in review:

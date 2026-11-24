@@ -1,3 +1,7 @@
+---
+icon: material/chart-timeline-variant
+---
+
 # Forecasting framework (held add-factors)
 
 The OBR's own method, now implemented: compute add-factors (residuals) over a

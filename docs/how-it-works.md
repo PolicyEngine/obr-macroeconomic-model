@@ -1,8 +1,12 @@
+---
+icon: material/cog-transfer
+---
+
 # How it works
 
 This page explains how the repo turns the OBR's published model into a reform result, and what it has to add along the way. The baseline is the OBR's Economic and fiscal outlook (EFO), its twice-yearly forecast; the October 2026 EFO is the current pin. Line numbers such as l.688 refer to lines of the OBR's published model listing. The steps follow the code in [`obr_macro/reform_analysis.py`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/obr_macro/reform_analysis.py) (`run_reform` and `_build_reform_template`) and [`obr_macro/full_solver.py`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/obr_macro/full_solver.py).
 
-## The pipeline at a glance
+## :material-sitemap: The pipeline at a glance { #the-pipeline-at-a-glance }
 
 ```mermaid
 flowchart TD
@@ -18,11 +22,11 @@ flowchart TD
     H2 --> I
 ```
 
-## 1. Transpiler
+## :material-code-braces: 1. Transpiler { #1-transpiler }
 
 The OBR publishes its model as EViews code: 372 equations in a text file. [`obr_macro/transpiler.py`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/obr_macro/transpiler.py) reads each equation and rewrites it as a Python expression. It handles EViews notation such as `dlog(X)` (change in the log), `d(X)` (first difference), lags like `X(-1)`, `@recode` date dummies, `@trend` and `@elem` base-period lookups. Each equation keeps its left-hand side, so the solver knows which variable it determines.
 
-## 2. Solver
+## :material-sync: 2. Solver { #2-solver }
 
 [`obr_macro/full_solver.py`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/obr_macro/full_solver.py) holds `FullOBRSolver`. It loads the data and the transpiled equations, fills inputs the OBR does not publish (see [constants](#constants-this-repo-supplies) below), and solves the system one quarter at a time.
 
@@ -30,7 +34,7 @@ Within each quarter it uses **Gauss-Seidel iteration**: evaluate every equation 
 
 Not every equation can run. An equation whose inputs have no data evaluates to NaN and is dropped for that quarter; its variable keeps its data value. In the pinned reform solve over 2025Q1 to 2027Q4, 82 of the 372 equations are dropped in at least one quarter ([Limits](limitations.md)). Each one must be listed in `KNOWN_NONFINITE_EQUATIONS` in `full_solver.py`, or the solve raises an error, so a new silent drop cannot slip in. Several headline variables (investment, trade, prices, earnings) have no live equation and stay at the OBR's values.
 
-## 3. Closure swap: making GDP respond
+## :material-swap-horizontal-bold: 3. Closure swap: making GDP respond { #3-closure-swap-making-gdp-respond }
 
 A **closure** is the choice of which variables the model solves for and which it takes as given.
 
@@ -44,7 +48,7 @@ So in the published closure a demand shock moves inventories, not GDP. To let a 
 
 so GDP becomes the variable the identity solves for. This is the repo's main departure from how the OBR runs the model.
 
-## 4. Nominal GDP: the default pin
+## :material-pin: 4. Nominal GDP: the default pin { #4-nominal-gdp-the-default-pin }
 
 The published code defines current-price GDP (`GDPMPS`) and the investment deflator (`PIF`) with what is really one identity written twice (l.337 and l.688). An iterative solve then leaves `PIF` wherever its starting value puts it, and under that closure no quarter converges.
 
@@ -54,7 +58,7 @@ By default `run_reform` replaces l.688 with the OBR's own commented-out l.690:
 
 The GDP deflator `PGDP` is held at its EFO path, as it is anyway, so this adds no new assumption about prices; it removes the free `PIF`. Under the pin every quarter converges. `nominal_gdp_pin=False` returns to the published closure. Full detail: [nominal-GDP pin](nominal_gdp_pin.md).
 
-## 5. Anchoring add-factors
+## :material-anchor: 5. Anchoring add-factors { #5-anchoring-add-factors }
 
 An **add-factor** is a residual added to an equation so that it reproduces a chosen path. The OBR uses add-factors to impose its judgement on the model.
 
@@ -62,7 +66,7 @@ Here, for each behavioural equation from 2024Q1 (those driven by date dummies or
 
 The add-factors are applied identically in the baseline and the shocked run. They set the level of both onto the EFO, and they cancel when one is subtracted from the other. They change the starting point of a reform, not its effect. The resulting reform baseline tracks the EFO closely ([Limits](limitations.md) has the figures); that fit holds by construction and says nothing about forecast skill.
 
-## 6. Deviation mode: baseline against shocked
+## :material-compare-horizontal: 6. Deviation mode: baseline against shocked { #6-deviation-mode-baseline-against-shocked }
 
 `run_reform` builds one template (closures swapped, add-factors frozen, unsolved) and caches it. It then makes two identical copies:
 
@@ -75,7 +79,7 @@ The reported result is shocked minus baseline, quarter by quarter. Because the t
 
 With the add-factors switched off, the model runs free from its own equations. Its free-running gap from the EFO (GDP 4.24% mean absolute error over 2025Q1 to 2027Q4, [Limits](limitations.md)) measures **this emulator**: the closure swap above plus the OBR inputs and constants that had to be pulled from the ONS or seeded. It says nothing about the OBR's forecasting accuracy: in the OBR's own model GDP is an input, so their model cannot miss it. Reforms are never scored around the free-running model. See the [calibration scorecard](calibration_scorecard.md).
 
-## The investment closure
+## :material-crane: The investment closure { #the-investment-closure }
 
 In the published listing business investment is a residual, and total investment `IF` has no live equation. So a corporation tax change cannot reach investment, and government investment cannot reach GDP.
 
@@ -91,7 +95,7 @@ Run as published, that equation sits inside an explosive loop on this data: a ze
 
 Both are applied identically to baseline and shocked runs. The closure also caps Gauss-Seidel at 25 passes a quarter and cannot be combined with the nominal-GDP pin, because it already determines nominal GDP by holding `PIF`. It is a stop-gap for the missing supply-side calibration. A 12-quarter result is about 40% of the way to its long-run level; `df.attrs["investment_closure_plateau_fraction"]` reports where each run sits.
 
-## Constants this repo supplies
+## :material-numeric: Constants this repo supplies { #constants-this-repo-supplies }
 
 Four constants set the whole size of the corporation tax to investment response. The OBR publishes their equations but not the inputs those equations need (`DISCO`, `IIB`, `SIB`, `FP`, `SP`, `SV`, `DELTA` and `RWACC` have no equation and no data in any published file). So the published equations always evaluate to NaN and are dropped, and the seeded values below are the values used for the whole run, not starting guesses.
 
@@ -111,11 +115,11 @@ Two more level anchors matter. Both are tied to published data and apply identic
 - **`OSHH` add-factor.** Households' operating surplus carries an add-factor of about £41bn against a level of about £79bn, so 55% of the series is the add-factor. The OBR's base constant (12874) and its vintage of the rent series `PRENT` are unpublished. The add-factor is fitted to the ONS series over history and held flat at the mean of the last four observed quarters for the forecast.
 - **`GGVA` seed.** Government value added is seeded at 20% of GDP, an uncited round number. The published equation is a ratio (`GGVA/GGVA(-1) = CGG/CGG(-1)`), so it inherits whatever level the seed sets. That level then determines market-sector output `MSGVA = GVA − GGVA`, which drives the investment equation.
 
-## Known inert equations
+## :material-sleep: Known inert equations { #known-inert-equations }
 
 `log(HHTFA)` and `log(NDIVHH)` now parse correctly; before, they had no left-hand-side handling at all. Both still stay frozen, because their inputs `MAJGDP` and `CORP` are missing from the published databank. So the channel from company profits to household dividend income (`FYCPR → NDIVHH → PIRHH → HHDI`) is still inert. See [forecasting framework](forecasting_framework.md).
 
-## Module map
+## :material-folder-cog: Module map { #module-map }
 
 One line per file in [`obr_macro/`](https://github.com/PolicyEngine/obr-macroeconomic-model/tree/main/obr_macro), from each module's docstring.
 

@@ -1,3 +1,7 @@
+---
+icon: material/bank
+---
+
 # Bank Rate and the monetary-conditioning option (#50)
 
 ## What Bank Rate reaches in the OBR's model

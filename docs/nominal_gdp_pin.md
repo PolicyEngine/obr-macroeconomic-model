@@ -1,3 +1,7 @@
+---
+icon: material/pin
+---
+
 # The nominal-GDP pin (l.690)
 
 The nominal-GDP pin swaps the l.688 nominal-GDP identity for the OBR's

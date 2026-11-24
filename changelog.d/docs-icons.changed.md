@@ -1,0 +1,1 @@
+Redesigned the documentation site: section tabs, icons on every page and main heading, a home page with a hero, summary cards and navigation cards, tabbed install and code snippets, and a PolicyEngine teal theme with light and dark modes.

@@ -1,3 +1,7 @@
+---
+icon: material/map-marker-path
+---
+
 # Roadmap: towards an open-source OBR-style forecasting engine
 
 The long-run goal is to turn this repository from an *emulator that re-runs the

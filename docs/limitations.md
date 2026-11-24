@@ -1,3 +1,7 @@
+---
+icon: material/alert-octagon
+---
+
 # Limits: read this before quoting a number
 
 This page is the full list of what the model can and cannot do, channel by channel, with the measured numbers and their history. It moved here from the README, unchanged except where noted in the changelog.
@@ -28,7 +32,7 @@ refused — above 1 the user-cost formula has a pole and the model previously
 returned a finite, unflagged "a 105% corporation tax raises investment by
 £3.2bn".
 
-## Additivity of household costings
+## :material-plus-box-multiple: Additivity of household costings { #additivity-of-household-costings }
 
 Quarterly household-costing paths are near-linear for ordinary policy sizes,
 but not mathematically additive: the OBR consumption equation contains log

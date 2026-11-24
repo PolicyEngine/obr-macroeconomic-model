@@ -1,3 +1,7 @@
+---
+icon: material/cash-clock
+---
+
 # Debt interest and the debt-interest option
 
 Raised in review: interest on public debt is exogenous. This note says what that means in our runs, what the opt-in `debt_interest=True` overlay does, and how far it can be trusted.
