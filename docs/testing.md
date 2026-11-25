@@ -101,7 +101,7 @@ Run any of them with `uv run python scripts/<name>.py`. Each file records the sc
 | `test_model_invariants.py` | Slow | Behavioural invariants: baseline and shock symmetry, left-hand-side parsing, no silent failures. |
 | `test_sign_conventions.py` | Slow | Each lever moves the economy in the direction theory expects, above a noise floor; known defects (dead or inert channels) are pinned so a fix shows up. |
 | `test_stress.py` | Slow | Robustness under extreme shocks, several instruments at once, long horizons and boundary cases: finite, deterministic, correctly signed, not explosive. |
-| `test_tax_scenarios.py` | Slow | Income tax, NICs, VAT, corporation tax and fuel duty sized with HMRC's ready reckoner: convergence, signs, receipts and borrowing moving one for one, GDP per pound raised. |
+| `test_tax_scenarios.py` | Slow | Income tax, NICs, VAT, corporation tax and fuel duty sized with HMRC's ready reckoner: convergence, signs, receipts and borrowing moving one for one, GDP per pound raised. Also checks that these five runs still reproduce `results/demo_shocks.json` to £0.5m, so a model change cannot leave the committed results stale unnoticed. |
 | `test_nominal_gdp_pin.py` | Mixed | The nominal-GDP pin (issue #42): closure rules and its effect on convergence and results. |
 | `test_result_labels.py` | Mixed | The `df.attrs` labels describe the instrument actually shocked (the "mechanical passthrough" label only on terms of the expenditure identity). |
 | `test_calibration_constants.py` | Mixed | Published constants are seeded at their published values; `DB`, `DP`, `DV` match their derivation and `COCU` stays a declared seed. |
@@ -123,6 +123,7 @@ Run any of them with `uv run python scripts/<name>.py`. Each file records the sc
 
 | File | Speed | What it checks |
 |---|---|---|
+| `test_docs_numbers.py` | Fast | The figures quoted in `README.md`, `docs/demo.md`, `docs/examples.md` and `docs/limitations.md` equal the committed `results/*.json` at the quoted rounding; signs, one-for-one receipts and borrowing, and convergence in the committed demo battery. Reads files only. |
 | `test_efo_ground_truth.py` | Fast | The EFO loader against the publication itself: published identities hold, pinned spot values match, and the November 2025 and October 2026 vintages agree to revision size. |
 | `test_ons_pull.py` | Fast | Compound ONS series built from several CDIDs, including lags, with the network replaced by synthetic series. |
 | `test_ons_vintage.py` | Fast | The ONS vintage recorded per series (#49): the latest release wins when a CDID is in several datasets, each fetch records its date, and the manifest's `pulled` date is the oldest fetch, not the write date. |
