@@ -524,6 +524,20 @@ def test_cash_spending_line_moves_psce_by_the_shock_itself():
             apply_spending_shock(missing, var, 10.0, "2025Q1", periods=4)
 
 
+def test_cash_spending_lines_default_like_government_consumption():
+    """CGSB and CGOTR follow the same default rule as CGG: the PSCE leg is on
+    under the nominal-GDP pin and off otherwise, and an explicit choice is
+    honoured (#88). Lines without a leg stay off."""
+    from obr_macro.reform_analysis import resolve_nominal_consistent
+
+    for var in ("CGSB", "CGOTR"):
+        assert resolve_nominal_consistent(None, var, True) is True
+        assert resolve_nominal_consistent(None, var, False) is False
+        assert resolve_nominal_consistent(False, var, True) is False
+        assert resolve_nominal_consistent(True, var, False) is True
+    assert resolve_nominal_consistent(None, "LASBHH", True) is False
+
+
 def test_subsidy_residual_lines_are_the_terms_of_the_listing():
     """PSCE_RESIDUAL_LINES is every term the listing subtracts from PSCE to
     get subsidies (l.504). If the OBR changes that line, the set must follow."""
@@ -601,10 +615,3 @@ def test_nominal_consistent_default_follows_the_closure():
     assert resolve_nominal_consistent(False, "R", True) is False
     with pytest.raises(ValueError, match="nominal_consistent applies only"):
         resolve_nominal_consistent(True, "TYEM", True)
-    # The cash spending lines follow the same rule as CGG (#88).
-    for var in ("CGSB", "CGOTR"):
-        assert resolve_nominal_consistent(None, var, True) is True
-        assert resolve_nominal_consistent(None, var, False) is False
-        assert resolve_nominal_consistent(False, var, True) is False
-        assert resolve_nominal_consistent(True, var, False) is True
-    assert resolve_nominal_consistent(None, "LASBHH", True) is False
