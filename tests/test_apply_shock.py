@@ -544,7 +544,11 @@ def test_subsidy_residual_lines_are_the_terms_of_the_listing():
     import re
     from importlib import resources
 
-    from obr_macro.reform_analysis import NOMINAL_SPENDING_LEGS, PSCE_RESIDUAL_LINES
+    from obr_macro.reform_analysis import (
+        NOMINAL_SPENDING_LEGS,
+        PROCUREMENT_RESIDUAL_LINES,
+        PSCE_RESIDUAL_LINES,
+    )
 
     listing = (
         resources.files("obr_macro")
@@ -554,6 +558,13 @@ def test_subsidy_residual_lines_are_the_terms_of_the_listing():
     (line,) = [ln for ln in listing.splitlines() if re.match(r"CGSUBP\s+=", ln)]
     terms = set(re.findall(r"[A-Z][A-Z0-9]*", line.split("=", 1)[1]))
     assert terms - {"PSCE"} == set(PSCE_RESIDUAL_LINES)
+    # Five of them are also terms of the procurement residual (l.377), which
+    # absorbs a shock to them before the subsidy residual sees it.
+    (line,) = [ln for ln in listing.splitlines() if re.match(r"CGP\s+=", ln)]
+    terms = set(re.findall(r"[A-Z][A-Z0-9]*", line.split("=", 1)[1]))
+    assert terms - {"CGGPSPSF"} == set(PROCUREMENT_RESIDUAL_LINES)
+    assert PROCUREMENT_RESIDUAL_LINES < PSCE_RESIDUAL_LINES
+    assert not PROCUREMENT_RESIDUAL_LINES & set(NOMINAL_SPENDING_LEGS)
     # Every instrument given a PSCE leg is either one of those terms or CGG,
     # whose nominal counterpart reaches l.504 through procurement (CGP).
     for var, legs in NOMINAL_SPENDING_LEGS.items():
@@ -569,7 +580,7 @@ def test_run_reform_labels_a_spending_line_the_subsidy_residual_absorbs(monkeypa
     from obr_macro import reform_analysis
 
     template = _FakeTemplate()
-    for col in ("CGSB", "LASBHH", "PSCE"):
+    for col in ("CGSB", "LASBHH", "LAPR", "PSCE"):
         template._proto.data[col] = 500.0
     monkeypatch.setattr(
         reform_analysis, "_build_reform_template", lambda *a, **k: template
@@ -594,6 +605,15 @@ def test_run_reform_labels_a_spending_line_the_subsidy_residual_absorbs(monkeypa
         assert "nominal_consistent_legs" not in df.attrs
         assert var in df.attrs["subsidy_residual_warning"]
         assert "#88" in df.attrs["subsidy_residual_warning"]
+        assert "procurement_residual_warning" not in df.attrs
+
+    # Pay and procurement lines are absorbed by procurement (l.377), not by
+    # subsidies, and the label says which.
+    with pytest.warns(UserWarning, match="CGP"):
+        df = reform_analysis.run_reform("la", "LAPR", 100.0, **kwargs)
+    assert "LAPR" in df.attrs["procurement_residual_warning"]
+    assert "l.377" in df.attrs["procurement_residual_warning"]
+    assert "subsidy_residual_warning" not in df.attrs
 
     # Local authority benefits have no leg yet: asking for one is refused.
     with pytest.raises(ValueError, match="nominal_consistent applies only"):

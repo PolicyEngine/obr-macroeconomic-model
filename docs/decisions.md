@@ -37,7 +37,10 @@ Newest first.
   - Grants to local authorities `CGNCGA`. A flat +£1,000m moved subsidies
     by −1,926 / +125 / −146, which is not explained.
   - The other lines of l.504. All of these now set
-    `df.attrs["subsidy_residual_warning"]` and warn.
+    `df.attrs["subsidy_residual_warning"]` and warn, except pay and local
+    authority procurement (`CGWS`, `LAWS`, `LAPR`, `RCGIM`, `RLAIM`), which
+    central government procurement absorbs first (l.377): those set
+    `df.attrs["procurement_residual_warning"]`.
 - **Open for review.** Default-on changes what a welfare shock returns for
   anyone calling `run_reform` or the hosted server with `var="CGSB"`. The
   alternative is to keep the old default and only warn; `nominal_consistent`

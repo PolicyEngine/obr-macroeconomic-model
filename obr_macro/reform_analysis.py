@@ -1105,7 +1105,13 @@ CASH_SPENDING_NOTE = (
 #   CGSUBP = PSCE - (CGWS + CGP + RCGIM + LAWS + LAPR + RLAIM) - LATSUB
 #            - (CGSB + LASBHH) - CGNCGA - ECNET - LANCGA - (CGOTR + LAOTRHH)
 #            - (DICGOP + DILAPR + DIPCOP) - EUVAT - GNP4 - CGSUBPR
-# A shock to any of them with PSCE held is absorbed by subsidies.
+# A shock to any of them with PSCE held is absorbed by another line. For most
+# it is subsidies. The five terms of the first bracket other than CGP are
+# also terms of the procurement residual, l.377:
+#   CGP = CGGPSPSF - (CGWS + LAWS) - LAPR - (RCGIM + RLAIM)
+# so the bracket sums to the imposed CGGPSPSF whatever they do, and a shock to
+# one of them is absorbed by procurement instead (measured 25 Nov 2026, +GBP
+# 1bn a quarter on LAPR: CGP -1,000, CGSUBP 0, CGNB -1,000).
 PSCE_RESIDUAL_LINES = frozenset(
     {
         "CGWS",
@@ -1130,13 +1136,22 @@ PSCE_RESIDUAL_LINES = frozenset(
         "CGSUBPR",
     }
 )
+PROCUREMENT_RESIDUAL_LINES = frozenset({"CGWS", "LAWS", "LAPR", "RCGIM", "RLAIM"})
+PROCUREMENT_RESIDUAL_WARNING = (
+    "{var} is a line of general government consumption in cash terms, and its "
+    "total CGGPSPSF was held at baseline in this run. The listing imposes that "
+    "total and makes central government procurement its residual (CGP, "
+    "l.377), so procurement moved by the opposite amount and public sector "
+    "current expenditure did not change. Do not quote the borrowing figures "
+    "of this run as the effect of the spending change (#88)."
+)
 SUBSIDY_RESIDUAL_WARNING = (
     "{var} is a line of public sector current expenditure, and PSCE was held "
     "at baseline in this run. The listing imposes PSCE as a total and makes "
     "central government subsidies its residual (CGSUBP, l.504), so subsidies "
     "moved by the opposite amount: borrowing does not reflect the shock, "
-    "taxes less subsidies on products (BPAPS) moved with it and profits "
-    "absorbed the difference. Do not quote the borrowing, profits or "
+    "taxes less subsidies on products (BPAPS) moved with it and, for most "
+    "lines, profits absorbed the difference. Do not quote the borrowing, profits or "
     "household-income figures of this run as the effect of the spending "
     "change (#88)."
 )
@@ -1626,6 +1641,11 @@ def run_reform(
             if var in REAL_SPENDING_NOMINAL
             else CASH_SPENDING_NOTE.format(var=var)
         )
+    elif var in PROCUREMENT_RESIDUAL_LINES:
+        # The shock is offset by the procurement residual (#88). Say so.
+        msg = PROCUREMENT_RESIDUAL_WARNING.format(var=var)
+        out.attrs["procurement_residual_warning"] = msg
+        warnings.warn(msg, stacklevel=2)
     elif var in PSCE_RESIDUAL_LINES:
         # The shock is offset by the subsidy residual (#88). Say so.
         msg = SUBSIDY_RESIDUAL_WARNING.format(var=var)
