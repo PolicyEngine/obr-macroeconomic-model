@@ -104,6 +104,7 @@ Run any of them with `uv run python scripts/<name>.py`. Each file records the sc
 | `test_tax_scenarios.py` | Slow | Income tax, NICs, VAT, corporation tax and fuel duty sized with HMRC's ready reckoner: convergence, signs, receipts and borrowing moving one for one, GDP per pound raised. |
 | `test_nominal_gdp_pin.py` | Mixed | The nominal-GDP pin (issue #42): closure rules and its effect on convergence and results. |
 | `test_result_labels.py` | Mixed | The `df.attrs` labels describe the instrument actually shocked (the "mechanical passthrough" label only on terms of the expenditure identity). |
+| `test_transmission_audit.py` | Fast | The transmission audit classifies responses as documented, builds and shocks its runs the way `run_reform` does, refuses a non-converged run, and the committed page is a rendering of the module. `test_model_invariants.py` has the slow check that the page's figures are current. |
 | `test_calibration_constants.py` | Mixed | Published constants are seeded at their published values; `DB`, `DP`, `DV` match their derivation and `COCU` stays a declared seed. |
 | `test_calibration_report.py` | Fast | The calibration scorecard leaves passthrough variables out of its accuracy count and states what it does not validate. |
 | `test_scoring.py` | Fast | The error bands and the three error metrics used by the scorecards. |
