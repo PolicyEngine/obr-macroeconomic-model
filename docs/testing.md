@@ -22,7 +22,7 @@ Slow tests are marked `slow` (the marker is declared in `pyproject.toml`). [`tes
 uv run --group chat pytest -q --runslow
 ```
 
-The full slow suite builds and solves the model many times. On GitHub Actions the weekly full run took between 1 hour 45 minutes and 2 hours 55 minutes per Python version on 3.11 to 3.13 (comment in `ci.yml`, observed 15 Nov 2026). To run one slow file:
+The full slow suite builds and solves the model many times. On GitHub Actions the full run took 20 to 32 minutes per Python version on 3.11 to 3.13, and the structural invariants job 12 minutes (run 45516457605, 25 Nov 2026). Before the solver read each period's row once instead of once per column, the same jobs took 1 hour 45 minutes to 2 hours 55 minutes and about 76 minutes. To run one slow file:
 
 ```bash
 uv run pytest -q --runslow tests/test_sign_conventions.py
@@ -64,7 +64,7 @@ Each file in `results/` is written by one script in [`scripts/`](https://github.
 
 | Results file | Script | Where it runs |
 |---|---|---|
-| `results/demo_shocks.json` | `scripts/demo_shocks.py` | `demo.yml` (about 60 solves; 45 to 55 minutes on Actions) |
+| `results/demo_shocks.json` | `scripts/demo_shocks.py` | `demo.yml` (about 60 solves; about four minutes on a laptop, 25 Nov 2026; 45 to 55 minutes on Actions before that) |
 | `results/site_figures.json` | `scripts/site_figures.py` | `demo.yml` |
 | `results/convergence_decomposition.json` | `scripts/convergence_decomposition.py` | `demo.yml` |
 | `results/demand_overlays.json` | `scripts/demand_overlays.py` | Locally |
