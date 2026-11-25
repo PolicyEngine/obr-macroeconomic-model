@@ -1142,8 +1142,14 @@ class FullOBRSolver:
         transpiled call forms are _recode(t, period, op, tv, fv) and
         _trend(t, base); the lambdas match that arity, ignore t_arg and use
         the closure's t. "v" is a fresh, mutable dict of the period's values.
+
+        The row is read once. ``self.data.iloc[t]`` builds a new Series from
+        every column, so reading it inside the comprehension (once per
+        column) made each context cost several hundred row builds. The
+        values are the same either way.
         """
-        v = {col: self.data.iloc[t][col] for col in self.data.columns}
+        row = self.data.iloc[t]
+        v = {col: row[col] for col in self.data.columns}
         return {
             "np": np,
             "__builtins__": {},

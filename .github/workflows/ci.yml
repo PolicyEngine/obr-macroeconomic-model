@@ -9,8 +9,8 @@ on:
     - cron: "0 4 * * 1" # weekly extended validation (Mondays)
   workflow_dispatch:
 
-# Supersede in-flight runs of the same PR: the invariant job takes ~30 minutes,
-# so without this a burst of pushes queues several full solves of stale commits.
+# Supersede in-flight runs of the same PR, so a burst of pushes does not queue
+# several runs of stale commits.
 # Runs on main and scheduled runs are never cancelled — those are the gate of
 # record and each one must complete.
 concurrency:
@@ -110,7 +110,8 @@ jobs:
     # so no gated OBR download is needed.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # Observed 2026-10-06..08: 32 to 81 minutes. Fail a hung solve instead of
+    # Observed 2026-11-25: 12 minutes (run 45516457605); 32 to 81 minutes before
+    # the solver read each period's row once. Fail a hung solve instead of
     # holding a shared org runner for the 6-hour default.
     timeout-minutes: 150
     steps:
@@ -181,9 +182,10 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.schedule == '0 4 * * 1'
     runs-on: ubuntu-latest
-    # Observed 15 Nov 2026 over five runs: 3.10 about 1h, 3.11 1h45-2h52 (the
-    # slowest), 3.12/3.13 up to 2h55. Fail a hung solve instead of holding a
-    # runner for the 6-hour default.
+    # Observed 25 Nov 2026 (run 45516457605): 20 to 32 minutes per interpreter.
+    # Before the solver read each period's row once (15 Nov 2026, five runs):
+    # 3.11 1h45-2h52, 3.12/3.13 up to 2h55. Fail a hung solve instead of
+    # holding a runner for the 6-hour default.
     timeout-minutes: 240
     strategy:
       fail-fast: false # report every broken interpreter, not just the first

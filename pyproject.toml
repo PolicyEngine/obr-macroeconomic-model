@@ -37,7 +37,7 @@ chat = [
 
 [tool.pytest.ini_options]
 markers = [
-    "slow: needs the OBR model download and a full solver build (~minutes); run with --runslow",
+    "slow: needs full solver builds and solves; run with --runslow",
 ]
 
 [tool.ruff]

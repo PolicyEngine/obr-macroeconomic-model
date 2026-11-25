@@ -55,7 +55,7 @@ results = run_reform(
 )
 ```
 
-Run it with `uv run python`. Each `run_reform` call builds and solves the model twice over 12 quarters. The three calls take about five minutes on a laptop, most of it the first template build. Every result carries its warnings and labels in `results.attrs`.
+Run it with `uv run python`. Each `run_reform` call builds and solves the model twice over 12 quarters. The three calls take about half a minute on a laptop (measured 25 Nov 2026: 10, 7 and 13 seconds). Each builds its own model template, which takes a little longer than its two solves. Every result carries its warnings and labels in `results.attrs`.
 
 To run five example reforms and save charts to `outputs/`:
 
@@ -107,7 +107,7 @@ uvx --with "mkdocstrings[python]==0.26.1" --with "mkdocstrings-python==1.11.1" -
 ## Tests
 
 ```bash
-uv run --group chat pytest -q            # fast suite, a few minutes
+uv run --group chat pytest -q            # fast suite, about 20 seconds
 uv run --group chat pytest -q --runslow  # adds full-solve tests, hours
 ```
 

@@ -34,7 +34,7 @@ This raises real government consumption (`CGG`) by £1,250m a quarter for 12 qua
 
 ### :material-timer-sand: How long it takes { #how-long-it-takes }
 
-Each `run_reform` call builds and solves the model twice over 12 quarters. The first call also builds the model template, which is most of the cost; later calls with the same structure reuse it. The README's three Quick Start calls took about five minutes on a laptop (Apple silicon, measured 15 Nov 2026). Run one call before you need results in a hurry.
+Each `run_reform` call builds and solves the model twice over 12 quarters. The first call for a given instrument, window and closure also builds a model template, which takes about as long as the two solves; later calls with the same three reuse it. The README's three Quick Start calls took about half a minute on a laptop (Apple silicon, measured 25 Nov 2026; about five minutes before the solver read each period's row once instead of once per column). Run one call before you need results in a hurry.
 
 ## :material-table-eye: Reading the output { #reading-the-output }
 
