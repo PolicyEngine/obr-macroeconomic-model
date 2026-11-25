@@ -20,15 +20,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from obr_macro.full_solver import FullOBRSolver
 from obr_macro.reform_analysis import (
-    GDPM_EQ,
-    IBUS_EQ,
-    IF_EQ,
-    IBUSX_EQ,
-    _anchor_published_levels,
-    _ensure_ibusx_inputs,
-    _stabilise_investment_closure,
+    _build_reform_template,
+    apply_spending_shock,
+    resolve_nominal_consistent,
+    resolve_nominal_gdp_pin,
 )
 
 START, END = "2025Q1", "2026Q2"  # 6-quarter horizon keeps the audit tractable
@@ -52,6 +48,14 @@ PANEL = [
 # Behavioural channels (everything that is NOT a pure spending identity): if a
 # shock moves GDP but none of these, the behavioural multiplier is missing.
 BEHAVIOURAL = {"CONS", "IBUS", "ETLFS", "LFSUR", "CPI", "X", "M", "APH", "RL"}
+# Under the default (demand) closure business investment is not a behavioural
+# variable: it is the listing's residual IBUS = IF - GGI - PCIH - PCLEB - IH -
+# IPRL with total investment IF exogenous, so it moves only as the mirror
+# image of real government investment and its deflator. It is still shown in
+# the table, but it does not count towards a "transmitting" verdict there;
+# run_reform labels the same government-investment shock a dead channel.
+# Under the investment closure IBUS has its own equation and does count.
+RESIDUAL_UNDER_STANDARD_CLOSURE = {"IBUS"}
 
 # Shocks. size is absolute unless rel=True, in which case it is a fraction of the
 # variable's baseline value at the start period.
@@ -77,40 +81,20 @@ MARGINAL_FRAC = 0.20
 
 
 def _build(closure, var):
-    """Unsolved template for one shock: same construction reform_analysis uses.
+    """Unsolved template for one shock: the one ``run_reform`` builds.
 
-    ``var`` is made exogenous HERE, on the template both runs clone, because
-    apply_shock makes it exogenous on the shocked run only. Leaving the control
-    with its live equation (CGG, R and PBRENT all have one) meant the control's
-    instrument drifted while the shocked run's was pinned, and the reported
-    "response" was that drift: it is what put a NEGATIVE GDP response to a
-    government-spending INCREASE into the committed audit table. Same rationale
-    as run_fiscal_shock's control run and reform_analysis's shared template.
+    This used to repeat the construction in
+    ``reform_analysis._build_reform_template`` by hand, and fell behind it:
+    when the nominal-GDP pin became ``run_reform``'s default closure (#42) the
+    copy here stayed on the published closure, under which no quarter
+    converges, so the table was a difference of two non-converged solves while
+    the page said the runs were solved exactly as ``run_reform`` solves them.
+    Calling the same builder keeps the two in step: the default closure (the
+    pin) for the demand rows, the investment closure for corporation tax, the
+    instrument exogenous on the template both runs clone, and the anchoring
+    residuals frozen into both.
     """
-    s = FullOBRSolver(verbose=False)
-    s.swap_closure("DINV", GDPM_EQ)
-    if closure == "investment":
-        _ensure_ibusx_inputs(s)
-        s.swap_closure("IBUSX", IBUSX_EQ)
-        s.swap_closure("IBUS", IBUS_EQ)
-        # IF has no live equation in the published model, so this is an
-        # addition; assert that rather than relying on a sentinel name that
-        # never matches (the previous "IF_PLACEHOLDER" removal was a no-op).
-        assert "IF" not in s.eq_for_var, "model already has a live IF equation"
-        s.swap_closure("IF", IF_EQ)
-    s.make_exogenous(var)
-    # Score around the anchored baseline, as run_reform does (see
-    # reform_analysis._build_reform_template): residuals frozen into both runs.
-    s.freeze_anchoring()
-    if closure == "investment":
-        # Without this the reconstructed dlog(IBUSX) closure sits in the
-        # explosive MSGVA accelerator documented in
-        # _stabilise_investment_closure and the corporation-tax row is
-        # meaningless (the committed table read +54% on GDP for a 1pp rise).
-        _stabilise_investment_closure(s, START, END)
-    _anchor_published_levels(s, START, END)
-    s._shock_active = True
-    return s
+    return _build_reform_template(var, START, END, closure == "investment")
 
 
 def _resp(kind, base, shock):
@@ -156,11 +140,30 @@ def run_one(shock, template):
     if shock.get("rel"):
         base_val = sh._get(shock["var"], t0)
         size = size * base_val if np.isfinite(base_val) else 0.0
-    sh.apply_shock(shock["var"], size, START, periods=PERIODS)
+    # As run_reform applies it: a government-consumption shock carries its
+    # nominal legs under the default closure, so borrowing moves with it.
+    pin = resolve_nominal_gdp_pin(None, shock["closure"] == "investment")
+    apply_spending_shock(
+        sh,
+        shock["var"],
+        size,
+        START,
+        PERIODS,
+        nominal_consistent=resolve_nominal_consistent(None, shock["var"], pin),
+    )
 
     base.solve(START, END)
     sh.solve(START, END)
     bdat, sdat = base.data, sh.data
+    for run in (base, sh):
+        status = (getattr(run, "last_solve_report", None) or {}).get("exit_status", {})
+        row_status = [p for p, how in status.items() if how != "tol"]
+        if row_status:
+            raise RuntimeError(
+                f"{shock['label']}: {len(row_status)} of {len(status)} quarters "
+                "did not reach the solver tolerance; the audit table would be "
+                "a difference of non-converged solves."
+            )
 
     tN = base.period_idx(END)
     row = {}
@@ -174,8 +177,12 @@ def run_one(shock, template):
     return row
 
 
-def classify(row):
+def classify(row, closure="investment"):
     """Classify a shock's response row.
+
+    ``closure`` is the shock's closure: under "standard" the residual
+    business-investment identity is left out of the behavioural channels
+    (RESIDUAL_UNDER_STANDARD_CLOSURE). The default counts every channel.
 
     Channels whose response clears the threshold with >=20% headroom count as
     solid; channels within ±20% of the threshold are only "marginal". A verdict
@@ -184,8 +191,11 @@ def classify(row):
     gdp = row.get("GDPM")
     gdp_moves = _material("pct", gdp)
     beh_solid, beh_marginal = [], []
+    behavioural = BEHAVIOURAL
+    if closure == "standard":
+        behavioural = BEHAVIOURAL - RESIDUAL_UNDER_STANDARD_CLOSURE
     for code, _l, kind in PANEL:
-        if code not in BEHAVIOURAL:
+        if code not in behavioural:
             continue
         v = row.get(code)
         if _marginal(kind, v):
@@ -208,7 +218,11 @@ def _fmt(kind, v):
     return f"{v:+.2f}{unit}"
 
 
-def main():
+FRONT_MATTER = "---\nicon: material/transit-connection-variant\n---\n"
+
+
+def audit():
+    """Run every shock and return ``[(shock, row, verdict, channels), ...]``."""
     # One unsolved template per (closure, instrument): the instrument must be
     # exogenous on the template, so templates cannot be shared across shocks
     # that use different instruments.
@@ -220,22 +234,30 @@ def main():
         if key not in templates:
             templates[key] = build_template(*key)
         row = run_one(sh, templates[key])
-        verdict, beh = classify(row)
+        verdict, beh = classify(row, sh["closure"])
         results.append((sh, row, verdict, beh))
         print(
             f"[audit]   -> {verdict} ({len(beh)} behavioural channels: {', '.join(beh) or 'none'})",
             flush=True,
         )
+    return results
 
-    # markdown report
+
+def render(results):
+    """The markdown page for ``docs/transmission_audit.md``."""
     cols = [lab for _c, lab, _k in PANEL]
-    lines = []
+    lines = [FRONT_MATTER]
     lines.append("# Transmission audit (Stage 1a)\n")
     lines.append(
         f"Horizon {START}–{END} ({PERIODS} quarters), final-period response "
-        "vs an unchanged baseline. Both runs are solved around the anchored "
-        "EFO baseline, exactly as `run_reform` scores reforms. Generated by "
-        "`obr_macro/transmission_audit.py`.\n"
+        "vs an unchanged baseline. Each pair of runs is built and solved the "
+        "way `run_reform` does it: the default closure (the nominal-GDP pin) "
+        "for every row except corporation tax, which needs the investment "
+        "closure; both runs around the anchored EFO baseline; every quarter "
+        "of every solve converged to tolerance. Generated by "
+        "`python -m obr_macro.transmission_audit`; "
+        "`tests/test_model_invariants.py` checks that this page matches what "
+        "the module produces.\n"
     )
     lines.append("| Shock | Verdict | " + " | ".join(cols) + " |")
     lines.append("|---|---|" + "|".join(["---"] * len(cols)) + "|")
@@ -245,36 +267,48 @@ def main():
     lines.append("")
     lines.append("## Reading this\n")
     lines.append(
-        "- **transmitting** — the shock reaches behavioural variables "
+        "- **transmitting**: the shock reaches behavioural variables "
         "(consumption, investment, jobs, prices), not just the spending identity."
     )
     lines.append(
-        "- **identity-only** — GDP moves but no behavioural channel does; "
+        "- **identity-only**: GDP moves but no behavioural channel does; "
         "the multiplier is missing and the result is just the mechanical add to demand."
     )
-    lines.append(
-        "- **dead** — nothing moves; the shock does not propagate. These are the "
-        "first channels to fix in Stage 1b."
-    )
+    lines.append("- **dead**: neither GDP nor any behavioural channel moves.")
     lines.append("")
     lines.append(
         "> **A 'transmitting' verdict is about wiring, not about the answer being "
-        "right.** Two rows to read with care. *Gov investment* registers as "
-        "transmitting only through business investment: `IF` has no live "
-        "equation, so the CGIPS chain never reaches the GDP identity and the "
-        "GDP column is deflator residue of indeterminate sign, not a public "
-        "investment multiplier. *Gov consumption* is correctly identity-only — "
-        "GDP moves by exactly the shock and nothing behavioural responds, which "
-        "is what a flat multiplier of 1.0 looks like. Under the demand "
-        "closure the *Bus. invest.* column is the OBR's residual identity "
-        "`IBUS = IF − GGI − PCIH − PCLEB − IH − IPRL` with `IF` exogenous, so "
-        "it moves only as the mirror image of real government investment "
-        "`GGI = 100·GGIPS/GGIDEF`, whose deflator compounds the investment "
-        "deflator `PIF` quarter on quarter. It is deflator propagation, not a "
-        "business-investment response, and it is sensitive to the baseline "
-        "level: moving these runs onto the anchored baseline (2026-10) moved "
-        "the Bank Rate, sterling and oil entries from +0.27/+7.87/+0.26% to "
-        "the values above."
+        "right.** *Gov consumption* is identity-only: GDP moves by about the "
+        "shock and consumption by less than the threshold, which is what a "
+        "flat multiplier of 1.0 looks like. *Gov investment*, *sterling* and "
+        "*oil* are dead under the default closure: trade, jobs and prices do "
+        "not move at all, and GDP and consumption move by less than a "
+        "hundredth of a per cent, well under the threshold below. Their "
+        "*Bus. invest.* entries are not a business-investment response. "
+        "Under the default closure that column "
+        "is the OBR's residual identity "
+        "`IBUS = IF − GGI − PCIH − PCLEB − IH − IPRL` with total investment "
+        "`IF` exogenous, so it moves only as the mirror image of real "
+        "government investment `GGI = 100·GGIPS/GGIDEF` and of the "
+        "investment deflator behind it. It is shown, but it does not count "
+        "towards the verdict; `run_reform` labels the same government-"
+        "investment shock a dead channel. Under the investment closure "
+        "(the corporation tax row) business investment has its own equation "
+        "and does count."
+    )
+    lines.append("")
+    lines.append(
+        "> **Before 25 Nov 2026** this page was generated under the published "
+        "closure, which the module had kept after the nominal-GDP pin became "
+        "the default for `run_reform`. Under that closure no quarter of a "
+        "demand-closure run converges ([Limits](limitations.md), solver "
+        "convergence), so the table was a difference of two non-converged "
+        "solves, and it had not been regenerated since October 2026. It showed "
+        "sterling at −0.05% of GDP with business investment +5.55%, oil at "
+        "−0.02% and +1.08%, and Bank Rate at −0.07% and −0.03%; regenerated "
+        "under the same closure on the current data those read +0.03% and "
+        "−0.33%, −0.00% and +0.78%, and −0.03% and −2.05%. Neither set is a "
+        "model response."
     )
     lines.append("")
     lines.append(
@@ -292,10 +326,13 @@ def main():
         "**Summary:** " + ", ".join(f"{n} {k}" for k, n in sorted(counts.items())) + "."
     )
     lines.append("")
+    return "\n".join(lines)
 
+
+def main():
     out = "docs/transmission_audit.md"
     with open(out, "w") as f:
-        f.write("\n".join(lines))
+        f.write(render(audit()))
     print(f"[audit] wrote {out}", flush=True)
 
 
