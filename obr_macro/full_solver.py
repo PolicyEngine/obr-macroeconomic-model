@@ -798,7 +798,7 @@ class FullOBRSolver:
                     # Only initialize if currently NaN
                     if not np.isfinite(current_val):
                         try:
-                            new_val = eval(self._compiled(eq.python_expr), ctx)
+                            new_val = self._evaluate(eq.python_expr, ctx)
                             if np.isfinite(new_val):
                                 if var in col_idx:
                                     self.data.iloc[t, col_idx[var]] = new_val
@@ -874,7 +874,7 @@ class FullOBRSolver:
             for eq in behavioral_eqs:
                 var, kind, lag_n = self._parse_lhs(eq.lhs)
                 try:
-                    rhs_val = eval(self._compiled(eq.python_expr), ctx)
+                    rhs_val = self._evaluate(eq.python_expr, ctx)
                     actual_val = self._get(var, t)
 
                     predicted = self._lhs_new_value(var, kind, lag_n, rhs_val, t)
@@ -898,7 +898,7 @@ class FullOBRSolver:
     def _eval_rhs(self, eq, t: int) -> float:
         """Evaluate an equation's RHS at period t on the current data."""
         ctx = self._build_context(t)
-        return float(eval(self._compiled(eq.python_expr), ctx))
+        return float(self._evaluate(eq.python_expr, ctx))
 
     def _close_receipts_identities(self):
         """Make the receipts identities live without moving the baseline (#56).
@@ -983,7 +983,7 @@ class FullOBRSolver:
         for t in range(t_edge + 1):
             actual = self._get("OSHH", t)
             try:
-                pred = eval(self._compiled(eq.python_expr), self._build_context(t))
+                pred = self._evaluate(eq.python_expr, self._build_context(t))
             except Exception:
                 continue
             if np.isfinite(actual) and np.isfinite(pred):
@@ -1134,6 +1134,23 @@ class FullOBRSolver:
             code = compile(expr, "<eq>", "eval")
             self._code_cache[expr] = code
         return code
+
+    def _evaluate(self, expr: str, ctx: dict):
+        """Evaluate a transpiled expression in a context from _build_context.
+
+        NumPy's floating-point warnings are switched off for the evaluation.
+        The context has no builtins, so a warning that Python tries to show
+        from inside ``eval`` cannot import what it needs and surfaces as
+        ``KeyError: '__import__'``. Whether that happened used to depend on
+        the caller's warning filters: with warnings ignored (every script and
+        test in this repo) an equation with a missing input returned NaN, and
+        under Python's default filters the same equation raised and was
+        counted as a failure. The values were the same either way, because a
+        NaN and an exception are both dropped, but ``eq_failures`` was not
+        (0 against 172 for a 12-quarter solve, all of it ``CPIH``).
+        """
+        with np.errstate(all="ignore"):
+            return eval(self._compiled(expr), ctx)
 
     def _build_context(self, t: int) -> dict:
         """Build the evaluation context for period t.
@@ -1414,7 +1431,7 @@ class FullOBRSolver:
                 try:
                     old_val = v.get(var, np.nan)
 
-                    rhs_val = eval(self._compiled(eq.python_expr), ctx)
+                    rhs_val = self._evaluate(eq.python_expr, ctx)
 
                     # Frozen anchoring residual in the equation's own units
                     # (freeze_anchoring): it enters the RHS, so the LHS form
@@ -1557,7 +1574,7 @@ class FullOBRSolver:
         for eq in self.equations:
             var = self._extract_lhs_var(eq.lhs)
             try:
-                val = eval(self._compiled(eq.python_expr), ctx)
+                val = self._evaluate(eq.python_expr, ctx)
                 if not np.isfinite(val):
                     inputs = nan_inputs(eq.python_expr)
                     out.append(
