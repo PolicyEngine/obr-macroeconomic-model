@@ -50,6 +50,57 @@ def test_path_truncates_at_data_end():
     assert list(s.data["CGG"]) == [101, 102]
 
 
+class _CountingFrame:
+    """Stands in for solver.data and counts row reads through ``.iloc``."""
+
+    def __init__(self, frame):
+        self._frame = frame
+        self.iloc_reads = 0
+
+    @property
+    def iloc(self):
+        self.iloc_reads += 1
+        return self._frame.iloc
+
+    @property
+    def columns(self):
+        return self._frame.columns
+
+
+def test_build_context_reads_the_period_row_once():
+    """The evaluation context holds every column's value at period t, and
+    builds it from a single row read.
+
+    ``data.iloc[t]`` assembles a new Series from every column. Reading it
+    once per column costs one row build per column per context, and the
+    solver builds a context in every Gauss-Seidel iteration and for every
+    historical period at build time: on the full model (653 columns) that
+    was about 0.1s per context and about 90% of a template build.
+    """
+    s = _bare_solver()
+    s.data["GDPM"] = [float(i) for i in range(8)]
+    s.data["FLAG"] = [0, 1] * 4  # an integer column: the row upcasts to float
+    s.data["GAP"] = float("nan")
+    frame = s.data
+    expected = {col: frame.iloc[5][col] for col in frame.columns}
+
+    s.data = _CountingFrame(frame)
+    ctx = s._build_context(5)
+    assert s.data.iloc_reads == 1
+
+    v = ctx["v"]
+    assert list(v) == list(frame.columns)
+    for col, want in expected.items():
+        assert type(v[col]) is type(want), col
+        assert v[col] == want or (want != want and v[col] != v[col]), col
+    assert v["CGG"] == 100.0 and v["GDPM"] == 5.0 and v["FLAG"] == 1.0
+    assert ctx["t"] == 5
+    # A fresh dict each time: writing to it leaves the data alone.
+    v["GDPM"] = -1.0
+    assert frame["GDPM"].iloc[5] == 5.0
+    assert s._build_context(5)["v"]["GDPM"] == 5.0
+
+
 def test_empty_path_raises():
     s = _bare_solver()
     with pytest.raises(ValueError):
@@ -453,54 +504,3 @@ def test_nominal_consistent_default_follows_the_closure():
     assert resolve_nominal_consistent(False, "R", True) is False
     with pytest.raises(ValueError, match="nominal_consistent applies only"):
         resolve_nominal_consistent(True, "TYEM", True)
-
-
-class _CountingFrame:
-    """Stands in for solver.data and counts row reads through ``.iloc``."""
-
-    def __init__(self, frame):
-        self._frame = frame
-        self.iloc_reads = 0
-
-    @property
-    def iloc(self):
-        self.iloc_reads += 1
-        return self._frame.iloc
-
-    @property
-    def columns(self):
-        return self._frame.columns
-
-
-def test_build_context_reads_the_period_row_once():
-    """The evaluation context holds every column's value at period t, and
-    builds it from a single row read.
-
-    ``data.iloc[t]`` assembles a new Series from every column. Reading it
-    once per column costs one row build per column per context, and the
-    solver builds a context in every Gauss-Seidel iteration and for every
-    historical period at build time: on the full model (653 columns) that
-    was about 0.1s per context and about 90% of a template build.
-    """
-    s = _bare_solver()
-    s.data["GDPM"] = [float(i) for i in range(8)]
-    s.data["FLAG"] = [0, 1] * 4  # an integer column: the row upcasts to float
-    s.data["GAP"] = float("nan")
-    frame = s.data
-    expected = {col: frame.iloc[5][col] for col in frame.columns}
-
-    s.data = _CountingFrame(frame)
-    ctx = s._build_context(5)
-    assert s.data.iloc_reads == 1
-
-    v = ctx["v"]
-    assert list(v) == list(frame.columns)
-    for col, want in expected.items():
-        assert type(v[col]) is type(want), col
-        assert v[col] == want or (want != want and v[col] != v[col]), col
-    assert v["CGG"] == 100.0 and v["GDPM"] == 5.0 and v["FLAG"] == 1.0
-    assert ctx["t"] == 5
-    # A fresh dict each time: writing to it leaves the data alone.
-    v["GDPM"] = -1.0
-    assert frame["GDPM"].iloc[5] == 5.0
-    assert s._build_context(5)["v"]["GDPM"] == 5.0
