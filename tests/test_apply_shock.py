@@ -453,3 +453,61 @@ def test_nominal_consistent_default_follows_the_closure():
     assert resolve_nominal_consistent(False, "R", True) is False
     with pytest.raises(ValueError, match="nominal_consistent applies only"):
         resolve_nominal_consistent(True, "TYEM", True)
+
+
+def test_rate_instrument_cannot_leave_its_usable_domain_fast():
+    """The corporation-tax domain guard on a synthetic frame, no model build.
+
+    The slow test_corp_tax_rate_cannot_leave_its_usable_domain covers the same
+    guard through run_reform; this one keeps the boundary arithmetic in the
+    fast suite. The domain is [0, 1): a 0% rate is a policy, 100% is the pole
+    of the cost-of-capital block.
+    """
+    from obr_macro.reform_analysis import _check_instrument_domain
+
+    s = _bare_solver()
+    s.data["TCPRO"] = 0.25
+    _check_instrument_domain(s, "TCPRO", [-0.25] * 4, "2025Q1")  # -> 0.0
+    _check_instrument_domain(s, "TCPRO", [0.74] * 4, "2025Q1")  # -> 0.99
+    with pytest.raises(ValueError, match="usable domain"):
+        _check_instrument_domain(s, "TCPRO", [0.75] * 4, "2025Q1")  # -> 1.0
+    with pytest.raises(ValueError, match="usable domain"):
+        _check_instrument_domain(s, "TCPRO", [-0.26], "2025Q1")  # -> -0.01
+    # The quarter is named, and only the offending one trips the guard.
+    with pytest.raises(ValueError, match="2025Q3"):
+        _check_instrument_domain(s, "TCPRO", [0.0, 0.0, 0.9], "2025Q1")
+    # A path running past the end of the data is checked only where data exist.
+    _check_instrument_domain(s, "TCPRO", [0.1] * 20, "2026Q4")
+    # Instruments without a declared domain are not checked.
+    _check_instrument_domain(s, "CGG", [1e9], "2025Q1")
+
+
+def test_result_quotes_the_published_multipliers_from_the_table(monkeypatch):
+    """df.attrs["obr_published_impact_multiplier"] is read from the encoded
+    OBR table, not typed in a second time, and has the VAT and welfare rows
+    (a VAT result used to carry a comparison table with no VAT figure)."""
+    from obr_macro import reform_analysis
+    from obr_macro.published_conventions import PUBLISHED_MULTIPLIERS
+
+    monkeypatch.setattr(
+        reform_analysis, "_build_reform_template", lambda *a, **k: _FakeTemplate()
+    )
+    df = reform_analysis.run_reform(
+        name="any", var="GDPM", shock=1.0, start="2025Q1", end="2025Q4", periods=4
+    )
+    quoted = df.attrs["obr_published_impact_multiplier"]
+    assert quoted == {
+        "current_spending": 0.6,
+        "capital_spending": 1.0,
+        "welfare": 0.6,
+        "vat": 0.35,
+        "personal_tax_and_nics": 0.3,
+    }
+    table = {key: row.impact for key, row in PUBLISHED_MULTIPLIERS.items()}
+    table["personal_tax_and_nics"] = table.pop("income_tax_and_nics")
+    assert quoted == table
+    # No sourced corporation-tax multiplier exists, so none is quoted (#54).
+    assert not any("corporation" in key for key in quoted)
+    # A fresh dict per result: editing one result's attrs leaves the next alone.
+    quoted["vat"] = 99.0
+    assert reform_analysis.published_impact_multipliers()["vat"] == 0.35

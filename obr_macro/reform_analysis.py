@@ -966,6 +966,20 @@ def _impose_published_convention(
     return conv.data.copy(), detail
 
 
+def published_impact_multipliers() -> dict:
+    """The OBR's published impact multipliers, for ``df.attrs``.
+
+    Read from ``PUBLISHED_MULTIPLIERS`` so the comparison figures attached to
+    a result cannot drift from the encoded table. ``personal_tax_and_nics``
+    is the key this attribute has always used for the table's
+    ``income_tax_and_nics`` row; it is kept so existing callers still work.
+    There is no corporation-tax entry because the table has no such row.
+    """
+    table = {key: row.impact for key, row in PUBLISHED_MULTIPLIERS.items()}
+    table["personal_tax_and_nics"] = table.pop("income_tax_and_nics")
+    return table
+
+
 HOUSEHOLD_RATIO_BASIS_NOTE = (
     "delta_gdp_m is chained-volume (real) GDP; the household shock is "
     "current-price revenue. gdp_per_revenue_real = -delta_gdp_m / revenue "
@@ -1665,11 +1679,7 @@ def run_reform(
     elif not investment_closure:
         out.attrs["published_conventions"] = False
         out.attrs["mechanical_passthrough"] = var in EXPENDITURE_IDENTITY_TERMS
-        out.attrs["obr_published_impact_multiplier"] = {
-            "current_spending": 0.6,
-            "capital_spending": 1.0,
-            "personal_tax_and_nics": 0.3,
-        }
+        out.attrs["obr_published_impact_multiplier"] = published_impact_multipliers()
         if var in TRANSMISSION_NOTES:
             out.attrs["transmission_note"] = TRANSMISSION_NOTES[var]
         # The passthrough label is true only for a term of the expenditure

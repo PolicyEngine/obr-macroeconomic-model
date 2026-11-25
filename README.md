@@ -115,7 +115,7 @@ CI (`.github/workflows/ci.yml`) runs lint, the fast suite and a wheel check on e
 
 ## Contributing
 
-Work on a branch and open a pull request. Add a `changelog.d/<slug>.<type>.md` file (type `added`, `changed`, `fixed` or `removed`) saying in a sentence or two what changed and why. Every number quoted in the docs should trace to a file in `results/` or a test.
+Work on a branch and open a pull request. Add a `changelog.d/<slug>.<type>.md` file (type `added`, `changed`, `fixed` or `removed`) saying in a sentence or two what changed and why. Every number quoted in the docs should trace to a file in `results/` or a test; `tests/test_docs_numbers.py` checks the figures on the main pages against `results/`, so update the page in the same pull request as a regenerated results file.
 
 ## Licence
 

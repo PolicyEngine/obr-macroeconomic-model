@@ -137,3 +137,29 @@ def test_var_error_efo_code_override_missing_column_is_none():
     model = pd.DataFrame({"RPI": [3.4]}, index=idx)
     efo = pd.DataFrame({"RPI": [400.0]}, index=idx)
     assert var_error(model, efo, "RPI", "pp", 0, 0, efo_code="RPIGR") is None
+
+
+def test_held_addfactors_average_the_base_window_only():
+    """The held add-factor is the mean residual over the last ``window``
+    quarters up to the base end; quarters outside it and non-finite residuals
+    are left out, and a variable with no usable residual gets no add-factor."""
+    from obr_macro.forecast_tune import held_addfactors
+
+    quarters = {"2025Q1": 4, "2025Q2": 5, "2025Q3": 6, "2025Q4": 7}
+    residuals = {
+        ("CONS", 3): 100.0,  # before a 2-quarter window ending 2025Q4
+        ("CONS", 6): 10.0,
+        ("CONS", 7): 30.0,
+        ("CONS", 8): 1000.0,  # after the base window
+        ("IBUS", 6): float("nan"),
+        ("IBUS", 7): -4.0,
+        ("M", 7): float("inf"),
+    }
+    held = held_addfactors(residuals, quarters.__getitem__, "2025Q4", window=2)
+    assert held == {"CONS": 20.0, "IBUS": -4.0}
+    assert held_addfactors(residuals, quarters.__getitem__, "2025Q4", window=1) == {
+        "CONS": 30.0,
+        "IBUS": -4.0,
+    }
+    wide = held_addfactors(residuals, quarters.__getitem__, "2025Q4", window=5)
+    assert wide["CONS"] == pytest.approx((100.0 + 10.0 + 30.0) / 3)
