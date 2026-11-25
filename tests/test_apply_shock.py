@@ -491,6 +491,137 @@ def test_spending_shock_refuses_a_half_applied_nominal_leg():
         apply_spending_shock(s, "CGG", 10.0, "2025Q1", periods=4)
 
 
+def test_cash_spending_line_moves_psce_by_the_shock_itself():
+    """Social benefits (CGSB) and other current grants (CGOTR) are cash lines
+    of public sector current expenditure. Their only leg is PSCE, moved by
+    the shock itself and not by the CGGPS/CGG price ratio a real CGG shock
+    uses (#88)."""
+    from obr_macro.reform_analysis import NOMINAL_SPENDING_LEGS, apply_spending_shock
+
+    for var in ("CGSB", "CGOTR"):
+        s = _spending_solver()
+        s.data[var] = 70.0
+        legs = apply_spending_shock(s, var, [10.0, -20.0, 5.0], "2025Q2")
+        assert legs == list(NOMINAL_SPENDING_LEGS[var]) == ["PSCE"]
+        assert list(s.data[var][:5]) == [70.0, 80.0, 50.0, 75.0, 70.0]
+        assert list(s.data["PSCE"][:5]) == [300.0, 310.0, 280.0, 305.0, 300.0]
+        # Nominal government consumption is not part of a transfer.
+        assert list(s.data["CGGPS"]) == [110.0, 112.0, 114.0, 116.0] * 2
+        assert list(s.data["CGGPSPSF"]) == [120.0] * 8
+
+        alone = _spending_solver()
+        alone.data[var] = 70.0
+        legs = apply_spending_shock(
+            alone, var, 10.0, "2025Q1", periods=4, nominal_consistent=False
+        )
+        assert legs == []
+        assert list(alone.data["PSCE"]) == [300.0] * 8
+
+        missing = _spending_solver()
+        missing.data[var] = 70.0
+        missing.data = missing.data.drop(columns=["PSCE"])
+        with pytest.raises(KeyError, match="PSCE"):
+            apply_spending_shock(missing, var, 10.0, "2025Q1", periods=4)
+
+
+def test_cash_spending_lines_default_like_government_consumption():
+    """CGSB and CGOTR follow the same default rule as CGG: the PSCE leg is on
+    under the nominal-GDP pin and off otherwise, and an explicit choice is
+    honoured (#88). Lines without a leg stay off."""
+    from obr_macro.reform_analysis import resolve_nominal_consistent
+
+    for var in ("CGSB", "CGOTR"):
+        assert resolve_nominal_consistent(None, var, True) is True
+        assert resolve_nominal_consistent(None, var, False) is False
+        assert resolve_nominal_consistent(False, var, True) is False
+        assert resolve_nominal_consistent(True, var, False) is True
+    assert resolve_nominal_consistent(None, "LASBHH", True) is False
+
+
+def test_subsidy_residual_lines_are_the_terms_of_the_listing():
+    """PSCE_RESIDUAL_LINES is every term the listing subtracts from PSCE to
+    get subsidies (l.504). If the OBR changes that line, the set must follow."""
+    import re
+    from importlib import resources
+
+    from obr_macro.reform_analysis import (
+        NOMINAL_SPENDING_LEGS,
+        PROCUREMENT_RESIDUAL_LINES,
+        PSCE_RESIDUAL_LINES,
+    )
+
+    listing = (
+        resources.files("obr_macro")
+        .joinpath("_data/obr_model_code_october_2025.txt")
+        .read_text()
+    )
+    (line,) = [ln for ln in listing.splitlines() if re.match(r"CGSUBP\s+=", ln)]
+    terms = set(re.findall(r"[A-Z][A-Z0-9]*", line.split("=", 1)[1]))
+    assert terms - {"PSCE"} == set(PSCE_RESIDUAL_LINES)
+    # Five of them are also terms of the procurement residual (l.377), which
+    # absorbs a shock to them before the subsidy residual sees it.
+    (line,) = [ln for ln in listing.splitlines() if re.match(r"CGP\s+=", ln)]
+    terms = set(re.findall(r"[A-Z][A-Z0-9]*", line.split("=", 1)[1]))
+    assert terms - {"CGGPSPSF"} == set(PROCUREMENT_RESIDUAL_LINES)
+    assert PROCUREMENT_RESIDUAL_LINES < PSCE_RESIDUAL_LINES
+    assert not PROCUREMENT_RESIDUAL_LINES & set(NOMINAL_SPENDING_LEGS)
+    # Every instrument given a PSCE leg is either one of those terms or CGG,
+    # whose nominal counterpart reaches l.504 through procurement (CGP).
+    for var, legs in NOMINAL_SPENDING_LEGS.items():
+        assert "PSCE" in legs
+        assert var == "CGG" or var in PSCE_RESIDUAL_LINES
+
+
+def test_run_reform_labels_a_spending_line_the_subsidy_residual_absorbs(monkeypatch):
+    """A shock to a PSCE line with PSCE held is offset by subsidies, so its
+    borrowing and profits figures are not the effect of the spending change.
+    run_reform says so in attrs and with a warning; with the PSCE leg (the
+    default for CGSB and CGOTR under the nominal-GDP pin) it does not."""
+    from obr_macro import reform_analysis
+
+    template = _FakeTemplate()
+    for col in ("CGSB", "LASBHH", "LAPR", "PSCE"):
+        template._proto.data[col] = 500.0
+    monkeypatch.setattr(
+        reform_analysis, "_build_reform_template", lambda *a, **k: template
+    )
+    kwargs = dict(start="2025Q1", end="2025Q4", periods=4)
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        df = reform_analysis.run_reform("welfare", "CGSB", 100.0, **kwargs)
+    assert df.attrs["nominal_consistent"] is True
+    assert df.attrs["nominal_consistent_legs"] == ["PSCE"]
+    assert "CGSB" in df.attrs["nominal_consistent_note"]
+    assert "CGGPS" not in df.attrs["nominal_consistent_note"]
+    assert "subsidy_residual_warning" not in df.attrs
+    assert "welfare multiplier is 0.6" in df.attrs["transmission_note"]
+    assert not [w for w in caught if "CGSUBP" in str(w.message)]
+
+    for var, extra in (("CGSB", {"nominal_consistent": False}), ("LASBHH", {})):
+        with pytest.warns(UserWarning, match="CGSUBP"):
+            df = reform_analysis.run_reform("held", var, 100.0, **kwargs, **extra)
+        assert df.attrs["nominal_consistent"] is False
+        assert "nominal_consistent_legs" not in df.attrs
+        assert var in df.attrs["subsidy_residual_warning"]
+        assert "#88" in df.attrs["subsidy_residual_warning"]
+        assert "procurement_residual_warning" not in df.attrs
+
+    # Pay and procurement lines are absorbed by procurement (l.377), not by
+    # subsidies, and the label says which.
+    with pytest.warns(UserWarning, match="CGP"):
+        df = reform_analysis.run_reform("la", "LAPR", 100.0, **kwargs)
+    assert "LAPR" in df.attrs["procurement_residual_warning"]
+    assert "l.377" in df.attrs["procurement_residual_warning"]
+    assert "subsidy_residual_warning" not in df.attrs
+
+    # Local authority benefits have no leg yet: asking for one is refused.
+    with pytest.raises(ValueError, match="nominal_consistent applies only"):
+        reform_analysis.run_reform(
+            "la", "LASBHH", 100.0, nominal_consistent=True, **kwargs
+        )
+
+
 def test_nominal_consistent_default_follows_the_closure():
     from obr_macro.reform_analysis import resolve_nominal_consistent
 

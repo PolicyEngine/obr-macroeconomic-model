@@ -7,6 +7,45 @@ icon: material/scale-balance
 Dated modelling decisions, the evidence behind each, and what was left out.
 Newest first.
 
+## 25 November 2026 (validity review)
+
+### Social benefits and other current grants carry a `PSCE` leg by default
+
+- **The finding.** The listing imposes public sector current expenditure
+  `PSCE` as a total and makes central government subsidies its residual
+  (`CGSUBP`, l.504). A shock to any single line of `PSCE` is therefore
+  offset by subsidies. For social benefits `CGSB` +£1,000m a quarter:
+  borrowing 0, subsidies −£1,000m, taxes less subsidies on products
+  +£1,000m, profits −£917m in the first quarter, household income +£867m
+  instead of about +£1,000m, and no warning
+  ([#88](https://github.com/PolicyEngine/obr-macroeconomic-model/issues/88)).
+  The 18 November decision below fixed this for `CGG` only.
+- **Decision.** `CGSB` and `CGOTR` (other current grants) get a `PSCE` leg
+  equal to the shock, under the existing `nominal_consistent` option and
+  with the same default as `CGG`: on under the nominal-GDP pin, off under
+  the published and investment closures. With the leg, `CGNB`, `PSNBNSA`
+  and `TME` rise by the shock and subsidies do not move.
+- **What changes.** A default `run_reform` on `CGSB` or `CGOTR`: GDP per
+  £1,000m goes from +80 / +167 / +286 to +92 / +191 / +323 at q1 / q4 /
+  q12, and borrowing from 0 to +1,000. Nothing else changes; no committed
+  results file holds a `CGSB` or `CGOTR` run.
+- **What was left out.**
+  - Local authority benefits `LASBHH` and transfers `LAOTRHH`. With a
+    `PSCE` leg public sector net borrowing rises by the shock but general
+    government net borrowing stays at 0, so the local authority accounts
+    need more than this leg.
+  - Grants to local authorities `CGNCGA`. A flat +£1,000m moved subsidies
+    by −1,926 / +125 / −146, which is not explained.
+  - The other lines of l.504. All of these now set
+    `df.attrs["subsidy_residual_warning"]` and warn, except pay and local
+    authority procurement (`CGWS`, `LAWS`, `LAPR`, `RCGIM`, `RLAIM`), which
+    central government procurement absorbs first (l.377): those set
+    `df.attrs["procurement_residual_warning"]`.
+- **Open for review.** Default-on changes what a welfare shock returns for
+  anyone calling `run_reform` or the hosted server with `var="CGSB"`. The
+  alternative is to keep the old default and only warn; `nominal_consistent`
+  already selects either.
+
 ## 22 November 2026 (Fable 5.2 review round)
 
 Three items left open by the 21 November round. No default and no published

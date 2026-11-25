@@ -231,7 +231,19 @@ _HOUSEHOLD_NOTE = (
     "fades; the model's response builds up instead, because consumption "
     "adjusts gradually and nothing in the published equations pulls it back."
 )
+_TRANSFER_NOTE = (
+    "Behavioural channel: the transfer raises household disposable income "
+    "by about its size, and the published consumption equation (l.4) "
+    "responds to real income, as for a household tax change of the opposite "
+    "sign. The OBR's welfare multiplier is 0.6 on impact, fading (EFO July "
+    "2015, Box 3.2); the model's response is about 0.1 on impact and builds "
+    "up instead, because consumption adjusts gradually and nothing in the "
+    "published equations pulls it back."
+)
+
 TRANSMISSION_NOTES = {
+    "CGSB": _TRANSFER_NOTE,
+    "CGOTR": _TRANSFER_NOTE,
     "TYEM": _HOUSEHOLD_NOTE,
     "EENIC": _HOUSEHOLD_NOTE,
     "HHDI_ADDFACTOR": _HOUSEHOLD_NOTE,
@@ -1063,7 +1075,86 @@ def _apply_price_passthrough(shocked, baseline_data, start, end, t_start, t_end)
 # subsidy residual CGSUBP (l.504) then falls one for one and borrowing is
 # unchanged. This is accounting (the spending is paid for), not a behavioural
 # fiscal response: receipts do not move in this model.
-NOMINAL_SPENDING_LEGS = {"CGG": ("CGGPS", "CGGPSPSF", "PSCE")}
+#
+# The same residual catches every cash line of PSCE (#88). Central government
+# social benefits CGSB and other current grants CGOTR are both terms of l.504,
+# so a shock to either with PSCE held lowers subsidies one for one: borrowing
+# does not move, BPAPS rises by the shock and profits fall by about 92% of it
+# (measured 25 Nov 2026, +GBP 1bn a quarter: CGNB 0, CGSUBP -1,000, FYCPR
+# -917 at q1). They are cash already, so their only leg is PSCE at the shock
+# itself: then CGSUBP is unchanged and CGNB/PSNBNSA/TME rise by the shock.
+NOMINAL_SPENDING_LEGS = {
+    "CGG": ("CGGPS", "CGGPSPSF", "PSCE"),
+    "CGSB": ("PSCE",),
+    "CGOTR": ("PSCE",),
+}
+# Real instruments and the nominal series that prices them: the cash path is
+# shock * nominal / real. Instruments not listed here are already cash.
+REAL_SPENDING_NOMINAL = {"CGG": "CGGPS"}
+CASH_SPENDING_NOTE = (
+    "The {var} shock is matched by the same cash amount on public sector "
+    "current expenditure PSCE, which the listing imposes as a total, so "
+    "borrowing (CGNB, GGNB, PSNBNSA) and TME rise by the shock. Without it "
+    "the subsidy residual CGSUBP (l.504) falls one for one, borrowing does "
+    "not move and profits fall by about the size of the shock (#88). "
+    "Accounting only: receipts have no equation in the listing and do not "
+    "respond. Pass nominal_consistent=False for the shock without the PSCE "
+    "leg."
+)
+# Every term of the listing's subsidy residual, l.504:
+#   CGSUBP = PSCE - (CGWS + CGP + RCGIM + LAWS + LAPR + RLAIM) - LATSUB
+#            - (CGSB + LASBHH) - CGNCGA - ECNET - LANCGA - (CGOTR + LAOTRHH)
+#            - (DICGOP + DILAPR + DIPCOP) - EUVAT - GNP4 - CGSUBPR
+# A shock to any of them with PSCE held is absorbed by another line. For most
+# it is subsidies. The five terms of the first bracket other than CGP are
+# also terms of the procurement residual, l.377:
+#   CGP = CGGPSPSF - (CGWS + LAWS) - LAPR - (RCGIM + RLAIM)
+# so the bracket sums to the imposed CGGPSPSF whatever they do, and a shock to
+# one of them is absorbed by procurement instead (measured 25 Nov 2026, +GBP
+# 1bn a quarter on LAPR: CGP -1,000, CGSUBP 0, CGNB -1,000).
+PSCE_RESIDUAL_LINES = frozenset(
+    {
+        "CGWS",
+        "CGP",
+        "RCGIM",
+        "LAWS",
+        "LAPR",
+        "RLAIM",
+        "LATSUB",
+        "CGSB",
+        "LASBHH",
+        "CGNCGA",
+        "ECNET",
+        "LANCGA",
+        "CGOTR",
+        "LAOTRHH",
+        "DICGOP",
+        "DILAPR",
+        "DIPCOP",
+        "EUVAT",
+        "GNP4",
+        "CGSUBPR",
+    }
+)
+PROCUREMENT_RESIDUAL_LINES = frozenset({"CGWS", "LAWS", "LAPR", "RCGIM", "RLAIM"})
+PROCUREMENT_RESIDUAL_WARNING = (
+    "{var} is a line of general government consumption in cash terms, and its "
+    "total CGGPSPSF was held at baseline in this run. The listing imposes that "
+    "total and makes central government procurement its residual (CGP, "
+    "l.377), so procurement moved by the opposite amount and public sector "
+    "current expenditure did not change. Do not quote the borrowing figures "
+    "of this run as the effect of the spending change (#88)."
+)
+SUBSIDY_RESIDUAL_WARNING = (
+    "{var} is a line of public sector current expenditure, and PSCE was held "
+    "at baseline in this run. The listing imposes PSCE as a total and makes "
+    "central government subsidies its residual (CGSUBP, l.504), so subsidies "
+    "moved by the opposite amount: borrowing does not reflect the shock, "
+    "taxes less subsidies on products (BPAPS) moved with it and, for most "
+    "lines, profits absorbed the difference. Do not quote the borrowing, profits or "
+    "household-income figures of this run as the effect of the spending "
+    "change (#88)."
+)
 NOMINAL_CONSISTENT_NOTE = (
     "The real CGG shock is matched by the same cash amount (shock x baseline "
     "CGGPS/CGG) on nominal government consumption CGGPS, its public-finances "
@@ -1078,9 +1169,10 @@ NOMINAL_CONSISTENT_NOTE = (
 def resolve_nominal_consistent(
     nominal_consistent: "bool | None", var: str, nominal_gdp_pin: bool
 ) -> bool:
-    """Default None: on for a CGG shock under the nominal-GDP pin, else off.
+    """Default None: on for a spending shock with nominal legs (CGG, CGSB,
+    CGOTR; NOMINAL_SPENDING_LEGS) under the nominal-GDP pin, else off.
 
-    Under the published closure (l.688, PIF free) the same shock was erratic
+    Under the published closure (l.688, PIF free) the CGG shock was erratic
     when measured (docs/nominal_gdp_pin.md), so it is not the default there;
     an explicit True is honoured. True for any other instrument raises.
     """
@@ -1088,8 +1180,8 @@ def resolve_nominal_consistent(
         return var in NOMINAL_SPENDING_LEGS and bool(nominal_gdp_pin)
     if nominal_consistent and var not in NOMINAL_SPENDING_LEGS:
         raise ValueError(
-            "nominal_consistent applies only to a government-consumption shock "
-            f"({', '.join(sorted(NOMINAL_SPENDING_LEGS))}); got var={var!r}."
+            "nominal_consistent applies only to a spending shock with nominal "
+            f"legs ({', '.join(sorted(NOMINAL_SPENDING_LEGS))}); got var={var!r}."
         )
     return bool(nominal_consistent)
 
@@ -1097,14 +1189,16 @@ def resolve_nominal_consistent(
 def apply_spending_shock(
     solver, var, shock, start, periods=12, nominal_consistent=True
 ):
-    """Apply a real ``var`` shock and, if asked, its nominal legs.
+    """Apply a ``var`` shock and, if asked, its nominal legs.
 
-    Returns the list of nominal legs moved (empty for the real-only shock).
-    The cash path is ``shock * CGGPS/CGG`` on the solver's pre-shock data, so
-    it must be computed before the real shock is applied. A leg that is
-    missing or non-finite in the databank raises through ``apply_shock``
-    rather than being skipped: a half-applied nominal shock would report a
-    borrowing delta that is neither the real-only nor the consistent one.
+    Returns the list of nominal legs moved (empty for the shock on its own).
+    For real ``CGG`` the cash path is ``shock * CGGPS/CGG`` on the solver's
+    pre-shock data, so it must be computed before the real shock is applied.
+    For the cash lines (``CGSB``, ``CGOTR``) the cash path is the shock. A
+    leg that is missing or non-finite in the databank raises through
+    ``apply_shock`` rather than being skipped: a half-applied nominal shock
+    would report a borrowing delta that is neither the real-only nor the
+    consistent one.
     """
     values = shock_path(shock, periods)
     legs = NOMINAL_SPENDING_LEGS.get(var, ()) if nominal_consistent else ()
@@ -1116,19 +1210,25 @@ def apply_spending_shock(
             raise KeyError(
                 f"cannot build the nominal-consistent {var} shock: "
                 f"{', '.join(missing)} not in the databank. Pass "
-                "nominal_consistent=False for the real-only shock."
+                "nominal_consistent=False for the shock without them."
             )
         t0 = solver.period_idx(start)
         n = min(len(values), len(solver.data) - t0)
-        nominal = solver.data["CGGPS"].iloc[t0 : t0 + n].to_numpy(dtype=float)
-        real = solver.data[var].iloc[t0 : t0 + n].to_numpy(dtype=float)
-        ratio = nominal / real
-        if not np.all(np.isfinite(ratio)) or np.any(ratio <= 0):
-            raise ValueError(
-                f"cannot build the nominal-consistent {var} shock: baseline "
-                "CGGPS/CGG is non-finite or non-positive in the shocked window."
-            )
-        cash = [float(values[q]) * float(ratio[q]) for q in range(n)]
+        price = REAL_SPENDING_NOMINAL.get(var)
+        if price is None:
+            # Already cash: the legs move by the shock itself.
+            cash = [float(values[q]) for q in range(n)]
+        else:
+            nominal = solver.data[price].iloc[t0 : t0 + n].to_numpy(dtype=float)
+            real = solver.data[var].iloc[t0 : t0 + n].to_numpy(dtype=float)
+            ratio = nominal / real
+            if not np.all(np.isfinite(ratio)) or np.any(ratio <= 0):
+                raise ValueError(
+                    f"cannot build the nominal-consistent {var} shock: baseline "
+                    f"{price}/{var} is non-finite or non-positive in the "
+                    "shocked window."
+                )
+            cash = [float(values[q]) * float(ratio[q]) for q in range(n)]
     solver.apply_shock(var, shock, start, periods=periods)
     for leg in legs:
         solver.apply_shock(leg, cash, start)
@@ -1305,17 +1405,23 @@ def run_reform(
             solved indirect-tax take. A labelled judgement overlay, not the
             shipped listing (which holds CPI exogenous). Default False
             (unchanged). See issue #60.
-        nominal_consistent: Only for ``var="CGG"``. If True, the real shock
-            is matched by the same cash amount on the imposed nominal
-            spending totals (CGGPS, CGGPSPSF, PSCE; NOMINAL_SPENDING_LEGS),
-            so the government deflator is unchanged and borrowing rises by
-            the cash cost. If False, only real CGG moves: nominal spending
-            and every borrowing aggregate stay at baseline and the
-            investment deflator absorbs the gap. Default None: True under
-            the nominal-GDP pin, False under the published or investment
-            closure (see resolve_nominal_consistent). The GDP delta differs
-            by under 1% between the two; the borrowing and IBUSX deltas
-            differ completely. See docs/nominal_gdp_pin.md.
+        nominal_consistent: Only for a spending shock with nominal legs
+            (``CGG``, ``CGSB``, ``CGOTR``; NOMINAL_SPENDING_LEGS). If True,
+            a real ``CGG`` shock is matched by the same cash amount on the
+            imposed nominal spending totals (CGGPS, CGGPSPSF, PSCE), so the
+            government deflator is unchanged and borrowing rises by the cash
+            cost. If False, only real CGG moves: nominal spending and every
+            borrowing aggregate stay at baseline and the investment deflator
+            absorbs the gap. The GDP delta differs by under 1% between the
+            two; the borrowing and IBUSX deltas differ completely. For the
+            cash lines ``CGSB`` (social benefits) and ``CGOTR`` (other
+            current grants), True also moves PSCE by the shock, so
+            borrowing rises by it; False leaves PSCE at baseline, and the
+            listing's subsidy residual (l.504) then absorbs the shock:
+            borrowing does not move and profits fall (issue #88). Default
+            None: True under the nominal-GDP pin, False under the published
+            or investment closure (see resolve_nominal_consistent). See
+            docs/nominal_gdp_pin.md.
         import_response: If True, imports respond to demand on the shocked
             run: services through the listing's own l.223 in deviation form,
             goods including oil in proportion to import-weighted demand
@@ -1530,7 +1636,21 @@ def run_reform(
     out.attrs["nominal_consistent"] = nominal_consistent
     if nominal_consistent:
         out.attrs["nominal_consistent_legs"] = list(NOMINAL_SPENDING_LEGS[var])
-        out.attrs["nominal_consistent_note"] = NOMINAL_CONSISTENT_NOTE
+        out.attrs["nominal_consistent_note"] = (
+            NOMINAL_CONSISTENT_NOTE
+            if var in REAL_SPENDING_NOMINAL
+            else CASH_SPENDING_NOTE.format(var=var)
+        )
+    elif var in PROCUREMENT_RESIDUAL_LINES:
+        # The shock is offset by the procurement residual (#88). Say so.
+        msg = PROCUREMENT_RESIDUAL_WARNING.format(var=var)
+        out.attrs["procurement_residual_warning"] = msg
+        warnings.warn(msg, stacklevel=2)
+    elif var in PSCE_RESIDUAL_LINES:
+        # The shock is offset by the subsidy residual (#88). Say so.
+        msg = SUBSIDY_RESIDUAL_WARNING.format(var=var)
+        out.attrs["subsidy_residual_warning"] = msg
+        warnings.warn(msg, stacklevel=2)
 
     # A shock path longer than the [start, end] window is applied to the data
     # but never solved or reported, so a caller summing "the shocked quarters"
