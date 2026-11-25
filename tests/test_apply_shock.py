@@ -161,6 +161,34 @@ def test_shocking_a_nan_variable_raises():
         s.apply_shock("EMPTY", 1250, "2025Q1", periods=4)
 
 
+def test_evaluation_does_not_depend_on_the_callers_warning_filters():
+    """An equation with a bad input evaluates to NaN or inf whatever warning
+    filters the caller has set.
+
+    The evaluation context has no builtins, so a NumPy floating-point warning
+    that Python tried to show from inside ``eval`` raised
+    ``KeyError: '__import__'``. With warnings ignored the equation returned
+    NaN; under the default filters it raised and was counted in
+    ``eq_failures``. A plain ``run_reform`` call therefore reported 172
+    equation failures (all ``CPIH``) where the committed results, produced by
+    scripts that ignore warnings, report 0.
+    """
+    import numpy as np
+
+    s = _bare_solver()
+    s._code_cache = {}
+    ctx = s._build_context(0)
+    for action in ("ignore", "default", "always", "error"):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action)
+            assert np.isnan(s._evaluate("np.log(v['CGG'] - 200.0)", ctx)), action
+            assert np.isinf(s._evaluate("v['CGG'] / (v['CGG'] - 100.0)", ctx)), action
+            assert np.isinf(s._evaluate("np.exp(v['CGG'] * 10.0)", ctx)), action
+            assert s._evaluate("v['CGG'] * 2.0", ctx) == 200.0
+    # The floating-point settings are restored afterwards.
+    assert np.geterr()["invalid"] == "warn"
+
+
 def test_shock_guard_reports_only_the_shocked_window():
     """A variable that is NaN outside the shocked quarters is still shockable —
     the guard must not over-reject."""

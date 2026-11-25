@@ -578,7 +578,7 @@ def _stabilise_investment_closure(baseline, start: str, end: str):
     # dlog(KSTAR) = -0.4*dlog(TAF), a genuine steady state.
     log_add_factors = {}
     for t in range(t0, t1 + 1):
-        pred_dlog = eval(trk._compiled(IBUSX_EQ.python_expr), trk._build_context(t))
+        pred_dlog = trk._evaluate(IBUSX_EQ.python_expr, trk._build_context(t))
         prev = actual_ibusx.iloc[t - 1]
         actual = actual_ibusx.iloc[t]
         if np.isfinite(pred_dlog) and prev > 0 and actual > 0:
@@ -663,7 +663,7 @@ def _anchor_published_levels(template, start: str, end: str) -> None:
         eq = template.eq_for_var[var]
         for t in range(t0, t1 + 1):
             published = template.baseline.iloc[t][var]
-            rhs = eval(fit._compiled(eq.python_expr), fit._build_context(t))
+            rhs = fit._evaluate(eq.python_expr, fit._build_context(t))
             if not (np.isfinite(published) and np.isfinite(rhs)):
                 raise RuntimeError(
                     f"cannot anchor {var} at {template.index[t]}: published "
