@@ -218,6 +218,22 @@ def test_every_demo_solve_exited_on_tolerance(demo):
             assert entry["pair_matches_run_reform_max_abs_m"] == 0.0, key
 
 
+def test_dropped_equation_count_matches_results(demo, demo_md):
+    """The docs say 82 equations are dropped (an input has no data) in the
+    default window, the same in every run of the battery."""
+    counts = {
+        entry["pair"]["status"][side]["dropped"]
+        for entry in demo.values()
+        if "pair" in entry
+        for side in ("baseline", "shocked")
+    }
+    assert len(counts) == 1, counts
+    (dropped,) = counts
+    assert f"the same {dropped} equations are dropped" in demo_md
+    assert f"{dropped} equations lack an input" in _doc("docs/index.md")
+    assert f"{dropped} are skipped at solve time" in _doc("docs/ROADMAP.md")
+
+
 def test_examples_tables_match_results(demo, examples_md):
     cgg = demo["cgg"]["run_reform"]
     assert (
