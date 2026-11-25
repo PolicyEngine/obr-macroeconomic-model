@@ -8,7 +8,7 @@ The tests live in [`tests/`](https://github.com/PolicyEngine/obr-macroeconomic-m
 
 ## :material-play: Running the tests { #running-the-tests }
 
-The fast suite runs in seconds:
+The fast suite runs in about 20 seconds on a laptop (two of its tests build the model):
 
 ```bash
 uv run --group chat pytest -q

@@ -1,0 +1,1 @@
+The solver now reads each period's row once when it builds an equation's evaluation context, instead of once per column. Results are bit-identical; a model template builds in about 6 seconds instead of about 70, the fast test suite runs in about 20 seconds instead of three to seven minutes, and the README Quick Start takes about half a minute instead of about five.

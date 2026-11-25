@@ -26,7 +26,7 @@ df[["period", "delta_gdp_m", "pct_gdp"]]
 df.attrs["solver_converged"]   # True
 ```
 
-The first `run_reform` call builds the model template and takes a few minutes; the README Quick Start (three calls) took about five minutes on a laptop. Run one call before the session starts.
+The first `run_reform` call builds the model template and takes about 10 seconds; the README Quick Start (three calls) took about half a minute on a laptop (25 Nov 2026). Run one call before the session starts.
 
 ## The shocks
 

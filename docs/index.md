@@ -177,7 +177,7 @@ flowchart LR
     uv sync
     ```
 
-:material-timer-sand: The first call builds the model template and takes a few minutes. See [Getting started](getting-started.md) for what the output columns mean.
+:material-timer-sand: The first call builds the model template and takes about 10 seconds. See [Getting started](getting-started.md) for what the output columns mean.
 
 ## :material-scale-balance: Source, licence and citation { #source-licence-and-citation }
 
