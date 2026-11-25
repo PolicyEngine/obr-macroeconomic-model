@@ -64,6 +64,7 @@ Always set:
 | `solver_nonconverged_periods`, `solver_exit_status`, `solver_eq_failures` | Per-quarter detail on the two solves |
 | `shock_quarters`, `shock_quarters_beyond_horizon` | How many quarters the shock lasts, and how many fall after `end` |
 | `nominal_gdp_pin`, `nominal_consistent` | Which closure options were used ([options](options.md)) |
+| `subsidy_residual_warning` | The shocked variable is a line of public sector current expenditure and the total `PSCE` was held, so subsidies moved by the opposite amount and the borrowing and profits figures are not the effect of the spending change ([Limits](limitations.md)) |
 | `published_conventions`, `monetary_conditioning`, `price_passthrough`, `import_response`, `employment_response`, `debt_interest` | Whether each judgement overlay was on |
 
 Set when they apply:

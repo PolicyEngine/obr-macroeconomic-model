@@ -54,6 +54,27 @@ leaky = run_reform(name="CGG 1% of GDP, imports", var="CGG", shock=path, import_
 
 GDP per pound of shock is 1.013 / 1.024 / 1.039 at q1 / q4 / q12 by default and 0.909 / 0.907 / 0.918 with the overlay (`results/demand_overlays.json`, `cgg_1pct_gdp.default.gdp_per_pound` and `cgg_1pct_gdp.import_response.gdp_per_pound`). The goods leg of the overlay rests on an assumed unit elasticity; see [demand overlays](demand_overlays.md).
 
+## :material-hand-coin: Welfare { #welfare }
+
+```python
+df = run_reform(name="Benefits", var="CGSB", shock=1000, periods=12)
+```
+
+**Sign convention.** `CGSB` is central government social benefits in current prices (nominal £m a quarter). Positive means more is paid out. Positive `delta_gdp_m` means GDP rises.
+
+**Result** (one local solve, 25 Nov 2026, pinned by `tests/test_solver.py`; no committed results file holds this run):
+
+| | q1 | q4 | q12 |
+|---|--:|--:|--:|
+| GDP, £m | +92 | +191 | +323 |
+| Current-price GDP per £ of benefits | 0.10 | 0.21 | 0.37 |
+| Household disposable income (`HHDI`), £m | +1,001 | +1,013 | +1,028 |
+| Central government net borrowing (`CGNB`), £m | +1,000 | +1,000 | +1,000 |
+
+**What it means.** Benefits raise household income by about their size, and consumption responds through the published consumption equation, as for a household tax cut. The OBR's welfare multiplier is 0.6 on impact, fading; the model gives 0.10 on impact and builds up ([Limits](limitations.md)). Borrowing rises by the shock because the default shock also moves public sector current expenditure `PSCE` (`df.attrs["nominal_consistent_legs"]` is `["PSCE"]`). Other current grants (`CGOTR`) work the same way.
+
+**Variant.** `nominal_consistent=False` leaves `PSCE` at baseline. The listing then lowers subsidies by the shock: `CGNB` does not move, profits fall by £917m in q1, and GDP is +80 / +167 / +286 £m. The run carries `df.attrs["subsidy_residual_warning"]`. Do not use it to cost a benefit change.
+
 ## :material-crane: Government investment { #government-investment }
 
 ### Default closure: no channel
