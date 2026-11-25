@@ -161,7 +161,26 @@ def test_welfare_shock_raises_borrowing_and_household_income_one_for_one():
     assert 0.17 < ratio[3] < 0.25, ratio[3]
     assert 0.32 < ratio[11] < 0.43, ratio[11]
 
-    held = deltas(False)
+    # The figures docs/limitations.md, docs/examples.md and docs/decisions.md
+    # quote, at q1 / q4 / q12, to the £0.5m they are rounded to. No results
+    # file holds this run, so this is where those numbers are pinned. If a
+    # deliberate model change moves them, update the three pages with them.
+    quoted = {
+        ("paid", "GDPM"): (91.827, 191.206, 323.082),
+        ("paid", "HHDI"): (1000.651, 1013.229, 1027.751),
+        ("paid", "GDPMPS"): (97.612, 208.032, 368.451),
+        ("held", "GDPM"): (79.616, 167.468, 285.783),
+        ("held", "HHDI"): (867.478, 887.016, 913.823),
+        ("held", "FYCPR"): (-916.583, -820.468, -678.414),
+    }
+    held_run = deltas(False)
+    for (which, series), values in quoted.items():
+        got = (paid if which == "paid" else held_run)[series][[0, 3, 11]]
+        np.testing.assert_allclose(
+            got, values, atol=0.5, rtol=0, err_msg=f"{which} {series}"
+        )
+
+    held = held_run
     for series in ("CGNB", "PSNBNSA", "TME"):
         np.testing.assert_allclose(held[series], 0.0, atol=1e-6, err_msg=series)
     np.testing.assert_allclose(held["CGSUBP"], -size, atol=1e-6)
