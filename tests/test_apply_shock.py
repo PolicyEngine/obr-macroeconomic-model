@@ -845,6 +845,10 @@ def test_run_reform_labels_a_spending_line_the_subsidy_residual_absorbs(monkeypa
             ):
                 assert label not in df.attrs, (var, label)
 
+    # The double has no local authority identity, and the result says so.
+    assert df.attrs["la_borrowing_identity"] is False
+    assert "held on its data path" in df.attrs["la_borrowing_note"]
+
     # Public investment with PSNI held: CGNB moves, PSNBNSA and TME do not.
     with pytest.warns(UserWarning, match="PSNI"):
         df = reform_analysis.run_reform("inv", "CGIPS", 100.0, **kwargs, **off)

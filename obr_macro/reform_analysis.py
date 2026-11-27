@@ -148,6 +148,21 @@ def _lanb_source() -> str:
 
 
 LANB_EQ = EViewsTranspiler().parse_equation(_lanb_source())
+LA_BORROWING_NOTE = (
+    "Local authority net borrowing LANB is solved from the listing's "
+    "identity (l.526) with one term left out: capital grants from local "
+    "authorities to public corporations (KGLAPC), which has no published "
+    "data and is held at whatever it was. A level add-factor keeps the "
+    "baseline on the LANB data path. LANB, GGNB and TDEF therefore respond "
+    "to every other term of l.526; a change in KGLAPC cannot be scored."
+)
+LA_BORROWING_HELD_NOTE = (
+    "Local authority net borrowing LANB was held on its data path in this "
+    "run: a term of the listing's identity (l.526) has no data in the solve "
+    "window, so the identity could not be run. LANB did not respond to the "
+    "shock, and general government net borrowing GGNB and TDEF moved only "
+    "with central government."
+)
 LANB_TERMS = tuple(
     sorted(set(re.findall(r"v\['([A-Z][A-Z0-9]*)'\]", LANB_EQ.python_expr)))
 )
@@ -1868,6 +1883,13 @@ def run_reform(
         out.attrs["subsidy_residual_warning"] = msg
         warnings.warn(msg, stacklevel=2)
     _label_procurement_offset(out, var, baseline_data, shocked_data, t_start, t_end)
+    # Whether local authority net borrowing was solved (l.526 without its
+    # unpublished term) or left on its data path, as before 26 Nov 2026.
+    la_live = getattr(template, "eq_for_var", {}).get("LANB") is LANB_EQ
+    out.attrs["la_borrowing_identity"] = la_live
+    out.attrs["la_borrowing_note"] = (
+        LA_BORROWING_NOTE if la_live else LA_BORROWING_HELD_NOTE
+    )
 
     # A shock path longer than the [start, end] window is applied to the data
     # but never solved or reported, so a caller summing "the shocked quarters"

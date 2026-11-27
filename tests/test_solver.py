@@ -317,6 +317,48 @@ def test_public_investment_reaches_public_sector_net_borrowing():
     np.testing.assert_allclose(local["CGNB"], 0.0, atol=1e-6)
 
 
+def test_investment_closure_keeps_psni_held_unless_asked():
+    """CGIPS +£1,000m a quarter under the investment closure (#88).
+
+    The PSNI leg is off by default there (the rule for every nominal leg),
+    so public sector net borrowing does not move and the run says so. Asked
+    for, it moves PSNBNSA by the shock and nothing in the real economy.
+    """
+    import warnings
+
+    import numpy as np
+
+    from obr_macro import run_reform
+
+    size, runs = 1000.0, {}
+    for label, extra in (("default", {}), ("asked", {"nominal_consistent": True})):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            runs[label] = run_reform(
+                name=label,
+                var="CGIPS",
+                shock=size,
+                periods=12,
+                investment_closure=True,
+                **extra,
+            )
+    default, asked = runs["default"], runs["asked"]
+    assert default.attrs["nominal_consistent"] is False
+    assert "PSNI" in default.attrs["investment_total_warning"]
+    assert asked.attrs["nominal_consistent_legs"] == ["PSNI"]
+    assert "investment_total_warning" not in asked.attrs
+    np.testing.assert_allclose(
+        asked["delta_gdp_m"], default["delta_gdp_m"], atol=1e-3, rtol=0
+    )
+    # Quoted in docs/limitations.md and docs/decisions.md, q1 / q4 / q12.
+    np.testing.assert_allclose(
+        default["delta_gdp_m"].to_numpy()[[0, 3, 11]],
+        (1025.1, 966.9, 967.7),
+        atol=0.5,
+        rtol=0,
+    )
+
+
 def test_grants_abroad_move_borrowing_and_the_current_account():
     """Grants abroad, +£1,000m a quarter, through TROD (#88).
 
@@ -333,7 +375,11 @@ def test_grants_abroad_move_borrowing_and_the_current_account():
     for series in ("CGNB", "GGNB", "PSNBNSA", "TME", "PSCE"):
         np.testing.assert_allclose(paid[series], size, atol=1e-6, err_msg=series)
     np.testing.assert_allclose(paid["CGSUBP"], 0.0, atol=1e-6)
-    assert (paid["CB"] <= -size).all() and (paid["CB"] > -1.1 * size).all()
+    assert (paid["CB"] <= -size + 1e-6).all() and (paid["CB"] > -1.1 * size).all()
+    # Quoted in docs/limitations.md and docs/decisions.md, q1 / q4 / q12.
+    np.testing.assert_allclose(
+        paid["CB"][[0, 3, 11]], (-1000.0, -1015.0, -1056.4), atol=0.5, rtol=0
+    )
 
     held = _borrowing_deltas("TROD", False)
     np.testing.assert_allclose(held["CGSUBP"], -size, atol=1e-6)
@@ -373,6 +419,8 @@ def test_employer_nics_lower_general_government_borrowing_by_the_receipts():
     np.testing.assert_allclose(
         d["CGNB"][[0, 3, 11]], (-1070.9, -1073.0, -1068.4), atol=0.5, rtol=0
     )
+    np.testing.assert_allclose(d["CGWS"][0], 178.6, atol=0.5, rtol=0)
+    np.testing.assert_allclose(d["LAWS"][0], 70.9, atol=0.5, rtol=0)
 
     from obr_macro import run_reform
 
@@ -380,6 +428,8 @@ def test_employer_nics_lower_general_government_borrowing_by_the_receipts():
         warnings.simplefilter("ignore")
         df = run_reform(name="Employer NICs", var="EMPNIC", shock=size, periods=12)
     assert "l.377" in df.attrs["procurement_offset_note"]
+    assert df.attrs["la_borrowing_identity"] is True
+    assert "KGLAPC" in df.attrs["la_borrowing_note"]
     np.testing.assert_allclose(
         df.attrs["procurement_offset_m"]["CGP"], d["CGP"], atol=1e-6
     )

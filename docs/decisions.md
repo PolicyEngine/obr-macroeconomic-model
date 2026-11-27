@@ -32,7 +32,12 @@ default closure.
     lines given one. The identity also fixes local authority receipts
     (council tax `CC` is a term) and the pay effect of employer NICs below.
     Nothing behavioural reads `LANB`, `GGNB` or `TDEF`, so no GDP figure
-    moves. No committed results file records any of the three.
+    moves. No committed results file records any of the three. One
+    diagnostic count does change: a reform solve now drops 81 equations for
+    missing inputs, not 82, so the `dropped` field of
+    `results/demo_shocks.json` will read 81 when that file is next
+    regenerated. It was not regenerated here. Every result records which
+    way it ran in `df.attrs["la_borrowing_identity"]`.
   - **Left out.** `LAPR` moves cash only, not real consumption `CGG`, so GDP
     does not respond. Pay (`CGWS`, `LAWS`) has its own equations and keeps
     its warning.
