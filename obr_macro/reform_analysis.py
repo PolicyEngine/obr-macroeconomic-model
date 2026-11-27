@@ -1,5 +1,6 @@
 """Analyse policy reforms using OBR model and generate visualisations."""
 
+import re
 import warnings
 
 import numpy as np
@@ -103,6 +104,52 @@ IF_EQ = ParsedEquation(
     original="IF = IBUS + GGI + PCIH + PCLEB + IH + IPRL",
     equation_type="identity",
     python_expr="v['IBUS'] + v['GGI'] + v['PCIH'] + v['PCLEB'] + v['IH'] + v['IPRL']",
+)
+
+# Local authority net borrowing, l.526. The listing's identity is live but one
+# of its terms, capital grants from local authorities to public corporations
+# (KGLAPC), is in no published source, so the identity evaluates to NaN and
+# the solver drops it (KNOWN_NONFINITE_EQUATIONS): LANB then sits on its data
+# path whatever happens to its terms, and general government net borrowing
+# (GGNB = CGNB + LANB, l.528) moves only with the central government half.
+# Measured 26 Nov 2026, +GBP 1bn a quarter: local authority benefits LASBHH
+# gave LANB 0 and GGNB -1,000 (the subsidy cut in CGNB); an employer NICs
+# rise, which lifts local authority pay LAWS by about 71, gave LANB 0 and
+# GGNB -1,071 against public sector net borrowing of -1,000 (#88).
+#
+# Reform templates therefore run l.526 with the one unpublished term left
+# out, and hold a level add-factor (data minus the identity, fitted in
+# _anchor_published_levels) so the baseline reproduces the LANB data path
+# exactly. That is the listing's own identity with KGLAPC held at whatever
+# it was: the add-factor cancels in every base-vs-shock delta, so a change in
+# any other term now reaches LANB, GGNB and TDEF one for one. Nothing
+# behavioural reads those three. The source is taken from the listing and
+# transpiled, so it follows if the OBR changes the line.
+_LANB_MISSING_TERM = "KGLAPC"
+
+
+def _lanb_source() -> str:
+    """l.526 of the listing with the unpublished KGLAPC term removed."""
+    from importlib import resources
+
+    listing = (
+        resources.files("obr_macro")
+        .joinpath("_data/obr_model_code_october_2025.txt")
+        .read_text()
+    )
+    (line,) = [ln for ln in listing.splitlines() if re.match(r"LANB\s+=", ln)]
+    stripped, n = re.subn(rf"\s*-\s*{_LANB_MISSING_TERM}\b", "", line)
+    if n != 1:
+        raise RuntimeError(
+            f"expected exactly one '- {_LANB_MISSING_TERM}' term in the "
+            f"listing's LANB identity, found {n}: {line!r}"
+        )
+    return stripped
+
+
+LANB_EQ = EViewsTranspiler().parse_equation(_lanb_source())
+LANB_TERMS = tuple(
+    sorted(set(re.findall(r"v\['([A-Z][A-Z0-9]*)'\]", LANB_EQ.python_expr)))
 )
 
 # Business-investment error-correction equation, dlog(IBUSX).
@@ -664,6 +711,11 @@ def _anchor_published_levels(template, start: str, end: str) -> None:
     the cached template stays unsolved.
     """
     targets = [v for v in _ANCHORED_LEVEL_IDENTITIES if v in template.eq_for_var]
+    # Local authority net borrowing, when the template runs l.526 without its
+    # unpublished term (_restore_la_borrowing_identity). Its reference is the
+    # databank path, which the listing's own (dropped) identity left in place.
+    if template.eq_for_var.get("LANB") is LANB_EQ:
+        targets.append("LANB")
     if not targets:
         return
     t0, t1 = template.period_idx(start), template.period_idx(end)
@@ -686,6 +738,28 @@ def _anchor_published_levels(template, start: str, end: str) -> None:
             template.add_factors[key] = template.add_factors.get(key, 0.0) + (
                 published - rhs
             )
+
+
+def _restore_la_borrowing_identity(template, start: str, end: str) -> bool:
+    """Run the local authority net borrowing identity (l.526) in a template.
+
+    Swaps the listing's LANB identity, which the solver drops because KGLAPC
+    has no data, for the same line without that term (LANB_EQ). The level
+    add-factor that keeps the baseline on the LANB data path is fitted later
+    by _anchor_published_levels. Returns False, and leaves the template as it
+    was, when LANB or any remaining term is missing or non-finite over the
+    window (before 1996 for local authority procurement): the identity would
+    drop again and there would be nothing to anchor.
+    """
+    t0, t1 = template.period_idx(start), template.period_idx(end)
+    for col in ("LANB", *LANB_TERMS):
+        if col not in template.data.columns:
+            return False
+        window = template.data[col].iloc[t0 : t1 + 1].to_numpy(dtype=float)
+        if not np.isfinite(window).all():
+            return False
+    template.swap_closure("LANB", LANB_EQ)
+    return True
 
 
 # Cache of stabilised, unsolved reform templates keyed by structure
@@ -727,6 +801,8 @@ def _build_reform_template(var, start, end, investment_closure, nominal_gdp_pin=
             "two competing IF equations."
         )
         baseline.swap_closure("IF", IF_EQ)
+    # Before make_exogenous: a shock to LANB itself still removes the identity.
+    _restore_la_borrowing_identity(baseline, start, end)
     if var != HOUSEHOLD_COSTING_VAR:
         baseline.make_exogenous(var)
     # Score around the ANCHORED baseline: the anchoring residuals apply in the
@@ -1083,11 +1159,57 @@ def _apply_price_passthrough(shocked, baseline_data, start, end, t_start, t_end)
 # (measured 25 Nov 2026, +GBP 1bn a quarter: CGNB 0, CGSUBP -1,000, FYCPR
 # -917 at q1). They are cash already, so their only leg is PSCE at the shock
 # itself: then CGSUBP is unchanged and CGNB/PSNBNSA/TME rise by the shock.
+#
+# Three more groups follow the same pattern (26 Nov 2026, #88), each measured
+# at +GBP 1bn a quarter under the default closure:
+#
+# - Local authority cash lines of l.504: benefits LASBHH, other transfers
+#   LAOTRHH, net current grants abroad LANCGA and debt interest DILAPR. With
+#   PSCE held, subsidies fell by 1,000, and because subsidies are a central
+#   government line (CGTSUB in l.524) CGNB fell by 1,000: a local authority
+#   spending rise reported as a central government saving. With the PSCE leg
+#   subsidies and CGNB do not move and PSNBNSA rises by 1,000; LANB and GGNB
+#   rise by 1,000 through the local authority identity (LANB_EQ above).
+# - Local authority procurement LAPR. It is a term of both l.504 and the
+#   procurement residual l.377 (CGP = CGGPSPSF - ... - LAPR - ...), so with
+#   the consumption total CGGPSPSF held, central government procurement fell
+#   by 1,000 and CGNB with it. Its legs are CGGPSPSF and PSCE. Real
+#   government consumption CGG and its national accounts value CGGPS are not
+#   moved: the leg is the cash cost only, and GDP does not respond.
+# - Central government grants abroad. CGNCGA has a live equation, CGNCGA =
+#   TROD (l.403), and TROD is also a transfer debit in the current account
+#   (TRAND, l.485). TROD is therefore the instrument to shock: it moves
+#   CGNCGA and the current balance CB (-1,000). CGNCGA shocked directly has
+#   its equation removed and moves the fiscal side only. Both get a PSCE leg.
+#
+# Public investment is the same design one identity along. Public sector net
+# investment PSNI is imposed (l.520 is commented out, "Changed to enable
+# indirect T2 fix") and the listing's residual is central government
+# inventories, DINVCG = PSNI - CGIPS - LAIPS - ... (l.33), a term of CGNB.
+# DINVCG needs KGLAPC and ASSETSA, which are not published, so here it is
+# dropped and nothing absorbs the shock: central government investment CGIPS
+# +1,000 gave CGNB +1,000 and PSNBNSA 0 (PSNBNSA = -PSCB + PSNI, l.536),
+# local authority investment LAIPS gave 0 everywhere. Their leg is PSNI at
+# the shock: PSNBNSA and TME then rise by 1,000. PSNI stays an imposed total.
 NOMINAL_SPENDING_LEGS = {
     "CGG": ("CGGPS", "CGGPSPSF", "PSCE"),
     "CGSB": ("PSCE",),
     "CGOTR": ("PSCE",),
+    "LASBHH": ("PSCE",),
+    "LAOTRHH": ("PSCE",),
+    "LANCGA": ("PSCE",),
+    "DILAPR": ("PSCE",),
+    "LAPR": ("CGGPSPSF", "PSCE"),
+    "CGNCGA": ("PSCE",),
+    "TROD": ("PSCE",),
+    "CGIPS": ("PSNI",),
+    "LAIPS": ("PSNI",),
 }
+# Instruments that are not themselves a term of l.504 but set one through a
+# live equation of the listing (TROD -> CGNCGA, l.403).
+PSCE_LINE_SET_BY = {"TROD": "CGNCGA"}
+# Terms of public sector gross investment (l.516) with a PSNI leg.
+PSNI_LEG_LINES = frozenset({"CGIPS", "LAIPS"})
 # Real instruments and the nominal series that prices them: the cash path is
 # shock * nominal / real. Instruments not listed here are already cash.
 REAL_SPENDING_NOMINAL = {"CGG": "CGGPS"}
@@ -1100,6 +1222,50 @@ CASH_SPENDING_NOTE = (
     "Accounting only: receipts have no equation in the listing and do not "
     "respond. Pass nominal_consistent=False for the shock without the PSCE "
     "leg."
+)
+PROCUREMENT_CASH_NOTE = (
+    "The {var} shock is matched by the same cash amount on general "
+    "government consumption in the public finances CGGPSPSF and on public "
+    "sector current expenditure PSCE, both of which the listing imposes as "
+    "totals, so central government procurement (CGP, l.377) and subsidies "
+    "(CGSUBP, l.504) do not move and borrowing (LANB, GGNB, PSNBNSA) and TME "
+    "rise by the shock. Cash accounting only: real government consumption "
+    "CGG and its national accounts value CGGPS are not moved, so GDP does "
+    "not respond. For the demand effect of extra government consumption "
+    "shock CGG. Pass nominal_consistent=False for the shock without the legs."
+)
+INVESTMENT_CASH_NOTE = (
+    "The {var} shock is matched by the same cash amount on public sector net "
+    "investment PSNI, which the listing imposes as a total (l.520 is "
+    "commented out), so public sector net borrowing (PSNBNSA = -PSCB + PSNI, "
+    "l.536) and TME rise by the shock, in line with CGNB or LANB. PSNI is "
+    "still imposed, not solved. Accounting only: receipts do not respond. "
+    "Pass nominal_consistent=False for the shock without the PSNI leg."
+)
+INVESTMENT_TOTAL_WARNING = (
+    "{var} is a line of public sector gross investment, and public sector "
+    "net investment PSNI was held at baseline in this run. The listing "
+    "imposes PSNI as a total (l.520 is commented out), so public sector net "
+    "borrowing (PSNBNSA, l.536) and TME do not include the shock, although "
+    "CGNB or LANB and general government net borrowing do. Do not quote "
+    "PSNBNSA or TME from this run as the effect of the investment change; "
+    "pass nominal_consistent=True to move PSNI with the shock (#88)."
+)
+# How the l.377 procurement residual shows up in a run whose instrument is not
+# a consumption line: an employer NICs rise (EMPNIC) lifts central and local
+# government pay through l.369 and l.371, and with the consumption total
+# CGGPSPSF held, central government procurement falls by the sum.
+PROCUREMENT_OFFSET_NOTE = (
+    "Central government procurement (CGP), the residual of the imposed "
+    "consumption total CGGPSPSF (l.377), moved by {cgp} (GBP m a quarter, "
+    "first / last solved quarter) to offset a change in government pay of "
+    "{cgws} for central government (CGWS) and {laws} for local authorities "
+    "(LAWS). The listing holds general government consumption fixed in cash, "
+    "so public sector and general government net borrowing are unaffected "
+    "by the pay change. The split between the two is not: the whole offset "
+    "is booked to central government, so CGNB is lower and LANB higher by "
+    "the local authority pay change than if each sector absorbed its own "
+    "(#88)."
 )
 # Every term of the listing's subsidy residual, l.504:
 #   CGSUBP = PSCE - (CGWS + CGP + RCGIM + LAWS + LAPR + RLAIM) - LATSUB
@@ -1166,11 +1332,44 @@ NOMINAL_CONSISTENT_NOTE = (
 )
 
 
+def _label_procurement_offset(out, var, baseline_data, shocked_data, t0, t1):
+    """Note a procurement offset the instrument did not ask for (#88).
+
+    Sets ``out.attrs["procurement_offset_note"]`` when central government
+    procurement moved by more than GBP 0.5m in any solved quarter and the
+    instrument is neither procurement itself, a line the procurement
+    residual absorbs directly (labelled separately) nor government
+    consumption. No Python warning: the public sector and general government
+    totals of such a run are right, only the central/local split is not.
+    """
+    if var == "CGP" or var in PROCUREMENT_RESIDUAL_LINES or var == "CGG":
+        return
+    cols = ("CGP", "CGWS", "LAWS")
+    if any(
+        c not in baseline_data.columns or c not in shocked_data.columns for c in cols
+    ):
+        return
+    delta = {
+        c: (
+            shocked_data[c].iloc[t0 : t1 + 1].to_numpy(dtype=float)
+            - baseline_data[c].iloc[t0 : t1 + 1].to_numpy(dtype=float)
+        )
+        for c in cols
+    }
+    if not np.all(np.isfinite(delta["CGP"])) or np.abs(delta["CGP"]).max() <= 0.5:
+        return
+    ends = {c: f"{d[0]:+,.0f} / {d[-1]:+,.0f}" for c, d in delta.items()}
+    out.attrs["procurement_offset_note"] = PROCUREMENT_OFFSET_NOTE.format(
+        cgp=ends["CGP"], cgws=ends["CGWS"], laws=ends["LAWS"]
+    )
+    out.attrs["procurement_offset_m"] = {c: d.tolist() for c, d in delta.items()}
+
+
 def resolve_nominal_consistent(
     nominal_consistent: "bool | None", var: str, nominal_gdp_pin: bool
 ) -> bool:
-    """Default None: on for a spending shock with nominal legs (CGG, CGSB,
-    CGOTR; NOMINAL_SPENDING_LEGS) under the nominal-GDP pin, else off.
+    """Default None: on for a spending shock with nominal legs (the keys of
+    NOMINAL_SPENDING_LEGS) under the nominal-GDP pin, else off.
 
     Under the published closure (l.688, PIF free) the CGG shock was erratic
     when measured (docs/nominal_gdp_pin.md), so it is not the default there;
@@ -1194,7 +1393,7 @@ def apply_spending_shock(
     Returns the list of nominal legs moved (empty for the shock on its own).
     For real ``CGG`` the cash path is ``shock * CGGPS/CGG`` on the solver's
     pre-shock data, so it must be computed before the real shock is applied.
-    For the cash lines (``CGSB``, ``CGOTR``) the cash path is the shock. A
+    For every other instrument (all cash lines) the cash path is the shock. A
     leg that is missing or non-finite in the databank raises through
     ``apply_shock`` rather than being skipped: a half-applied nominal shock
     would report a borrowing delta that is neither the real-only nor the
@@ -1406,22 +1605,28 @@ def run_reform(
             shipped listing (which holds CPI exogenous). Default False
             (unchanged). See issue #60.
         nominal_consistent: Only for a spending shock with nominal legs
-            (``CGG``, ``CGSB``, ``CGOTR``; NOMINAL_SPENDING_LEGS). If True,
-            a real ``CGG`` shock is matched by the same cash amount on the
-            imposed nominal spending totals (CGGPS, CGGPSPSF, PSCE), so the
-            government deflator is unchanged and borrowing rises by the cash
-            cost. If False, only real CGG moves: nominal spending and every
-            borrowing aggregate stay at baseline and the investment deflator
-            absorbs the gap. The GDP delta differs by under 1% between the
-            two; the borrowing and IBUSX deltas differ completely. For the
-            cash lines ``CGSB`` (social benefits) and ``CGOTR`` (other
-            current grants), True also moves PSCE by the shock, so
-            borrowing rises by it; False leaves PSCE at baseline, and the
-            listing's subsidy residual (l.504) then absorbs the shock:
-            borrowing does not move and profits fall (issue #88). Default
-            None: True under the nominal-GDP pin, False under the published
-            or investment closure (see resolve_nominal_consistent). See
-            docs/nominal_gdp_pin.md.
+            (the keys of NOMINAL_SPENDING_LEGS). If True, a real ``CGG``
+            shock is matched by the same cash amount on the imposed nominal
+            spending totals (CGGPS, CGGPSPSF, PSCE), so the government
+            deflator is unchanged and borrowing rises by the cash cost. If
+            False, only real CGG moves: nominal spending and every borrowing
+            aggregate stay at baseline and the investment deflator absorbs
+            the gap. The GDP delta differs by under 1% between the two; the
+            borrowing and IBUSX deltas differ completely. For the cash lines
+            of current spending (``CGSB``, ``CGOTR``, the local authority
+            lines ``LASBHH``, ``LAOTRHH``, ``LANCGA``, ``DILAPR`` and
+            ``LAPR``, and grants abroad ``TROD`` or ``CGNCGA``), True also
+            moves PSCE by the shock (and CGGPSPSF for ``LAPR``), so
+            borrowing rises by it; False leaves the totals at baseline, and
+            the listing's subsidy residual (l.504) or procurement residual
+            (l.377) then absorbs the shock: public sector borrowing does not
+            move, and for a local authority line central government
+            borrowing falls (issue #88). For public investment (``CGIPS``,
+            ``LAIPS``), True moves the imposed public sector net investment
+            PSNI by the shock, so PSNBNSA and TME rise with CGNB or LANB;
+            False leaves them at zero. Default None: True under the
+            nominal-GDP pin, False under the published or investment closure
+            (see resolve_nominal_consistent). See docs/nominal_gdp_pin.md.
         import_response: If True, imports respond to demand on the shocked
             run: services through the listing's own l.223 in deviation form,
             goods including oil in proportion to import-weighted demand
@@ -1636,21 +1841,33 @@ def run_reform(
     out.attrs["nominal_consistent"] = nominal_consistent
     if nominal_consistent:
         out.attrs["nominal_consistent_legs"] = list(NOMINAL_SPENDING_LEGS[var])
-        out.attrs["nominal_consistent_note"] = (
-            NOMINAL_CONSISTENT_NOTE
-            if var in REAL_SPENDING_NOMINAL
-            else CASH_SPENDING_NOTE.format(var=var)
-        )
+        if var in REAL_SPENDING_NOMINAL:
+            note = NOMINAL_CONSISTENT_NOTE
+        elif var in PSNI_LEG_LINES:
+            note = INVESTMENT_CASH_NOTE.format(var=var)
+        elif var in PROCUREMENT_RESIDUAL_LINES:
+            note = PROCUREMENT_CASH_NOTE.format(var=var)
+        else:
+            note = CASH_SPENDING_NOTE.format(var=var)
+        out.attrs["nominal_consistent_note"] = note
+    elif var in PSNI_LEG_LINES:
+        # PSNI is imposed and was not moved (#88). Say so.
+        msg = INVESTMENT_TOTAL_WARNING.format(var=var)
+        out.attrs["investment_total_warning"] = msg
+        warnings.warn(msg, stacklevel=2)
     elif var in PROCUREMENT_RESIDUAL_LINES:
         # The shock is offset by the procurement residual (#88). Say so.
         msg = PROCUREMENT_RESIDUAL_WARNING.format(var=var)
         out.attrs["procurement_residual_warning"] = msg
         warnings.warn(msg, stacklevel=2)
-    elif var in PSCE_RESIDUAL_LINES:
+    elif var in PSCE_RESIDUAL_LINES or var in PSCE_LINE_SET_BY:
         # The shock is offset by the subsidy residual (#88). Say so.
-        msg = SUBSIDY_RESIDUAL_WARNING.format(var=var)
+        line = PSCE_LINE_SET_BY.get(var)
+        label = var if line is None else f"{var} (which sets {line})"
+        msg = SUBSIDY_RESIDUAL_WARNING.format(var=label)
         out.attrs["subsidy_residual_warning"] = msg
         warnings.warn(msg, stacklevel=2)
+    _label_procurement_offset(out, var, baseline_data, shocked_data, t_start, t_end)
 
     # A shock path longer than the [start, end] window is applied to the data
     # but never solved or reported, so a caller summing "the shocked quarters"
