@@ -105,9 +105,11 @@ default closure.
   - Local authority benefits `LASBHH` and transfers `LAOTRHH`. With a
     `PSCE` leg public sector net borrowing rises by the shock but general
     government net borrowing stays at 0, so the local authority accounts
-    need more than this leg.
-  - Grants to local authorities `CGNCGA`. A flat +£1,000m moved subsidies
-    by −1,926 / +125 / −146, which is not explained.
+    need more than this leg. (Done on 26 November, above.)
+  - Central government grants abroad `CGNCGA` (called grants to local
+    authorities here until 26 November). A flat +£1,000m moved subsidies
+    by −1,926 / +125 / −146, which was not explained at the time. It was
+    the measurement, not the model: see the 26 November entry above.
   - The other lines of l.504. All of these now set
     `df.attrs["subsidy_residual_warning"]` and warn, except pay and local
     authority procurement (`CGWS`, `LAWS`, `LAPR`, `RCGIM`, `RLAIM`), which
