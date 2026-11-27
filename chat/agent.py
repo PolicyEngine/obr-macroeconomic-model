@@ -141,10 +141,17 @@ def model_overview() -> dict:
         "solver": "Gauss-Seidel simultaneous-equation solver",
         "honest_limits": [
             "Results use the user's own assumptions and are NOT OBR or Treasury forecasts.",
-            "Only ~10 headline channels are genuinely computed; some (exports, imports, "
-            "CPI) are held at the OBR baseline value.",
-            "The forecasting framework reproduces the OBR's published path within ~10% on "
-            "the macro core (GDP, consumption, investment, employment, prices, balances).",
+            # Pinned to `python -m obr_macro.forecast` by
+            # tests/test_forecast_docs.py (slow).
+            "In the held-add-factor forecast 8 of the 16 headline variables are "
+            "computed by the model; the rest (among them exports, imports, CPI and "
+            "household income) are held at the OBR baseline value.",
+            "7 of those 8 stay within the scoring band of the OBR's published path "
+            "over a two-year projection; company profits do not. Two of the 7 "
+            "(employment and unemployment) are identities on OBR inputs, and GDP "
+            "and consumption are within band largely because household income is "
+            "given to the model, so this is not evidence of forecast skill "
+            "(docs/forecasting_framework.md).",
         ],
     }
 

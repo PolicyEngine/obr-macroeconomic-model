@@ -54,7 +54,12 @@ rises 5pp?"* or *"What does TCPRO mean?"*
 
 ## Notes
 - Tools read pre-computed data; a live "run any custom shock" tool would call the
-  Python solver (~1–2 min) and is the natural next addition.
+  Python solver and is the natural next addition.
+- The chat has no data of its own. It reads `dashboard/public/data/model_data.json`
+  and `explorer_data.json`; `tests/test_dashboard_fresh.py` checks that both match
+  the current model (see `dashboard/README.md`). The fit summary in
+  `model_overview` is pinned to `python -m obr_macro.forecast` by
+  `tests/test_forecast_docs.py`.
 - Answers are emulator output under the user's assumptions — not OBR forecasts;
   the agent is instructed to say so.
 - If the model declines a request, the chat displays a notice and removes that

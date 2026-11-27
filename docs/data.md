@@ -72,4 +72,4 @@ The committed files in [`results/`](https://github.com/PolicyEngine/obr-macroeco
 
 [`scripts/unguarded_ibusx.py`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/scripts/unguarded_ibusx.py) prints the unguarded business-investment path quoted on [how it works](how-it-works.md#the-investment-closure); it writes no file.
 
-The dashboard's own data files in `dashboard/public/data/` are a separate, older vintage; see [getting started](getting-started.md#optional-the-dashboard).
+The dashboard's own data files in `dashboard/public/data/` come from separate generators and are scored around the free-running model, not the anchored baseline; see [getting started](getting-started.md#optional-the-dashboard) and [testing](testing.md#regenerating-results-files).

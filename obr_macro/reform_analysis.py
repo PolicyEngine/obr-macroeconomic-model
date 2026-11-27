@@ -1860,9 +1860,17 @@ def run_five_reforms():
     )
     reforms.append(df)
 
-    # 4. Government investment boost: £10bn/year
+    # 4. Government investment boost: £3bn a quarter in cash (£12bn a year)
     # Chain: CGIPS (exog) → GGIPS = CGIPS + LAIPS → GGI = 100 * GGIPS / GGIDEF
-    # GGIDEF ≈ 119, so to get £2.5bn real GGI, need ~£3bn nominal CGIPS
+    # GGIDEF is 105.0 in 2025Q1 and 108.5 in 2027Q4 on the baseline of this
+    # run (default closure; solved 26 Nov 2026, October 2026 EFO), so £3bn of
+    # cash is about £2.8bn to £2.9bn of real GGI a quarter, about £11bn a year.
+    # (Under investment_closure=True the baseline GGIDEF is 97.5 in 2025Q1 and
+    # 103.2 in 2027Q4.) An earlier comment here said "GGIDEF ≈ 119, so £3bn
+    # nominal is £2.5bn real"; 119 matches neither baseline. The shock was
+    # sized from it and is left at 3,000 because tests, the transmission audit
+    # and the demo battery all pin CGIPS +3,000; the reform's name keeps its
+    # "£10bn" label for the same reason (issue #93). See getting-started.md.
     #
     # KNOWN DEAD: the chain stops at GGI. IF has no live equation under the
     # demand closure, so GGI never reaches the GDP identity — delta_IF is
@@ -1874,7 +1882,7 @@ def run_five_reforms():
     df = run_reform(
         name="£10bn Gov Investment (dead channel)",
         var="CGIPS",
-        shock=3000,  # £3bn nominal per quarter ≈ £2.5bn real
+        shock=3000,  # £3bn cash a quarter, about £2.8bn real (GGIDEF 105 to 108)
         periods=12,
         investment_closure=False,
     )

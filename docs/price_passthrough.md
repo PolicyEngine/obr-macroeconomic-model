@@ -12,7 +12,7 @@ This note answers three questions raised in review:
 
 Where the figures come from:
 
-- **Runs.** `results/demo_shocks.json`, rows `vat` and `vat_passthrough` (GitHub Actions run 44394699022, 18 Nov 2026, commit `a822045`, window 2025Q1 to 2027Q4). No scenario figure on this page is new.
+- **Runs.** `results/demo_shocks.json`, rows `vat` and `vat_passthrough` (regenerated on a laptop on 26 Nov 2026 at commit `3b2d6f6`, every number identical to GitHub Actions run 44394699022 of 18 Nov 2026 at commit `a822045`; window 2025Q1 to 2027Q4). No scenario figure on this page is new.
 - **Forecast.** The OBR's October 2026 Economic and fiscal outlook (EFO).
 - **Closure.** The default: GDP is solved from the expenditure identity, and current-price GDP is pinned to the GDP deflator times real GDP (`docs/nominal_gdp_pin.md`).
 - **Two derived figures are not in the committed file.** The baseline level of the investment deflator `PIF` (103.9 in 2025Q1, 113.8 in 2027Q4) and the split of the business-investment change (real government investment `GGI` up by the same amount) come from one local re-run of the `vat_passthrough` pair at main `ab29ffb` on 22 Nov 2026. That run reproduced every committed change it shares with the file to the third decimal (`PIF` −1.316, `IBUSX` −420.389, GDP −362.952 in q1).

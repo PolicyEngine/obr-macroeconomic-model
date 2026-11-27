@@ -128,6 +128,31 @@ jobs:
           tests/test_nominal_gdp_pin.py
           tests/test_tax_scenarios.py
 
+  freshness:
+    name: Committed outputs are fresh (HARD GATE)
+    # Documented and precomputed numbers against the model in the tree:
+    # docs/forecasting_framework.md against `python -m obr_macro.forecast`,
+    # dashboard/public/data (which the chat agent also reads) against its
+    # generators, and results/demo_shocks.json against run_reform. Each test
+    # re-solves, so like the invariants this runs on main, nightly and on
+    # demand rather than on every PR. The fast suite already checks on every
+    # PR that the dashboard data was generated from the input data in the tree.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    # About nine minutes of solves on a laptop (26 Nov 2026).
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install
+        run: uv sync
+      - name: Forecast page, dashboard data and demo battery (slow, hard gate)
+        run: >-
+          uv run pytest --runslow -q
+          tests/test_forecast_docs.py
+          tests/test_dashboard_fresh.py
+          tests/test_demo_shocks_fresh.py
+
   calibration-report:
     name: Calibration scorecard (report only — never gates)
     # Publishes the raw-vs-EFO MAPE numbers as a report artifact and job summary.
