@@ -39,7 +39,7 @@ slider against a held-add-factor baseline. The chat agent in `chat/` reads
 
 **Vintage.** All three files were regenerated on 26 Nov 2026 against the
 October 2026 EFO. The explorer and the grid had last been generated on 6 Nov
-2026 against the March 2026 EFO; the regeneration moved GDP by up to £2m in
+2026 against the March 2026 EFO; the regeneration moved GDP by up to £2.3m in
 the spending and export scenarios and by up to £22m in the Bank Rate scenario
 (first quarter −£143m before, −£133m now).
 
