@@ -65,7 +65,7 @@ flowchart LR
 
     ---
 
-    Parses the OBR's published EViews code into Python. In the default window, 82 equations lack an input in at least one quarter; each is listed and checked.
+    Parses the OBR's published EViews code into Python. In the default window, 81 equations lack an input in at least one quarter; each is listed and checked.
 
 -   :material-swap-horizontal-bold:{ .lg .middle } **Close**
 

@@ -535,7 +535,7 @@ def test_cash_spending_lines_default_like_government_consumption():
         assert resolve_nominal_consistent(None, var, False) is False
         assert resolve_nominal_consistent(False, var, True) is False
         assert resolve_nominal_consistent(True, var, False) is True
-    assert resolve_nominal_consistent(None, "LASBHH", True) is False
+    assert resolve_nominal_consistent(None, "DICGOP", True) is False
 
 
 def test_subsidy_residual_lines_are_the_terms_of_the_listing():
@@ -564,12 +564,206 @@ def test_subsidy_residual_lines_are_the_terms_of_the_listing():
     terms = set(re.findall(r"[A-Z][A-Z0-9]*", line.split("=", 1)[1]))
     assert terms - {"CGGPSPSF"} == set(PROCUREMENT_RESIDUAL_LINES)
     assert PROCUREMENT_RESIDUAL_LINES < PSCE_RESIDUAL_LINES
-    assert not PROCUREMENT_RESIDUAL_LINES & set(NOMINAL_SPENDING_LEGS)
-    # Every instrument given a PSCE leg is either one of those terms or CGG,
-    # whose nominal counterpart reaches l.504 through procurement (CGP).
+    # A procurement line needs the consumption total moved as well as PSCE.
+    assert PROCUREMENT_RESIDUAL_LINES & set(NOMINAL_SPENDING_LEGS) == {"LAPR"}
+    assert NOMINAL_SPENDING_LEGS["LAPR"] == ("CGGPSPSF", "PSCE")
+    # Every instrument with a leg is one of: CGG, whose nominal counterpart
+    # reaches l.504 through procurement (CGP); a term of l.504; an instrument
+    # that sets a term of l.504 through a live equation; or a public
+    # investment line, whose imposed total is PSNI.
+    from obr_macro.reform_analysis import PSCE_LINE_SET_BY, PSNI_LEG_LINES
+
     for var, legs in NOMINAL_SPENDING_LEGS.items():
+        if var in PSNI_LEG_LINES:
+            assert legs == ("PSNI",)
+            continue
         assert "PSCE" in legs
-        assert var == "CGG" or var in PSCE_RESIDUAL_LINES
+        assert var == "CGG" or var in PSCE_RESIDUAL_LINES or var in PSCE_LINE_SET_BY
+        if var != "CGG" and var not in PROCUREMENT_RESIDUAL_LINES:
+            assert legs == ("PSCE",)
+    # TROD sets CGNCGA through l.403, and is a transfer debit in l.485.
+    for src, line_var in PSCE_LINE_SET_BY.items():
+        assert line_var in PSCE_RESIDUAL_LINES
+        assert re.search(rf"^{line_var}\s+=\s+{src}\s*$", listing, re.M)
+    (line,) = [ln for ln in listing.splitlines() if re.match(r"TRAND\s+=", ln)]
+    assert "TROD" in re.findall(r"[A-Z][A-Z0-9]*", line.split("=", 1)[1])
+
+
+def test_public_investment_legs_follow_the_listing():
+    """CGIPS and LAIPS get a PSNI leg because the listing imposes public
+    sector net investment: its identity (l.520) is commented out, the residual
+    it leaves is central government inventories DINVCG (l.33), and public
+    sector net borrowing reads PSNI directly (l.536). If the OBR changes any
+    of that, the leg must be looked at again (#88)."""
+    import re
+    from importlib import resources
+
+    from obr_macro.full_solver import KNOWN_NONFINITE_EQUATIONS
+    from obr_macro.reform_analysis import NOMINAL_SPENDING_LEGS, PSNI_LEG_LINES
+
+    listing = (
+        resources.files("obr_macro")
+        .joinpath("_data/obr_model_code_october_2025.txt")
+        .read_text()
+    )
+    lines = listing.splitlines()
+
+    def rhs_terms(lhs):
+        (line,) = [ln for ln in lines if re.match(rf"{lhs}\s+=", ln)]
+        return set(re.findall(r"[A-Z][A-Z0-9]*", line.split("=", 1)[1]))
+
+    assert not [ln for ln in lines if re.match(r"PSNI\s+=", ln)]
+    assert [ln for ln in lines if re.match(r"'PSNI\s+=\s+PSGI", ln)]
+    assert PSNI_LEG_LINES <= rhs_terms("PSGI")
+    assert {"PSNI", *PSNI_LEG_LINES} <= rhs_terms("DINVCG")
+    assert "PSNI" in rhs_terms("PSNBNSA") and "PSNI" in rhs_terms("TME")
+    assert "CGIPS" in rhs_terms("CGNB") and "LAIPS" in rhs_terms("LANB")
+    # The residual that would absorb the shock is dropped for missing data,
+    # which is why CGNB moves at all. If it ever goes live, CGNB stops moving
+    # and this leg is no longer enough.
+    assert "DINVCG" in KNOWN_NONFINITE_EQUATIONS
+    for var in PSNI_LEG_LINES:
+        assert NOMINAL_SPENDING_LEGS[var] == ("PSNI",)
+
+
+def test_new_cash_lines_move_their_imposed_totals_by_the_shock():
+    """Local authority lines and grants abroad move PSCE, local authority
+    procurement moves CGGPSPSF and PSCE, public investment moves PSNI: each
+    by the shock itself, and nothing else (#88)."""
+    from obr_macro.reform_analysis import NOMINAL_SPENDING_LEGS, apply_spending_shock
+
+    totals = {"CGGPS": None, "CGGPSPSF": 120.0, "PSCE": 300.0, "PSNI": 40.0}
+    for var in (
+        "LASBHH",
+        "LAOTRHH",
+        "LANCGA",
+        "DILAPR",
+        "LAPR",
+        "CGNCGA",
+        "TROD",
+        "CGIPS",
+        "LAIPS",
+    ):
+        s = _spending_solver()
+        s.data["PSNI"] = 40.0
+        s.data[var] = 70.0
+        legs = apply_spending_shock(s, var, [10.0, -20.0, 5.0], "2025Q2")
+        assert legs == list(NOMINAL_SPENDING_LEGS[var])
+        assert list(s.data[var][:5]) == [70.0, 80.0, 50.0, 75.0, 70.0]
+        for total, level in totals.items():
+            if total in legs:
+                assert list(s.data[total][:5]) == pytest.approx(
+                    [level, level + 10, level - 20, level + 5, level]
+                ), (var, total)
+            elif level is not None:
+                assert list(s.data[total]) == [level] * 8, (var, total)
+        assert list(s.data["CGGPS"]) == [110.0, 112.0, 114.0, 116.0] * 2
+        assert list(s.data["CGG"]) == [100.0] * 8
+
+        missing = _spending_solver()
+        missing.data[var] = 70.0  # no PSNI column; PSCE dropped below
+        missing.data = missing.data.drop(columns=["PSCE"])
+        with pytest.raises(KeyError, match=NOMINAL_SPENDING_LEGS[var][-1]):
+            apply_spending_shock(missing, var, 10.0, "2025Q1", periods=4)
+
+
+def test_la_borrowing_identity_is_the_listing_line_less_one_term():
+    """LANB_EQ is l.526 with only the unpublished KGLAPC removed (#88)."""
+    import re
+    from importlib import resources
+
+    from obr_macro.full_solver import KNOWN_NONFINITE_EQUATIONS
+    from obr_macro.reform_analysis import LANB_EQ, LANB_TERMS
+
+    listing = (
+        resources.files("obr_macro")
+        .joinpath("_data/obr_model_code_october_2025.txt")
+        .read_text()
+    )
+    (line,) = [ln for ln in listing.splitlines() if re.match(r"LANB\s+=", ln)]
+    terms = set(re.findall(r"[A-Z][A-Z0-9]*", line.split("=", 1)[1]))
+    assert set(LANB_TERMS) == terms - {"KGLAPC"}
+    assert "KGLAPC" in terms and "KGLAPC" not in LANB_EQ.python_expr
+    assert LANB_EQ.lhs.strip() == "LANB"
+    # Same signs as the listing: evaluate both with every term at a distinct
+    # value and KGLAPC at zero.
+    values = {name: float(i + 1) for i, name in enumerate(sorted(terms))}
+    values["KGLAPC"] = 0.0
+    expected = eval(
+        re.sub(r"[A-Z][A-Z0-9]*", lambda m: repr(values[m[0]]), line.split("=", 1)[1])
+    )
+    assert eval(LANB_EQ.python_expr, {"v": values}) == pytest.approx(expected)
+    # The listing's own line is still dropped by a plain solve.
+    assert "LANB" in KNOWN_NONFINITE_EQUATIONS
+
+
+def test_la_borrowing_identity_is_restored_only_on_complete_data():
+    from obr_macro.reform_analysis import (
+        LANB_EQ,
+        LANB_TERMS,
+        _restore_la_borrowing_identity,
+    )
+
+    def solver():
+        s = _bare_solver()
+        for col in ("LANB", *LANB_TERMS):
+            s.data[col] = 5.0
+        return s
+
+    s = solver()
+    assert _restore_la_borrowing_identity(s, "2025Q1", "2026Q4") is True
+    assert s.eq_for_var["LANB"] is LANB_EQ
+    # A clone and a later make_exogenous keep or drop it as for any equation.
+    s.make_exogenous("LANB")
+    assert "LANB" not in s.eq_for_var
+
+    gap = solver()
+    gap.data.loc[gap.data.index[2], "LAPR"] = float("nan")
+    assert _restore_la_borrowing_identity(gap, "2025Q1", "2026Q4") is False
+    assert "LANB" not in gap.eq_for_var
+    # ... but a window that avoids the gap is fine.
+    assert _restore_la_borrowing_identity(gap, "2026Q1", "2026Q4") is True
+
+    absent = solver()
+    absent.data = absent.data.drop(columns=["CIL"])
+    assert _restore_la_borrowing_identity(absent, "2025Q1", "2026Q4") is False
+
+
+def test_procurement_offset_is_noted_only_when_procurement_moved():
+    """An employer NICs rise lifts government pay, and with the consumption
+    total held the procurement residual falls by the sum (l.377). run_reform
+    records it; the central/local split of borrowing is what it distorts."""
+    import pandas as pd
+
+    from obr_macro.reform_analysis import _label_procurement_offset
+
+    base = pd.DataFrame({"CGP": [500.0] * 4, "CGWS": [300.0] * 4, "LAWS": [200.0] * 4})
+    shocked = base + pd.DataFrame(
+        {
+            "CGP": [-250.0, -251.0, -252.0, -233.0],
+            "CGWS": [179.0] * 4,
+            "LAWS": [71.0] * 4,
+        }
+    )
+    out = pd.DataFrame({"x": [0] * 4})
+    _label_procurement_offset(out, "EMPNIC", base, shocked, 0, 3)
+    note = out.attrs["procurement_offset_note"]
+    assert "-250 / -233" in note and "+179 / +179" in note and "+71 / +71" in note
+    assert "l.377" in note and "#88" in note
+    assert out.attrs["procurement_offset_m"]["LAWS"] == [71.0] * 4
+
+    for var, frame in (
+        ("EMPNIC", base),  # nothing moved
+        ("LAPR", shocked),  # labelled as a procurement line instead
+        ("CGG", shocked),
+        ("CGP", shocked),
+    ):
+        out = pd.DataFrame({"x": [0] * 4})
+        _label_procurement_offset(out, var, base, frame, 0, 3)
+        assert "procurement_offset_note" not in out.attrs, var
+    out = pd.DataFrame({"x": [0] * 4})
+    _label_procurement_offset(out, "EMPNIC", base.drop(columns=["CGP"]), shocked, 0, 3)
+    assert not out.attrs
 
 
 def test_run_reform_labels_a_spending_line_the_subsidy_residual_absorbs(monkeypatch):
@@ -580,7 +774,18 @@ def test_run_reform_labels_a_spending_line_the_subsidy_residual_absorbs(monkeypa
     from obr_macro import reform_analysis
 
     template = _FakeTemplate()
-    for col in ("CGSB", "LASBHH", "LAPR", "PSCE"):
+    for col in (
+        "CGSB",
+        "LASBHH",
+        "DICGOP",
+        "LAPR",
+        "LAWS",
+        "TROD",
+        "CGIPS",
+        "PSCE",
+        "CGGPSPSF",
+        "PSNI",
+    ):
         template._proto.data[col] = 500.0
     monkeypatch.setattr(
         reform_analysis, "_build_reform_template", lambda *a, **k: template
@@ -598,7 +803,8 @@ def test_run_reform_labels_a_spending_line_the_subsidy_residual_absorbs(monkeypa
     assert "welfare multiplier is 0.6" in df.attrs["transmission_note"]
     assert not [w for w in caught if "CGSUBP" in str(w.message)]
 
-    for var, extra in (("CGSB", {"nominal_consistent": False}), ("LASBHH", {})):
+    off = {"nominal_consistent": False}
+    for var, extra in (("CGSB", off), ("LASBHH", off), ("DICGOP", {}), ("TROD", off)):
         with pytest.warns(UserWarning, match="CGSUBP"):
             df = reform_analysis.run_reform("held", var, 100.0, **kwargs, **extra)
         assert df.attrs["nominal_consistent"] is False
@@ -606,19 +812,53 @@ def test_run_reform_labels_a_spending_line_the_subsidy_residual_absorbs(monkeypa
         assert var in df.attrs["subsidy_residual_warning"]
         assert "#88" in df.attrs["subsidy_residual_warning"]
         assert "procurement_residual_warning" not in df.attrs
+        if var == "TROD":
+            assert "which sets CGNCGA" in df.attrs["subsidy_residual_warning"]
 
     # Pay and procurement lines are absorbed by procurement (l.377), not by
     # subsidies, and the label says which.
-    with pytest.warns(UserWarning, match="CGP"):
-        df = reform_analysis.run_reform("la", "LAPR", 100.0, **kwargs)
-    assert "LAPR" in df.attrs["procurement_residual_warning"]
-    assert "l.377" in df.attrs["procurement_residual_warning"]
-    assert "subsidy_residual_warning" not in df.attrs
+    for var, extra in (("LAWS", {}), ("LAPR", off)):
+        with pytest.warns(UserWarning, match="CGP"):
+            df = reform_analysis.run_reform("la", var, 100.0, **kwargs, **extra)
+        assert var in df.attrs["procurement_residual_warning"]
+        assert "l.377" in df.attrs["procurement_residual_warning"]
+        assert "subsidy_residual_warning" not in df.attrs
+    # The lines given legs on 26 Nov 2026 carry them by default and say which.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        # CGIPS also warns that it has no route to GDP; that is a different label.
+        warnings.filterwarnings("ignore", message=".*NO transmission path.*")
+        for var, legs, phrase in (
+            ("LASBHH", ["PSCE"], "public sector current expenditure PSCE"),
+            ("TROD", ["PSCE"], "public sector current expenditure PSCE"),
+            ("LAPR", ["CGGPSPSF", "PSCE"], "GDP does not respond"),
+            ("CGIPS", ["PSNI"], "PSNI is still imposed"),
+        ):
+            df = reform_analysis.run_reform("paid", var, 100.0, **kwargs)
+            assert df.attrs["nominal_consistent_legs"] == legs, var
+            assert var in df.attrs["nominal_consistent_note"]
+            assert phrase in df.attrs["nominal_consistent_note"], var
+            for label in (
+                "subsidy_residual_warning",
+                "procurement_residual_warning",
+                "investment_total_warning",
+            ):
+                assert label not in df.attrs, (var, label)
 
-    # Local authority benefits have no leg yet: asking for one is refused.
+    # The double has no local authority identity, and the result says so.
+    assert df.attrs["la_borrowing_identity"] is False
+    assert "held on its data path" in df.attrs["la_borrowing_note"]
+
+    # Public investment with PSNI held: CGNB moves, PSNBNSA and TME do not.
+    with pytest.warns(UserWarning, match="PSNI"):
+        df = reform_analysis.run_reform("inv", "CGIPS", 100.0, **kwargs, **off)
+    assert "l.520" in df.attrs["investment_total_warning"]
+    assert "nominal_consistent=True" in df.attrs["investment_total_warning"]
+
+    # A line without a leg: asking for one is refused.
     with pytest.raises(ValueError, match="nominal_consistent applies only"):
         reform_analysis.run_reform(
-            "la", "LASBHH", 100.0, nominal_consistent=True, **kwargs
+            "la", "DICGOP", 100.0, nominal_consistent=True, **kwargs
         )
 
 

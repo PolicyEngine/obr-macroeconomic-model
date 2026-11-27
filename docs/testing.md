@@ -88,8 +88,8 @@ Run any of them with `uv run python scripts/<name>.py`. Each file records the sc
 | File | Speed | What it checks |
 |---|---|---|
 | `test_transpiler.py` | Fast | EViews-to-Python conversion and left-hand-side algebra. |
-| `test_apply_shock.py` | Fast | `FullOBRSolver.apply_shock`: scalar and per-quarter shocks, and refusal of missing or non-finite variables, on a tiny synthetic frame. Also the nominal legs of spending shocks and the labels for a spending line that the subsidy or procurement residual absorbs (issue #88). |
-| `test_solver.py` | Slow | Smoke tests: data loads, the listing parses, the solver builds and solves, fiscal, corporation tax and household-costing shocks run with the documented sign. A social-benefits shock raises borrowing and household income one for one with its `PSCE` leg, and is absorbed by the subsidy residual without it (issue #88). |
+| `test_apply_shock.py` | Fast | `FullOBRSolver.apply_shock`: scalar and per-quarter shocks, and refusal of missing or non-finite variables, on a tiny synthetic frame. Also the nominal legs of spending shocks, the labels for a spending line that a residual of the listing absorbs, and the local authority borrowing identity checked against l.526 (issue #88). |
+| `test_solver.py` | Slow | Smoke tests: data loads, the listing parses, the solver builds and solves, fiscal, corporation tax and household-costing shocks run with the documented sign. A social-benefits shock raises borrowing and household income one for one with its `PSCE` leg, and is absorbed by the subsidy residual without it. Local authority lines, grants abroad, public investment and employer NICs move the right borrowing aggregate (issue #88). |
 | `test_receipts_identities.py` | Mixed | The receipts identities close on their data path and the guard against silently dropped equations works (issue #56). |
 | `test_ibusx_equation.py` | Fast | Where the restored bracket goes in the reconstructed `dlog(IBUSX)` equation. |
 | `test_eu_payments.py` | Mixed | The ended EU budget payments `GNP4` and `EUVAT` stay at zero from 2021 instead of being regenerated (issue #62). |

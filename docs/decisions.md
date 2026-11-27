@@ -7,6 +7,83 @@ icon: material/scale-balance
 Dated modelling decisions, the evidence behind each, and what was left out.
 Newest first.
 
+## 26 November 2026 (borrowing accounts)
+
+### Local authority lines, grants abroad and public investment move the right borrowing aggregate
+
+The four cases left open in
+[#88](https://github.com/PolicyEngine/obr-macroeconomic-model/issues/88),
+each read from the listing and measured at +£1,000m a quarter under the
+default closure.
+
+- **Local authority lines lowered central government borrowing.** Two causes.
+  The subsidy residual (l.504) or, for procurement `LAPR`, the procurement
+  residual (l.377) absorbed the shock, and both residuals are central
+  government lines of `CGNB` (l.524). And the local authority identity
+  (l.526) was dropped by the solver, because one term, capital grants to
+  public corporations `KGLAPC`, is in no published source: `LANB` stayed on
+  its data path, so `GGNB = CGNB + LANB` (l.528) moved only with `CGNB`.
+  - **Decision.** `LASBHH`, `LAOTRHH`, `LANCGA` and `DILAPR` get a `PSCE`
+    leg; `LAPR` gets `CGGPSPSF` and `PSCE` legs. Reform templates run l.526
+    without `KGLAPC` and hold a level add-factor, so the baseline `LANB` is
+    the data path to within £0.00001m and every other term passes through.
+    Result: `LANB`, `GGNB`, `PSNBNSA` +1,000 and `CGNB` 0.
+  - **Why the identity and not a `LANB` leg.** A leg would fix only the
+    lines given one. The identity also fixes local authority receipts
+    (council tax `CC` is a term) and the pay effect of employer NICs below.
+    Nothing behavioural reads `LANB`, `GGNB` or `TDEF`, so no GDP figure
+    moves. No committed results file records any of the three. One
+    diagnostic count does change: a reform solve now drops 81 equations for
+    missing inputs, not 82, so the `dropped` field of
+    `results/demo_shocks.json` will read 81 when that file is next
+    regenerated. It was not regenerated here. Every result records which
+    way it ran in `df.attrs["la_borrowing_identity"]`.
+  - **Left out.** `LAPR` moves cash only, not real consumption `CGG`, so GDP
+    does not respond. Pay (`CGWS`, `LAWS`) has its own equations and keeps
+    its warning.
+- **Government investment did not reach public sector net borrowing.**
+  `PSNBNSA = −PSCB + PSNI` (l.536) and `PSNI` is imposed (l.520 is commented
+  out). The listing's residual is central government inventories `DINVCG`
+  (l.33), a term of `CGNB`; it needs `KGLAPC` and `ASSETSA`, which are not
+  published, so it is dropped here. That is why `CGNB` moved at all: as the
+  listing is written, inventories fall by the shock and `CGNB` does not move
+  either.
+  - **Decision.** `CGIPS` and `LAIPS` get a `PSNI` leg under
+    `nominal_consistent`, with the existing default: on under the
+    nominal-GDP pin, off under the published and investment closures.
+    `PSNI` stays an imposed total. Making it endogenous (l.520) is a
+    modelling choice this change does not make, and `PSGI` (l.516) cannot be
+    evaluated on published data anyway.
+  - **Open for review.** Under the investment closure the leg is pure
+    accounting: `CGIPS` +1,000 gives the same GDP with and without it
+    (+1,025 / +967 / +968) and `PSNBNSA` +1,000 instead of 0. It is off by
+    default there only because switching it on would change `PSNBNSA` in the
+    committed `cgips_investment_closure` run (`results/demo_shocks.json`)
+    from 0 to +3,000. The run now carries `investment_total_warning`.
+    Turning it on is one line in `resolve_nominal_consistent`.
+- **Grants abroad (`CGNCGA`) and the −1,926 / +125 / −146 subsidy path.** Not
+  a model response. `CGNCGA` has a live equation, `CGNCGA = TROD` (l.403),
+  and `TROD` is flat at 2,687 in the databank while the `CGNCGA` data is not
+  (3,613, 1,589, 1,914, 1,562 in 2025). The measurement shocked `CGNCGA` on a
+  template built for another instrument, so the shocked run lost l.403 and
+  the baseline kept it: the difference was the shock plus the data-minus-
+  `TROD` gap (3,613 − 2,687 + 1,000 = 1,926). Through `run_reform`, which
+  removes the equation from both runs, the response is flat: subsidies
+  −1,000 with `PSCE` held.
+  - **Decision.** `TROD` and `CGNCGA` get a `PSCE` leg. `TROD` is the
+    instrument to use: it also moves transfer debits (l.485) and the current
+    balance (−1,000 / −1,015 / −1,056).
+- **Employer NICs moved `CGNB` by −1,073.** `EMPNIC` raises central and
+  local government pay through employers' social contributions (l.369,
+  l.371; +179 and +71), and the procurement residual falls by the sum.
+  `CGNB` = −1,000 receipts +179 pay −250 procurement = −1,071.
+  - **Decision.** No leg. With l.526 live the local authority pay rise is in
+    `LANB` (+71), so `GGNB` is −1,000 like `PSNBNSA` (before: −1,071). The
+    central/local split is still the listing's, and `run_reform` records it
+    in `df.attrs["procurement_offset_note"]`. Compensating public employers
+    would be a policy assumption, and needs the pay response before the
+    totals can be moved; not offered.
+
 ## 25 November 2026 (validity review)
 
 ### Social benefits and other current grants carry a `PSCE` leg by default
@@ -33,9 +110,11 @@ Newest first.
   - Local authority benefits `LASBHH` and transfers `LAOTRHH`. With a
     `PSCE` leg public sector net borrowing rises by the shock but general
     government net borrowing stays at 0, so the local authority accounts
-    need more than this leg.
-  - Grants to local authorities `CGNCGA`. A flat +£1,000m moved subsidies
-    by −1,926 / +125 / −146, which is not explained.
+    need more than this leg. (Done on 26 November, above.)
+  - Central government grants abroad `CGNCGA` (called grants to local
+    authorities here until 26 November). A flat +£1,000m moved subsidies
+    by −1,926 / +125 / −146, which was not explained at the time. It was
+    the measurement, not the model: see the 26 November entry above.
   - The other lines of l.504. All of these now set
     `df.attrs["subsidy_residual_warning"]` and warn, except pay and local
     authority procurement (`CGWS`, `LAWS`, `LAPR`, `RCGIM`, `RLAIM`), which
