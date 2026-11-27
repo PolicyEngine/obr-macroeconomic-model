@@ -201,6 +201,190 @@ def test_welfare_shock_raises_borrowing_and_household_income_one_for_one():
     np.testing.assert_allclose(df["delta_gdp_m"], paid["GDPM"], atol=1e-6)
 
 
+def _borrowing_deltas(var, nominal_consistent, size=1000.0):
+    """Shocked minus baseline for the borrowing accounts, default closure."""
+    import warnings
+
+    from obr_macro.reform_analysis import (
+        LANB_EQ,
+        _build_reform_template,
+        apply_spending_shock,
+    )
+
+    start, end = "2025Q1", "2027Q4"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        template = _build_reform_template(var, start, end, False, True)
+        assert template.eq_for_var["LANB"] is LANB_EQ
+        base = template.clone()
+        base.solve(start, end)
+        k = template.clone()
+        apply_spending_shock(
+            k, var, size, start, 12, nominal_consistent=nominal_consistent
+        )
+        k.solve(start, end)
+    assert set(k.last_solve_report["exit_status"].values()) == {"tol"}
+    assert "LANB" not in base.last_solve_report["dropped"]
+    t0, t1 = base.period_idx(start), base.period_idx(end)
+    # The restored identity re-levels onto the data path: no baseline change.
+    assert (
+        abs(
+            base.data["LANB"].iloc[t0 : t1 + 1]
+            - template.baseline["LANB"].iloc[t0 : t1 + 1]
+        ).max()
+        < 1e-6
+    )
+    series = (
+        "GDPM CGNB LANB GGNB TDEF PSNBNSA TME PSCE PSNI CGSUBP CGP CGWS LAWS "
+        "PSCR CB HHDI FYCPR"
+    ).split()
+    return {
+        c: (k.data[c].iloc[t0 : t1 + 1] - base.data[c].iloc[t0 : t1 + 1]).to_numpy(
+            dtype=float
+        )
+        for c in series
+    }
+
+
+def test_local_authority_lines_raise_local_and_general_government_borrowing():
+    """Local authority benefits and procurement, +£1,000m a quarter (#88).
+
+    Before 26 Nov 2026 the subsidy residual (l.504) or the procurement
+    residual (l.377) absorbed the shock inside central government and the
+    local authority identity (l.526) was dropped, so CGNB and GGNB fell by
+    the shock: the wrong sign. With the legs (the default) and l.526 run
+    without its unpublished term, the borrowing is local authority borrowing
+    and every wider aggregate rises by the shock.
+    """
+    import numpy as np
+
+    size = 1000.0
+    for var, residual in (("LASBHH", "CGSUBP"), ("LAPR", "CGP")):
+        paid = _borrowing_deltas(var, True)
+        for series in ("LANB", "GGNB", "TDEF", "PSNBNSA", "TME", "PSCE"):
+            np.testing.assert_allclose(paid[series], size, atol=1e-6, err_msg=series)
+        for series in ("CGNB", "CGSUBP", "CGP", "PSCR", "PSNI"):
+            np.testing.assert_allclose(paid[series], 0.0, atol=1e-6, err_msg=series)
+
+        # With the totals held, the old wrong sign is still there for CGNB,
+        # but the local authority account now carries its own line, so
+        # general government borrowing nets to zero like the public sector.
+        held = _borrowing_deltas(var, False)
+        np.testing.assert_allclose(held[residual], -size, atol=1e-6)
+        np.testing.assert_allclose(held["CGNB"], -size, atol=1e-6)
+        np.testing.assert_allclose(held["LANB"], size, atol=1e-6)
+        for series in ("GGNB", "PSNBNSA", "TME"):
+            np.testing.assert_allclose(held[series], 0.0, atol=1e-6, err_msg=series)
+
+    # Benefits reach households; cash procurement on its own reaches nothing.
+    paid = _borrowing_deltas("LASBHH", True)
+    assert ((0.98 * size < paid["HHDI"]) & (paid["HHDI"] < 1.06 * size)).all()
+    assert (np.diff(paid["GDPM"]) > 0).all() and paid["GDPM"][0] > 0
+    # Quoted in docs/limitations.md and docs/decisions.md, q1 / q4 / q12.
+    np.testing.assert_allclose(
+        paid["GDPM"][[0, 3, 11]], (92.9, 193.5, 327.0), atol=0.5, rtol=0
+    )
+    np.testing.assert_allclose(_borrowing_deltas("LAPR", True)["GDPM"], 0.0, atol=1e-3)
+
+
+def test_public_investment_reaches_public_sector_net_borrowing():
+    """Central government investment CGIPS +£1,000m a quarter (#88).
+
+    PSNI is imposed (l.520 commented out) and PSNBNSA = -PSCB + PSNI (l.536),
+    so with PSNI held the shock raised CGNB and left PSNBNSA and TME at zero.
+    The default under the nominal-GDP pin now moves PSNI with the shock.
+    """
+    import numpy as np
+
+    size = 1000.0
+    paid = _borrowing_deltas("CGIPS", True)
+    for series in ("CGNB", "GGNB", "PSNBNSA", "TME", "PSNI"):
+        np.testing.assert_allclose(paid[series], size, atol=1e-6, err_msg=series)
+    for series in ("LANB", "PSCE", "CGSUBP", "PSCR"):
+        np.testing.assert_allclose(paid[series], 0.0, atol=1e-6, err_msg=series)
+
+    held = _borrowing_deltas("CGIPS", False)
+    np.testing.assert_allclose(held["CGNB"], size, atol=1e-6)
+    for series in ("PSNBNSA", "TME", "PSNI"):
+        np.testing.assert_allclose(held[series], 0.0, atol=1e-6, err_msg=series)
+    # The leg is accounting: it changes nothing in the real economy.
+    # (to the solver's tolerance: two solves of the same real economy).
+    np.testing.assert_allclose(paid["GDPM"], held["GDPM"], atol=1e-3)
+
+    local = _borrowing_deltas("LAIPS", True)
+    for series in ("LANB", "GGNB", "PSNBNSA", "TME"):
+        np.testing.assert_allclose(local[series], size, atol=1e-6, err_msg=series)
+    np.testing.assert_allclose(local["CGNB"], 0.0, atol=1e-6)
+
+
+def test_grants_abroad_move_borrowing_and_the_current_account():
+    """Grants abroad, +£1,000m a quarter, through TROD (#88).
+
+    CGNCGA = TROD (l.403) and TROD is a transfer debit (TRAND, l.485). A flat
+    shock gives a flat response. The -1,926 / +125 / -146 subsidy path
+    reported in #88 came from shocking CGNCGA on a template built for another
+    instrument: the shocked run lost l.403 and the baseline kept it, so the
+    difference was the shock plus the gap between the CGNCGA data and TROD.
+    """
+    import numpy as np
+
+    size = 1000.0
+    paid = _borrowing_deltas("TROD", True)
+    for series in ("CGNB", "GGNB", "PSNBNSA", "TME", "PSCE"):
+        np.testing.assert_allclose(paid[series], size, atol=1e-6, err_msg=series)
+    np.testing.assert_allclose(paid["CGSUBP"], 0.0, atol=1e-6)
+    assert (paid["CB"] <= -size).all() and (paid["CB"] > -1.1 * size).all()
+
+    held = _borrowing_deltas("TROD", False)
+    np.testing.assert_allclose(held["CGSUBP"], -size, atol=1e-6)
+    np.testing.assert_allclose(held["PSNBNSA"], 0.0, atol=1e-6)
+
+    # Shocked directly through run_reform, CGNCGA is flat too, but the
+    # current account does not see it.
+    direct = _borrowing_deltas("CGNCGA", False)
+    np.testing.assert_allclose(direct["CGSUBP"], -size, atol=1e-6)
+    np.testing.assert_allclose(direct["CB"], 0.0, atol=1.0)
+
+
+def test_employer_nics_lower_general_government_borrowing_by_the_receipts():
+    """Employer NICs +£1,000m a quarter (#88).
+
+    Receipts and PSNBNSA move by the shock. Higher contributions lift
+    government pay (l.369, l.371) and central government procurement, the
+    residual of the imposed consumption total (l.377), falls by the sum, so
+    CGNB falls by the receipts plus the local authority pay rise. With l.526
+    live that pay rise is in LANB, and general government borrowing falls by
+    exactly the receipts. The central/local split stays the listing's.
+    """
+    import warnings
+
+    import numpy as np
+
+    size = 1000.0
+    d = _borrowing_deltas("EMPNIC", False)
+    np.testing.assert_allclose(d["PSCR"], size, atol=1e-6)
+    for series in ("GGNB", "TDEF", "PSNBNSA"):
+        np.testing.assert_allclose(d[series], -size, atol=1e-6, err_msg=series)
+    assert (d["LAWS"] > 50).all() and (d["CGWS"] > 100).all()
+    np.testing.assert_allclose(d["CGP"], -(d["CGWS"] + d["LAWS"]), atol=1e-6)
+    np.testing.assert_allclose(d["LANB"], d["LAWS"], atol=1e-6)
+    np.testing.assert_allclose(d["CGNB"], -size - d["LAWS"], atol=1e-6)
+    # Quoted in docs/limitations.md, q1 / q4 / q12.
+    np.testing.assert_allclose(
+        d["CGNB"][[0, 3, 11]], (-1070.9, -1073.0, -1068.4), atol=0.5, rtol=0
+    )
+
+    from obr_macro import run_reform
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        df = run_reform(name="Employer NICs", var="EMPNIC", shock=size, periods=12)
+    assert "l.377" in df.attrs["procurement_offset_note"]
+    np.testing.assert_allclose(
+        df.attrs["procurement_offset_m"]["CGP"], d["CGP"], atol=1e-6
+    )
+
+
 def test_household_costing_addfactor_solves_with_documented_sign():
     """A positive static costing lowers HHDI and returns the standard frame."""
     from obr_macro import run_reform
