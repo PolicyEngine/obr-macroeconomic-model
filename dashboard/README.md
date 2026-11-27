@@ -21,22 +21,43 @@ npm run dev      # http://localhost:3000
 The tabs read three JSON files from `public/data/`, regenerated from the repo root:
 
 ```bash
-uv run python dashboard/gen_model_data.py      # -> public/data/model_data.json   (variables + equations)
-uv run python dashboard/gen_explorer_data.py   # -> public/data/explorer_data.json (scenario solver output; slow)
-uv run python dashboard/gen_reform_grid.py     # -> public/data/reform_grid.json   (custom-reform grid; slow)
+uv run python dashboard/gen_model_data.py      # -> public/data/model_data.json    (variables + equations; about a second)
+uv run python dashboard/gen_explorer_data.py   # -> public/data/explorer_data.json (15 solves; about four minutes)
+uv run python -m dashboard.gen_reform_grid     # -> public/data/reform_grid.json   (10 solves; about half a minute)
 ```
 
-`gen_model_data.py` parses the OBR variable list and transpiles each equation.
-`gen_explorer_data.py` solves the five reform scenarios (baseline vs shock); it is
-slow (two full 12-quarter solves per scenario).
+Timings are from a laptop on 26 Nov 2026. The `demo.yml` workflow's
+`dashboard-data` job runs the same three commands on GitHub Actions and uploads
+the files as an artefact.
 
-**Vintage.** The committed `explorer_data.json` and `reform_grid.json` were
-generated on 6 Nov 2026 against the March 2026 EFO and have not been regenerated
-since the October 2026 re-anchor (for example CGG +1,250 at q1: 1,269 here, 1,267
-in `results/demo_shocks.json`; Bank Rate +100bp at q1: −143 here, −128 there).
-Their captions (such as "multiplier 1.0, flat" in `reform_grid.json`) describe
-that run. `results/` is the source of record; regenerating the dashboard data is
-a follow-up.
+`gen_model_data.py` parses the OBR variable list and transpiles each equation.
+It also writes the identical packaged copy `obr_macro/seeds/model_glossary.json`.
+`gen_explorer_data.py` solves the five reform scenarios (a control, the shock
+and a mirror shock each). `gen_reform_grid.py` solves the two ends of each
+slider against a held-add-factor baseline. The chat agent in `chat/` reads
+`model_data.json` and `explorer_data.json`; it has no data of its own.
+
+**Vintage.** All three files were regenerated on 26 Nov 2026 against the
+October 2026 EFO. The explorer and the grid had last been generated on 6 Nov
+2026 against the March 2026 EFO; the regeneration moved GDP by up to £2m in
+the spending and export scenarios and by up to £22m in the Bank Rate scenario
+(first quarter −£143m before, −£133m now).
+
+The explorer and `results/demo_shocks.json` do not solve the same thing, so
+their figures differ and should: the explorer shocks a freshly built model
+with the instrument made exogenous and holds a Bank Rate rise for 12 quarters;
+the demo battery uses `run_reform`, which also carries the nominal legs of a
+spending shock and holds Bank Rate for 4 quarters. `results/` is the source of
+record for figures quoted in the docs.
+
+**Staleness checks** (`tests/test_dashboard_fresh.py`). On every test run:
+`model_data.json` and its packaged copy are rebuilt and compared byte for
+byte, and the explorer and the grid must record the fingerprint of the input
+data now in `obr_macro/_data` and `obr_macro/seeds` (`meta.inputs_sha256`),
+along with the generators' current scenario lists, labels and notes. Nightly
+(`--runslow`): every scenario and the whole grid are solved again and compared
+with the committed numbers. If a check fails, run the three commands above and
+commit the result.
 
 ## Structure
 

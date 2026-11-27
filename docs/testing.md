@@ -40,17 +40,19 @@ uv run pytest -q --runslow tests/test_sign_conventions.py
 | Fast tests (hermetic) | Every run | `uv sync --locked --group chat`, then `uv run --group chat pytest -q`. No network, no solve. |
 | Wheel builds and ships its data assets | Every run | Builds the wheel, installs it in a clean environment outside the checkout, checks that every data file is in the installed package and that the listing parses to more than 300 equations. A hard gate. |
 | Structural invariants | Not on pull requests: pushes to `main`, nightly, weekly and manual runs | `pytest --runslow` on `test_model_invariants.py`, `test_stress.py`, `test_solver.py`, `test_nominal_gdp_pin.py` and `test_tax_scenarios.py`. A hard gate. Includes the HMRC ready-reckoner check on the basic-rate costing and the calibration-scorecard regression check. |
+| Committed outputs are fresh | Not on pull requests: pushes to `main`, nightly, weekly and manual runs | `pytest --runslow` on `test_forecast_docs.py`, `test_dashboard_fresh.py` and `test_demo_shocks_fresh.py`: reruns the forecast CLI, the dashboard generators and the demo battery's `run_reform` calls and compares them with the documented and committed figures. A hard gate. |
 | Calibration scorecard | Not on pull requests | Runs `python -m obr_macro.calibration_score` (the free-running model against the OBR's Economic and fiscal outlook, EFO) under the default closure and under the published closure, and publishes the result as a job summary and artefact. Report only: it never fails the build. |
 | Extended validation | Weekly and on manual dispatch | The full suite with `--runslow` on Python 3.11, 3.12 and 3.13. A hard gate when it runs. |
 
 ### `demo.yml`
 
-[`.github/workflows/demo.yml`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/.github/workflows/demo.yml) runs only on manual dispatch and never gates a pull request. Its four jobs regenerate results files and upload them as workflow artefacts:
+[`.github/workflows/demo.yml`](https://github.com/PolicyEngine/obr-macroeconomic-model/blob/main/.github/workflows/demo.yml) runs only on manual dispatch and never gates a pull request. Its five jobs regenerate results files and upload them as workflow artefacts:
 
 - `demo-shocks`: `scripts/demo_shocks.py`, writing `results/demo_shocks.json`;
 - `readme-cli`: `python -m obr_macro.reform_analysis`, uploading its log and `outputs/`;
 - `site-figures`: `scripts/site_figures.py`, writing `results/site_figures.json`;
-- `convergence-decomposition`: `scripts/convergence_decomposition.py`, writing `results/convergence_decomposition.json`.
+- `convergence-decomposition`: `scripts/convergence_decomposition.py`, writing `results/convergence_decomposition.json`;
+- `dashboard-data`: the three generators in `dashboard/`, writing `dashboard/public/data/*.json`.
 
 The workflow does not commit anything. To update a results file, download the artefact and commit it.
 
@@ -69,6 +71,14 @@ Each file in `results/` is written by one script in [`scripts/`](https://github.
 | `results/convergence_decomposition.json` | `scripts/convergence_decomposition.py` | `demo.yml` |
 | `results/demand_overlays.json` | `scripts/demand_overlays.py` | Locally |
 | `results/debt_interest_examples.json` | `scripts/debt_interest_examples.py` | Locally |
+
+The dashboard data in `dashboard/public/data` (which the chat agent also reads) is written by three generators in `dashboard/`:
+
+| File | Generator | Cost on a laptop (26 Nov 2026) |
+|---|---|---|
+| `model_data.json` and its copy `obr_macro/seeds/model_glossary.json` | `uv run python dashboard/gen_model_data.py` | About a second |
+| `explorer_data.json` | `uv run python dashboard/gen_explorer_data.py` | About four minutes (15 solves) |
+| `reform_grid.json` | `uv run python -m dashboard.gen_reform_grid` | About half a minute (10 solves) |
 
 Run any of them with `uv run python scripts/<name>.py`. Each file records the script that wrote it; all but `convergence_decomposition.json` also record the commit, machine and Python version. `scripts/unguarded_ibusx.py` prints the unguarded business-investment path quoted on [how it works](how-it-works.md#the-investment-closure); it writes no file. [Data and results](data.md) describes what each file contains.
 
@@ -140,3 +150,11 @@ Run any of them with `uv run python scripts/<name>.py`. Each file records the sc
 |---|---|---|
 | `test_chat_agent.py` | Fast | The chat agent's tool loop, with a mock HTTP transport (no API key, no network). Skipped without the `chat` dependency group. |
 | `test_dashboard_data.py` | Fast | The committed dashboard data is finite, internally consistent and sensible in sign and size. |
+| `test_dashboard_fresh.py` | Mixed | The committed dashboard data matches the model in the tree. Fast: the glossary is rebuilt and compared byte for byte, and the explorer and the reform grid record the fingerprint of the current input data and the generators' current labels. Slow: every scenario and the grid are solved again and compared. |
+
+### Documented and committed outputs
+
+| File | Speed | What it checks |
+|---|---|---|
+| `test_forecast_docs.py` | Slow | The table, counts and repeated figures in [forecasting framework](forecasting_framework.md), and the fit summary in the chat agent, against the output of `python -m obr_macro.forecast` under both closures. |
+| `test_demo_shocks_fresh.py` | Slow | `results/demo_shocks.json` against `run_reform` as it is now: the four stored series and every label of all 15 shocks. |

@@ -3,23 +3,31 @@ variables spreadsheet.
 
 Reads obr_macro/_data/obr_model_variables_october_2025.xlsx, transpiles each equation with
 the project's EViews transpiler, and writes dashboard/public/data/model_data.json
-(consumed by the Variables and Equations tabs).
+(consumed by the Variables and Equations tabs and by the chat agent) and the
+identical packaged copy obr_macro/seeds/model_glossary.json (read by
+obr_macro/ons_pull.py).
 
-Run from the repo root:
     uv run python dashboard/gen_model_data.py
+
+Takes about a second. tests/test_dashboard_fresh.py rebuilds the payload on
+every test run and fails if either committed copy differs from it.
 """
 
 import json
+from pathlib import Path
 
 import openpyxl
 
 from obr_macro.transpiler import EViewsTranspiler
 
-XLSX = "obr_macro/_data/obr_model_variables_october_2025.xlsx"
-OUT = "dashboard/public/data/model_data.json"
+ROOT = Path(__file__).resolve().parents[1]
+XLSX = ROOT / "obr_macro/_data/obr_model_variables_october_2025.xlsx"
+OUT = ROOT / "dashboard/public/data/model_data.json"
+SEED = ROOT / "obr_macro/seeds/model_glossary.json"
 
 
-def main():
+def build():
+    """The glossary payload and the number of equations that transpiled."""
     wb = openpyxl.load_workbook(XLSX, data_only=True)
     ws = wb["Sheet1"]
     tr = EViewsTranspiler()
@@ -76,10 +84,23 @@ def main():
         if it["group"] and it["group"] not in groups:
             groups.append(it["group"])
 
-    with open(OUT, "w") as f:
-        json.dump({"groups": groups, "items": items}, f, separators=(",", ":"))
+    return {"groups": groups, "items": items}, n_eq
+
+
+def serialise(payload):
+    """The exact text of both committed copies."""
+    return json.dumps(payload, separators=(",", ":"))
+
+
+def main():
+    payload, n_eq = build()
+    text = serialise(payload)
+    for path in (OUT, SEED):
+        path.write_text(text)
     print(
-        f"wrote {OUT}: {len(items)} variables, {n_eq} transpiled equations, {len(groups)} groups"
+        f"wrote {OUT.relative_to(ROOT)} and {SEED.relative_to(ROOT)}: "
+        f"{len(payload['items'])} variables, {n_eq} transpiled equations, "
+        f"{len(payload['groups'])} groups"
     )
 
 

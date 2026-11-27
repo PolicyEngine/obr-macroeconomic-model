@@ -1,9 +1,9 @@
 {
  "source": "scripts/demo_shocks.py",
- "model_commit": "a8220455b17e5211913388f93095f3a2b36dca70",
- "machine": "Linux x86_64",
- "python": "3.14.4",
- "runtime_s": 2930.6,
+ "model_commit": "3b2d6f638e6b923500f2cf492d0dad74d5e449e9",
+ "machine": "Darwin arm64",
+ "python": "3.13.15",
+ "runtime_s": 229.3,
  "window": [
   "2025Q1",
   "2027Q4"
@@ -141,6 +141,9 @@
     "multiplier_warning": "Demand-closure shock: GDP delta is mechanical passthrough via the expenditure identity (multiplier 1.0 under the published closure; under the default nominal-GDP pin about 1.01 on impact, drifting up to about 1.04 by q12 because the extra nominal GDP lands in profits and a small part reaches household income and consumption; no decay). Import leakage and crowding-out channels are structurally inert in the published model file/data. This does NOT match the OBR's published impact multiplier for current spending (0.6, decaying to zero as the output gap closes) \u2014 it is ~69% too large on impact under the default pin (~67% under the published closure) and drifts up where the OBR's decays. Do not read the path as a multiplier profile.",
     "dead_channel": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -542,7 +545,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 209.1
+   "runtime_s": 29.6
   },
   "cgg_real_only": {
    "label": "Same, real-only (nominal spending held; the default before 18 Nov 2026)",
@@ -675,6 +678,9 @@
     "multiplier_warning": "Demand-closure shock: GDP delta is mechanical passthrough via the expenditure identity (multiplier 1.0 under the published closure; under the default nominal-GDP pin about 1.01 on impact, drifting up to about 1.04 by q12 because the extra nominal GDP lands in profits and a small part reaches household income and consumption; no decay). Import leakage and crowding-out channels are structurally inert in the published model file/data. This does NOT match the OBR's published impact multiplier for current spending (0.6, decaying to zero as the output gap closes) \u2014 it is ~69% too large on impact under the default pin (~67% under the published closure) and drifts up where the OBR's decays. Do not read the path as a multiplier profile.",
     "dead_channel": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -1076,7 +1082,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 121.2
+   "runtime_s": 15.6
   },
   "cgg_conventions": {
    "label": "Same, OBR published conventions",
@@ -1240,7 +1246,7 @@
       337.49999999999994
      ],
      "imposition_solves": 3,
-     "max_abs_miss_m": 0.037832727190050264,
+     "max_abs_miss_m": 0.03783272742288091,
      "solver_exit_status": {
       "2025Q1": "tol",
       "2025Q2": "tol",
@@ -1259,9 +1265,12 @@
     "dead_channel": false,
     "published_conventions_note": "delta_gdp follows the OBR's published multiplier convention, not model dynamics: impact multiplier 0.6 for current (day-to-day) departmental spending (OBR, Economic and fiscal outlook, July 2015, Box 3.2 'Fiscal multipliers' (obr.uk/box/fiscal-multipliers); taper restated in OBR, 'Dynamic scoring of policy measures in OBR forecasts' (articles.obr.uk)), fading linearly to zero over 20 quarters from the shock start. The linear path shape is this repo's choice \u2014 the OBR publishes the impact value and the zero endpoint, not the path. Imposed as a GDPM add-factor on the shocked run only; the model's own channel for this instrument is an accounting identity (1.0-flat passthrough) and cannot produce this profile. Component deltas (delta_cons_m, delta_if_m) are NOT overridden \u2014 they are what the model's own equations give in the imposed run, so e.g. delta_if_m stays exactly zero for a capital-spending shock even though delta_gdp follows the convention. Under the nominal-GDP pin (l.690) delta_cons_m is the income channel's response to the imposed GDP path (nominal GDP -> profits -> household income -> consumption), a few per cent of the GDP delta; the add-factor absorbs it, so the GDP total is still exactly the convention.",
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
-   "runtime_s": 152.7
+   "runtime_s": 19.1
   },
   "income_tax": {
    "label": "Income tax basic rate +1p (GBP 6.9bn/yr)",
@@ -1392,6 +1401,9 @@
     "transmission_note": "Behavioural channel: household disposable income moves by the revenue (falls for a rise, rises for a cut), and the published consumption equation (l.4) responds to real income. Compare with the OBR's 0.3 income tax/NICs multiplier on a like-for-like (current-price) basis. The OBR's figure is an impact multiplier that fades; the model's response builds up instead, because consumption adjusts gradually and nothing in the published equations pulls it back.",
     "dead_channel": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -1793,7 +1805,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 210.5
+   "runtime_s": 20.3
   },
   "household_costing": {
    "label": "Household costing path GBP 1,616m a quarter (README)",
@@ -2010,6 +2022,9 @@
     ],
     "gdp_per_revenue_basis_note": "delta_gdp_m is chained-volume (real) GDP; the household shock is current-price revenue. gdp_per_revenue_real = -delta_gdp_m / revenue mixes the two bases. The OBR's 0.3 income-tax multiplier (EFO July 2015, Box 3.2) is like for like, so compare it with gdp_per_revenue_current_price = -delta_GDPMPS / revenue, which equals the real ratio times PGDP/100 (issue #63).",
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -2411,7 +2426,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 213.4
+   "runtime_s": 16.2
   },
   "employee_nics": {
    "label": "Employee NICs main rate +1pp (GBP 5.35bn/yr)",
@@ -2542,6 +2557,9 @@
     "transmission_note": "Behavioural channel: household disposable income moves by the revenue (falls for a rise, rises for a cut), and the published consumption equation (l.4) responds to real income. Compare with the OBR's 0.3 income tax/NICs multiplier on a like-for-like (current-price) basis. The OBR's figure is an impact multiplier that fades; the model's response builds up instead, because consumption adjusts gradually and nothing in the published equations pulls it back.",
     "dead_channel": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -2943,7 +2961,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 211.3
+   "runtime_s": 14.7
   },
   "vat": {
    "label": "VAT standard rate +1pp (GBP 8.8bn/yr)",
@@ -3074,6 +3092,9 @@
     "transmission_note": "Receipts reach PSCR and CGNB one for one. GDP moves only through profits: with nominal GDP pinned (the default) the tax lands on operating surplus, and households lose the quasi-corporation withdrawals (WYQC, l.641) that scale with profits. CPI is exogenous in the listing (l.314 commented out), so there is no price channel; the response is about a tenth of the OBR's 0.35 VAT convention (#60).",
     "dead_channel": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -3475,7 +3496,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 209.6
+   "runtime_s": 13.2
   },
   "fuel_duty": {
    "label": "Fuel duty +5% (GBP 1.2bn/yr)",
@@ -3606,6 +3627,9 @@
     "transmission_note": "Receipts reach PSCR and CGNB one for one. GDP moves only through profits (operating surplus, then WYQC, l.641); CPI is exogenous, so there is no price channel (#60).",
     "dead_channel": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -4007,7 +4031,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 210.7
+   "runtime_s": 12.4
   },
   "corporation_tax_receipts": {
    "label": "Corporation tax +1pp as receipts (GBP 3.6bn/yr)",
@@ -4138,6 +4162,9 @@
     "transmission_note": "Corporation-tax receipts only: PSCR and CGNB move one for one and GDP by exactly zero. The corporation-tax GDP channel is the cost of capital: shock TCPRO with investment_closure=True.",
     "dead_channel": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -4539,7 +4566,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 210.7
+   "runtime_s": 12.8
   },
   "corporation_tax_rate": {
    "label": "Corporation tax rate +5pp, investment closure (README)",
@@ -4673,6 +4700,9 @@
     "investment_closure_plateau_fraction": 0.398455,
     "investment_closure_diverging": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -5074,7 +5104,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 200.6
+   "runtime_s": 12.5
   },
   "bank_rate": {
    "label": "Bank Rate +1pp for 4 quarters",
@@ -5207,6 +5237,9 @@
     "cost_of_capital_channel": "Bank Rate does not reach corporate interest or business investment. RIC (l.576), CDEBT (l.60) and RWACC (l.64) are NaN over the solve window in both closures (l.576 is error-correcting in RIC(-1) and has no starting value; cause not yet traced), so R reaches neither the corporate interest flows (DIPIC, DIRIC) nor the cost of capital; and COCU (l.68) is a fixed seed because DELTA, DEBTW and NDIV are unpublished. COC, KSTAR and IBUSX do not respond to R even under investment_closure=True. In the OBR's own working file the investment equation (l.92) is commented out as well.",
     "inflation_unemployment_note": "CPI and unemployment do not respond to Bank Rate in this model by design: the OBR's CPI identity (l.314) and PGDP (l.713) are commented out, so CPI and PGDP are exogenous, and LFSUR (l.165) has no demand or rate term. Any inflation or labour-market response must come from outside the model.",
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -5608,7 +5641,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 211.9
+   "runtime_s": 13.0
   },
   "bank_rate_conditioned": {
    "label": "Bank Rate +1pp for 4 quarters, monetary_conditioning",
@@ -5743,6 +5776,9 @@
     "cost_of_capital_channel": "Bank Rate does not reach corporate interest or business investment. RIC (l.576), CDEBT (l.60) and RWACC (l.64) are NaN over the solve window in both closures (l.576 is error-correcting in RIC(-1) and has no starting value; cause not yet traced), so R reaches neither the corporate interest flows (DIPIC, DIRIC) nor the cost of capital; and COCU (l.68) is a fixed seed because DELTA, DEBTW and NDIV are unpublished. COC, KSTAR and IBUSX do not respond to R even under investment_closure=True. In the OBR's own working file the investment equation (l.92) is commented out as well.",
     "inflation_unemployment_note": "CPI and unemployment do not respond to Bank Rate in this model by design: the OBR's CPI identity (l.314) and PGDP (l.713) are commented out, so CPI and PGDP are exogenous, and LFSUR (l.165) has no demand or rate term. Any inflation or labour-market response must come from outside the model.",
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": true,
     "monetary_conditioning_on": {
      "RMORT": {
@@ -5752,13 +5788,13 @@
     },
     "monetary_conditioning_off": {
      "RDEP": "No point estimate: BoE (Saunders speech, Mar 2019) reports sight-deposit pass-through of over 80% on average in earlier tightening cycles but around 40% in 2017-18, a range too wide to pick from. RDEP reaches deposit FISIM (DIRHHf l.627) and deposit holdings (l.779), not HHDI directly; round 3 measured it as a minor channel.",
-     "RL": "No sourced Bank Rate -> 10-year gilt coefficient in BoE/OBR documentation found.",
+     "RL": "No sourced Bank Rate -> 20-year gilt yield coefficient in BoE/OBR documentation found.",
      "RX": "No sourced coefficient; and X, M have no equation, so sterling cannot move trade volumes in this model (it only moves PXNOG/PMNOG prices).",
      "APH": "No sourced Bank Rate -> house price coefficient in BoE/OBR documentation found."
     },
     "monetary_conditioning_note": "Judgement overlay, not model dynamics: Bank Rate's pass-through to the listed conditioning inputs is imposed from the cited sources; channels without a sourced coefficient stay at the EFO path."
    },
-   "runtime_s": 61.5
+   "runtime_s": 4.3
   },
   "vat_passthrough": {
    "label": "VAT standard rate +1pp, price_passthrough (#60)",
@@ -5910,10 +5946,13 @@
       0.3756,
       0.3707
      ],
-     "max_change_last_pass": 8.727643661917642e-06,
-     "residual_vs_final_take": 3.421963137130793e-07
+     "max_change_last_pass": 8.727643661974021e-06,
+     "residual_vs_final_take": 3.421963136567008e-07
     },
     "price_passthrough_note": "Judgement overlay, not the shipped listing: the indirect-tax rise is passed into CPI (and so PCE and real household income) through the listing's own cost-push weights (RPCOST l.270 with SCOST/CCOST/UTCOST, total tax weight 13.84; CPI from the commented-out l.314, W1 = 0.084), with the retail markup MKR held at baseline. The shipped listing does the opposite (CPI exogenous, MKR the residual, l.284). Holding MKR means full and immediate pass-through of the cost change. Weights stand in for unpublished shares (linearised at base). The GDP deflator PGDP stays at its EFO path under the nominal-GDP pin. Nothing in the published equations makes the consumption response fade, so later quarters can exceed the OBR's tapering 0.35 convention.",
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -6315,7 +6354,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 260.9
+   "runtime_s": 18.2
   },
   "fuel_duty_passthrough": {
    "label": "Fuel duty +5%, price_passthrough (#60)",
@@ -6467,10 +6506,13 @@
       0.0518,
       0.0512
      ],
-     "max_change_last_pass": 1.206918105476208e-06,
-     "residual_vs_final_take": 4.735197109558779e-08
+     "max_change_last_pass": 1.2069181054198295e-06,
+     "residual_vs_final_take": 4.735197115185788e-08
     },
     "price_passthrough_note": "Judgement overlay, not the shipped listing: the indirect-tax rise is passed into CPI (and so PCE and real household income) through the listing's own cost-push weights (RPCOST l.270 with SCOST/CCOST/UTCOST, total tax weight 13.84; CPI from the commented-out l.314, W1 = 0.084), with the retail markup MKR held at baseline. The shipped listing does the opposite (CPI exogenous, MKR the residual, l.284). Holding MKR means full and immediate pass-through of the cost change. Weights stand in for unpublished shares (linearised at base). The GDP deflator PGDP stays at its EFO path under the nominal-GDP pin. Nothing in the published equations makes the consumption response fade, so later quarters can exceed the OBR's tapering 0.35 convention.",
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -6872,7 +6914,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 245.8
+   "runtime_s": 16.9
   },
   "cgips_investment_closure": {
    "label": "Government investment +GBP 3bn a quarter, investment closure",
@@ -7007,6 +7049,9 @@
     "investment_closure_plateau_fraction": null,
     "investment_closure_diverging": false,
     "price_passthrough": false,
+    "import_response": false,
+    "employment_response": false,
+    "debt_interest": false,
     "monetary_conditioning": false
    },
    "pair": {
@@ -7408,7 +7453,7 @@
     }
    },
    "pair_matches_run_reform_max_abs_m": 0.0,
-   "runtime_s": 200.7
+   "runtime_s": 10.6
   }
  }
 }

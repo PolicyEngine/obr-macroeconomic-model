@@ -3,11 +3,21 @@
 Replays each of the five reform scenarios (matching reform_analysis.run_five_reforms)
 and captures the baseline-vs-shock delta for a panel of variables across the full
 horizon, then writes a compact JSON the dashboard embeds.
+
+    uv run python dashboard/gen_explorer_data.py
+
+About four minutes on a laptop (15 solves, 26 Nov 2026). The file records the
+fingerprint of the packaged input data it was generated from;
+tests/test_dashboard_fresh.py checks that on every run, and re-solves every
+scenario against the committed file under ``--runslow``.
 """
 
 import json
+from pathlib import Path
+
 import numpy as np
 
+from obr_macro.data import input_fingerprint
 from obr_macro.full_solver import FullOBRSolver
 from obr_macro.reform_analysis import (
     GDPM_EQ,
@@ -19,6 +29,7 @@ from obr_macro.reform_analysis import (
 )
 
 START, END = "2025Q1", "2027Q4"
+OUT = Path(__file__).resolve().parent / "public" / "data" / "explorer_data.json"
 
 # Corporation-tax scenarios are excluded. Historically because the closure's
 # deviation diverged (~x2 per quarter, reaching tens of £bn); that was fixed
@@ -239,7 +250,19 @@ def run_scenario(sc):
     return periods, series
 
 
-def main():
+NOTE = (
+    "Emulator output (15 Oct 2025 OBR model code). Deltas are shocked-minus-control "
+    "with identical model structure in both runs. Under the demand closure the shock "
+    "lands directly in the GDP identity and the behavioural second round is largely "
+    "inactive, so the impact multiplier is ~1 by construction (the OBR's own published "
+    "impact multiplier for current spending is 0.6 in real terms, EFO July 2015 Box 3.2). "
+    "Corporation-tax scenarios are not part of this explorer: they need the investment "
+    "closure (see the README). Scenarios whose ± responses fail a symmetry check are "
+    "dropped by the generator. Illustrative, not an OBR forecast."
+)
+
+
+def build_data():
     periods_ref = None
     out_scen = []
     for sc in SCENARIOS:
@@ -267,27 +290,23 @@ def main():
         moved = ", ".join(series.keys())
         print(f"[gen]   moved: {moved}", flush=True)
 
-    data = {
+    return {
         "meta": {
             "start": START,
             "end": END,
-            "note": "Emulator output (15 Oct 2025 OBR model code). Deltas are shocked-minus-control "
-            "with identical model structure in both runs. Under the demand closure the shock "
-            "lands directly in the GDP identity and the behavioural second round is largely "
-            "inactive, so the impact multiplier is ~1 by construction (the OBR's own published "
-            "impact multiplier for current spending is 0.6 in real terms, EFO July 2015 Box 3.2). "
-            "Corporation-tax scenarios are not part of this explorer: they need the investment "
-            "closure (see the README). Scenarios whose ± responses fail a symmetry check are "
-            "dropped by the generator. Illustrative, not an OBR forecast.",
+            "inputs_sha256": input_fingerprint(),
+            "note": NOTE,
         },
         "periods": periods_ref,
         "variables": [{"code": c, "label": lbl, "unit": u} for c, lbl, u, _ in VARS],
         "scenarios": out_scen,
     }
-    path = "dashboard/public/data/explorer_data.json"
-    with open(path, "w") as f:
-        json.dump(data, f, separators=(",", ":"))
-    print(f"[gen] wrote {path}", flush=True)
+
+
+def main():
+    data = build_data()
+    OUT.write_text(json.dumps(data, separators=(",", ":")))
+    print(f"[gen] wrote {OUT}", flush=True)
 
 
 if __name__ == "__main__":

@@ -17,16 +17,25 @@ Concretely:
     the dashboard scale linearly to any slider value (0 = baseline).
 
     uv run python -m dashboard.gen_reform_grid
+
+About half a minute on a laptop (10 solves over 8 quarters, 26 Nov 2026). The
+file records the fingerprint of the packaged input data it was generated from;
+tests/test_dashboard_fresh.py checks that on every run, and re-solves the grid
+against the committed file under ``--runslow``.
 """
 
 from __future__ import annotations
 
 import json
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 
 from obr_macro.baseline import build as build_baseline
+from obr_macro.data import input_fingerprint
+
+OUT = Path(__file__).resolve().parent / "public" / "data" / "reform_grid.json"
 
 BASE_START, BASE_END = "2024Q1", "2025Q4"  # window the add-factors are fit over
 START, END = "2026Q1", "2027Q4"  # reform horizon (the validated window)
@@ -200,7 +209,17 @@ def run_point(base, lever, value, control):
     return series
 
 
-def main():
+NOTE = (
+    "Emulator output (15 Oct 2025 OBR model code). The reform is run as in "
+    "EViews: the policy instrument is overridden in a scenario and solved "
+    "against a baseline that already carries the OBR's held add-factors, so "
+    "the impact is scenario − baseline with the model's common drift cancelled. "
+    "Endpoints are solved; the slider scales linearly between them. "
+    "Illustrative, not an OBR forecast."
+)
+
+
+def build_data():
     print("[grid] building held-add-factor baseline ...", flush=True)
     base = held_baseline()
     t0, t1 = base.period_idx(START), base.period_idx(END)
@@ -251,25 +270,23 @@ def main():
         )
         print(f"[grid]   moved: {', '.join(sorted(common))}", flush=True)
 
-    data = {
+    return {
         "meta": {
             "start": START,
             "end": END,
-            "note": "Emulator output (15 Oct 2025 OBR model code). The reform is run as in "
-            "EViews: the policy instrument is overridden in a scenario and solved "
-            "against a baseline that already carries the OBR's held add-factors, so "
-            "the impact is scenario − baseline with the model's common drift cancelled. "
-            "Endpoints are solved; the slider scales linearly between them. "
-            "Illustrative, not an OBR forecast.",
+            "inputs_sha256": input_fingerprint(),
+            "note": NOTE,
         },
         "periods": periods_ref,
         "variables": [{"code": c, "label": lbl, "unit": u} for c, lbl, u, _ in VARS],
         "levers": out_levers,
     }
-    out = "dashboard/public/data/reform_grid.json"
-    with open(out, "w") as f:
-        json.dump(data, f, separators=(",", ":"))
-    print(f"[grid] wrote {out}", flush=True)
+
+
+def main():
+    data = build_data()
+    OUT.write_text(json.dumps(data, separators=(",", ":")))
+    print(f"[grid] wrote {OUT}", flush=True)
 
 
 if __name__ == "__main__":

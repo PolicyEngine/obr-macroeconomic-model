@@ -1,6 +1,7 @@
 """Load OBR EFO data from Excel files."""
 
 from pathlib import Path
+import hashlib
 import urllib.request
 import json
 import re
@@ -34,6 +35,29 @@ def _resolve_data_dir() -> Path:
 
 
 DATA_DIR = _resolve_data_dir()
+
+
+def input_fingerprint() -> str:
+    """SHA-256 of every packaged input file (``obr_macro/_data`` and
+    ``obr_macro/seeds``): the model listing, the EFO workbooks and the ONS
+    snapshot.
+
+    Precomputed outputs record it (the dashboard data in
+    ``dashboard/public/data``), so a test can tell on every run that they were
+    generated from the inputs now in the tree, without solving anything. It
+    covers the data only: a change to the model code leaves it unchanged. It
+    always reads the packaged files, even when a repo-root ``data/`` directory
+    overrides ``DATA_DIR``.
+    """
+    pkg = Path(__file__).resolve().parent
+    digest = hashlib.sha256()
+    for sub in ("_data", "seeds"):
+        for path in sorted((pkg / sub).iterdir()):
+            if path.is_file():
+                digest.update(f"{sub}/{path.name}\n".encode())
+                digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
+
 
 # OBR macroeconomic model code/variables download URLs (15 October 2025 version)
 OBR_MODEL_URLS = {
