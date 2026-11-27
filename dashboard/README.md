@@ -43,12 +43,23 @@ October 2026 EFO. The explorer and the grid had last been generated on 6 Nov
 the spending and export scenarios and by up to £22m in the Bank Rate scenario
 (first quarter −£143m before, −£133m now).
 
-The explorer and `results/demo_shocks.json` do not solve the same thing, so
-their figures differ and should: the explorer shocks a freshly built model
-with the instrument made exogenous and holds a Bank Rate rise for 12 quarters;
-the demo battery uses `run_reform`, which also carries the nominal legs of a
-spending shock and holds Bank Rate for 4 quarters. `results/` is the source of
-record for figures quoted in the docs.
+The explorer and `results/demo_shocks.json` differ for a known reason.
+`run_reform` scores a shock around the baseline anchored to the EFO
+(`freeze_anchoring` and `_anchor_published_levels` in
+`obr_macro/reform_analysis.py`); the explorer builds the model without those
+two steps, so it scores the same shock around the free-running model. With
+them added, the explorer reproduces `run_reform` exactly (run on 26 Nov 2026):
+
+| Real GDP change, £m (q1 / q4) | Explorer as shipped | Explorer with the anchoring | `results/demo_shocks.json` |
+|---|--:|--:|--:|
+| `CGG` +1,250 a quarter, real only | +1,267.9 / +1,285.8 | +1,266.8 / +1,283.3 | +1,266.8 / +1,283.3 (`cgg_real_only`) |
+| Bank Rate +1pp | −133.2 / −401.3 | −128.4 / −406.3 | −128.4 / −406.3 (`bank_rate`) |
+
+Two further differences are by design: the explorer's spending shock carries
+no nominal legs (the demo's default `cgg` row does), and it holds the Bank
+Rate rise for 12 quarters where the demo holds it for 4. `results/` is the
+source of record for figures quoted in the docs. Issue #92 tracks moving the
+explorer onto the anchored baseline.
 
 **Staleness checks** (`tests/test_dashboard_fresh.py`). On every test run:
 `model_data.json` and its packaged copy are rebuilt and compared byte for

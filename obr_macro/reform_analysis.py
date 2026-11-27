@@ -1870,7 +1870,7 @@ def run_five_reforms():
     # nominal is £2.5bn real"; 119 matches neither baseline. The shock was
     # sized from it and is left at 3,000 because tests, the transmission audit
     # and the demo battery all pin CGIPS +3,000; the reform's name keeps its
-    # "£10bn" label for the same reason. See getting-started.md.
+    # "£10bn" label for the same reason (issue #93). See getting-started.md.
     #
     # KNOWN DEAD: the chain stops at GGI. IF has no live equation under the
     # demand closure, so GGI never reaches the GDP identity — delta_IF is

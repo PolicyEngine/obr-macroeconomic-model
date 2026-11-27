@@ -53,7 +53,7 @@ def input_fingerprint() -> str:
     digest = hashlib.sha256()
     for sub in ("_data", "seeds"):
         for path in sorted((pkg / sub).iterdir()):
-            if path.is_file():
+            if path.is_file() and not path.name.startswith("."):
                 digest.update(f"{sub}/{path.name}\n".encode())
                 digest.update(hashlib.sha256(path.read_bytes()).digest())
     return digest.hexdigest()
